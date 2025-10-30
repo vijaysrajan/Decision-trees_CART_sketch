@@ -51,19 +51,26 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     Examples
     --------
+    >>> # Mode 1: Single CSV
     >>> clf = ThetaSketchDecisionTreeClassifier(max_depth=5)
-    >>> clf.fit('sketches.csv', 'config.yaml')
+    >>> clf.fit(csv_path='sketches.csv', config_path='config.yaml')
+    >>> predictions = clf.predict(X_test)
+    >>>
+    >>> # Mode 2: Dual CSV (recommended)
+    >>> clf = ThetaSketchDecisionTreeClassifier(max_depth=5)
+    >>> clf.fit(positive_csv='target_yes.csv', negative_csv='target_no.csv',
+    ...         config_path='config.yaml')
     >>> predictions = clf.predict(X_test)
     """
 
     def __init__(
         self,
-        criterion='gini',
+        criterion="gini",
         max_depth=None,
         min_samples_split=2,
         min_samples_leaf=1,
         # ... more parameters
-        verbose=0
+        verbose=0,
     ):
         # Store parameters
         self.criterion = criterion
@@ -72,8 +79,22 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.min_samples_leaf = min_samples_leaf
         self.verbose = verbose
 
-    def fit(self, csv_path: str, config_path: str):
-        """Train decision tree from theta sketches."""
+    def fit(
+        self,
+        config_path: str,
+        csv_path: Optional[str] = None,
+        positive_csv: Optional[str] = None,
+        negative_csv: Optional[str] = None,
+    ):
+        """
+        Train decision tree from theta sketches.
+
+        Two modes:
+        - Mode 1: fit(csv_path='features.csv', config_path='config.yaml')
+        - Mode 2: fit(positive_csv='yes.csv', negative_csv='no.csv', config_path='config.yaml')
+
+        See docs/05_api_design.md for full documentation.
+        """
         raise NotImplementedError("To be implemented in Week 1-4")
 
     def predict(self, X: NDArray) -> NDArray:

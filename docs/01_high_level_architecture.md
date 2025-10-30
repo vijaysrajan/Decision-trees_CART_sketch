@@ -41,12 +41,15 @@ This implementation focuses on a **single decision tree classifier** with the fo
 │                     TRAINING PHASE                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
-│  CSV File Input                    Config File                   │
+│  CSV File Input (2 modes)          Config File                   │
 │  ┌──────────────────┐             ┌──────────────────┐          │
-│  │ <total>, sketch  │             │ target_yes: ...  │          │
-│  │ age>30, sketch   │             │ target_no: ...   │          │
-│  │ income>50k,sketch│             │ hyperparams: ... │          │
-│  └────────┬─────────┘             └────────┬─────────┘          │
+│  │ MODE 1: Single   │             │ hyperparams: ... │          │
+│  │ sketches.csv     │             │ feature_mapping: │          │
+│  │ OR               │             │   age>30: 0      │          │
+│  │ MODE 2: Dual CSVs│             │   income>50k: 1  │          │
+│  │ target_yes.csv   │             └────────┬─────────┘          │
+│  │ target_no.csv    │                      │                    │
+│  └────────┬─────────┘                      │                    │
 │           │                                 │                    │
 │           ▼                                 ▼                    │
 │  ┌─────────────────────────────────────────────────┐            │
@@ -105,29 +108,15 @@ This implementation focuses on a **single decision tree classifier** with the fo
 │                  INFERENCE PHASE                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  Raw Tabular Data (X_test)                                      │
-│  ┌──────────────────────────────┐                               │
-│  │  [35, 60000, 1]              │  (age, income, diabetes)      │
-│  │  [25, 45000, 0]              │                               │
-│  │  [55, 120000, 1]             │                               │
-│  └────────────┬─────────────────┘                               │
+│  Binary Tabular Data (X_test)                                   │
+│  ┌──────────────────────────────────────────┐                   │
+│  │  [1, 0, 1, 1]  # Pre-computed binary     │                   │
+│  │  [0, 1, 0, 0]  # age>30, city=NY, ...    │                   │
+│  │  [1, 0, 1, 0]  # Features already 0/1    │                   │
+│  └────────────┬───────────────────────────────┘                 │
 │               │                                                  │
-│               ▼                                                  │
-│  ┌─────────────────────────────────────┐                        │
-│  │   FeatureTransformer                │                        │
-│  │  - Apply feature_mapping            │                        │
-│  │  - Transform raw → binary features  │                        │
-│  │  - age>30: lambda x: x > 30         │                        │
-│  │  - income>50k: lambda x: x > 50000  │                        │
-│  └────────────┬────────────────────────┘                        │
-│               │                                                  │
-│               ▼                                                  │
-│  Binary Feature Matrix                                          │
-│  ┌──────────────────────────────┐                               │
-│  │  [1, 1, 1]  # age>30, inc>50k│                               │
-│  │  [0, 0, 0]                   │                               │
-│  │  [1, 1, 1]                   │                               │
-│  └────────────┬─────────────────┘                               │
+│               │ feature_mapping: {"age>30": 0, "city=NY": 1}    │
+│               │ (just column indices, NO transformation)        │
 │               │                                                  │
 │               ▼                                                  │
 │  ┌─────────────────────────────────────┐                        │
@@ -153,35 +142,50 @@ This implementation focuses on a **single decision tree classifier** with the fo
 
 ### 3.1 Training Data Flow
 
+**MODE 1: Single CSV with Intersections**
 ```
-CSV Input Format (per target class):
+CSV Input Format (all sketches in one file):
 ┌────────────────────────────────┐
-│ <total|empty>, <sketch_bytes>  │  ← Population sketch (total or empty marker)
-│ age>30, <sketch_bytes>         │  ← Feature condition sketch
-│ income>50k, <sketch_bytes>     │  ← Feature condition sketch
-│ has_diabetes, <sketch_bytes>   │  ← Feature condition sketch
-│ target_yes, <sketch_bytes>     │  ← Target variable sketch (positive class)
-│ target_no, <sketch_bytes>      │  ← Target variable sketch (negative class)
+│ total, <sketch_bytes>          │  ← All records
+│ age>30, <sketch_bytes>         │  ← Anyone with age>30 (any class)
+│ income>50k, <sketch_bytes>     │  ← Anyone with income>50k (any class)
+│ has_diabetes, <sketch_bytes>   │  ← Anyone with diabetes
+│ target_yes, <sketch_bytes>     │  ← Positive class members
+│ target_no, <sketch_bytes>      │  ← Negative class members
 └────────────────────────────────┘
+                ↓
+    [Parse & Intersect Sketches]
+    (target_yes ∩ age>30, target_no ∩ age>30, ...)
+                ↓
+```
 
-Note: The first column can be:
-- "total" or "" (empty string): Population sketch (all records)
-- "dimension=value" or "item": Feature condition or item membership sketch
-- "target_yes", "target_no": Target class sketches (names specified in config)
+**MODE 2: Dual CSV Pre-Intersected (RECOMMENDED)**
+```
+target_yes.csv:                    target_no.csv:
+┌────────────────────────────┐    ┌────────────────────────────┐
+│ total, <pos_class_sketch>  │    │ total, <neg_class_sketch>  │
+│ age>30, <pos_AND_age_sketch>│   │ age>30, <neg_AND_age_sketch>│
+│ income>50k, <pos_AND_inc>  │    │ income>50k, <neg_AND_inc>  │
+│ has_diabetes, <pos_AND_dia>│    │ has_diabetes, <neg_AND_dia>│
+└────────────────────────────┘    └────────────────────────────┘
+    ↓                                   ↓
+    [Parse Sketches - NO intersection needed]
                 ↓
-    [Parse & Load Sketches]
-                ↓
+```
+
+**Result (both modes):**
+```
 ┌────────────────────────────────────────┐
 │ sketch_dict = {                        │
 │   'target_yes': {                      │
-│     'total': ThetaSketch,              │
-│     'age>30': ThetaSketch,             │
-│     'income>50k': ThetaSketch,         │
+│     'total': ThetaSketch,              │  ← Positive class total
+│     'age>30': ThetaSketch,             │  ← Positive AND age>30
+│     'income>50k': ThetaSketch,         │  ← Positive AND income>50k
 │     ...                                │
 │   },                                   │
 │   'target_no': {                       │
-│     'total': ThetaSketch,              │
-│     'age>30': ThetaSketch,             │
+│     'total': ThetaSketch,              │  ← Negative class total
+│     'age>30': ThetaSketch,             │  ← Negative AND age>30
 │     ...                                │
 │   }                                    │
 │ }                                      │
@@ -230,36 +234,31 @@ Note: The first column can be:
 ### 3.2 Inference Data Flow
 
 ```
-Raw Input:
+Binary Input (features already transformed externally):
 ┌──────────────────────────────┐
-│ X = [[35, 60000, 1],         │
-│      [25, 45000, 0]]         │
+│ X = [[1, 0, 1, 1],           │  ← age>30=1, city=NY=0, gender=M=1, income>50k=1
+│      [0, 1, 0, 0]]           │  ← age>30=0, city=NY=1, gender=M=0, income>50k=0
 └────────────┬─────────────────┘
              ↓
-[Apply Feature Mapping]
+[Map feature names to column indices]
              ↓
 feature_mapping = {
-  'age>30': (0, lambda x: x > 30),
-  'income>50k': (1, lambda x: x > 50000),
-  'has_diabetes': (2, lambda x: x == 1)
+  'age>30': 0,        # Column 0 contains age>30 binary values
+  'city=NY': 1,       # Column 1 contains city=NY binary values
+  'gender=M': 2,      # Column 2 contains gender=M binary values
+  'income>50k': 3     # Column 3 contains income>50k binary values
 }
-             ↓
-Transformed Features:
-┌──────────────────────────────┐
-│ [[True, True, True],         │  ← 35>30, 60k>50k, 1==1
-│  [False, False, False]]      │  ← 25≤30, 45k<50k, 0!=1
-└────────────┬─────────────────┘
              ↓
 [Tree Traversal per Row]
              ↓
-Row 0: [True, True, True]
-  ├─ Root: Check age>30? → True → Go RIGHT
-  ├─ Node: Check income>50k? → True → Go RIGHT
+Row 0: [1, 0, 1, 1]
+  ├─ Root: Check age>30 (col 0)? → 1 (True) → Go RIGHT
+  ├─ Node: Check income>50k (col 3)? → 1 (True) → Go RIGHT
   └─ Leaf: Class = 1
              ↓
-Row 1: [False, False, False]
-  ├─ Root: Check age>30? → False → Go LEFT
-  ├─ Node: Check has_diabetes? → False → Go LEFT
+Row 1: [0, 1, 0, 0]
+  ├─ Root: Check age>30 (col 0)? → 0 (False) → Go LEFT
+  ├─ Node: Check city=NY (col 1)? → 1 (True) → Go RIGHT
   └─ Leaf: Class = 0
              ↓
 Predictions: [1, 0]
@@ -293,9 +292,6 @@ ThetaSketchDecisionTreeClassifier (Main API)
     │   └─► Pruner
     │       ├─► PrePruner (min_samples, max_depth, min_impurity)
     │       └─► PostPruner (cost-complexity)
-    │
-    ├─► FeatureTransformer (Inference)
-    │   └─► Applies feature_mapping to raw data
     │
     ├─► TreeTraverser (Inference)
     │   └─► MissingValueHandler (majority path)

@@ -14,12 +14,13 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     in sklearn pipelines, grid search, and cross-validation workflows.
 
     Training Phase:
-        - Input: CSV file with theta sketches + YAML config file
+        - Input: CSV file(s) with theta sketches + YAML config file
+        - Two modes: single CSV (with intersections) or dual CSV (pre-intersected)
         - Learns tree structure from sketch set operations
 
     Inference Phase:
-        - Input: Raw tabular data (numpy/pandas)
-        - Transforms features using feature mapping
+        - Input: Binary tabular data (numpy/pandas) - features already transformed
+        - feature_mapping connects feature names to column indices
         - Navigates tree to make predictions
 
     Parameters
@@ -85,7 +86,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     >>> from theta_sketch_tree import ThetaSketchDecisionTreeClassifier
     >>> import numpy as np
     >>>
-    >>> # Training
+    >>> # Training (Mode 1: Single CSV)
     >>> clf = ThetaSketchDecisionTreeClassifier(
     ...     criterion='gini',
     ...     max_depth=5,
@@ -93,8 +94,20 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     ... )
     >>> clf.fit(csv_path='sketches.csv', config_path='config.yaml')
     >>>
-    >>> # Inference
-    >>> X_test = np.array([[35, 60000, 1], [25, 45000, 0]])
+    >>> # Training (Mode 2: Dual CSV - RECOMMENDED)
+    >>> clf = ThetaSketchDecisionTreeClassifier(
+    ...     criterion='gini',
+    ...     max_depth=5,
+    ...     verbose=1
+    ... )
+    >>> clf.fit(
+    ...     positive_csv='target_yes.csv',
+    ...     negative_csv='target_no.csv',
+    ...     config_path='config.yaml'
+    ... )
+    >>>
+    >>> # Inference (binary features: 0/1 values)
+    >>> X_test = np.array([[1, 0, 1], [0, 1, 0]])  # Pre-computed binary features
     >>> predictions = clf.predict(X_test)
     >>> probabilities = clf.predict_proba(X_test)
     >>>
@@ -153,21 +166,46 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     # ========== Core sklearn Methods ==========
 
-    def fit(self, csv_path, config_path, sample_weight=None):
+    def fit(self, config_path, csv_path=None, positive_csv=None, negative_csv=None, sample_weight=None):
         """
         Build decision tree from theta sketches.
 
+        Two input modes supported:
+
+        **Mode 1 - Single CSV with intersections:**
+            fit(csv_path='features.csv', config_path='config.yaml')
+            - CSV contains all feature sketches (including target sketches)
+            - Config must specify target_positive and target_negative identifiers
+            - Sketches are intersected during loading (target ∩ feature)
+            - Simpler setup, but sketch operations compound error
+
+        **Mode 2 - Dual CSV pre-intersected (RECOMMENDED):**
+            fit(positive_csv='target_yes.csv', negative_csv='target_no.csv', config_path='config.yaml')
+            - Two separate CSVs with pre-computed class-conditional sketches
+            - target_yes.csv: sketches for positive class (already intersected in big data)
+            - target_no.csv: sketches for negative class (already intersected in big data)
+            - No intersection operations needed during loading
+            - Better accuracy (no sketch operation error compounding)
+
         Parameters
         ----------
-        csv_path : str
-            Path to CSV file containing serialized theta sketches.
+        config_path : str
+            Path to YAML config file specifying hyperparameters and feature_mapping.
+
+        csv_path : str, optional
+            Path to single CSV with all feature sketches (Mode 1).
+            Mutually exclusive with positive_csv/negative_csv.
             Format: <identifier>, <sketch_bytes>
 
-        config_path : str
-            Path to YAML config file specifying:
-            - targets: positive/negative class names
-            - hyperparameters: tree parameters
-            - feature_mapping: feature transformations for inference
+        positive_csv : str, optional
+            Path to CSV with target=positive sketches (Mode 2).
+            Must be used together with negative_csv.
+            Format: <feature_name>, <positive_class_sketch>
+
+        negative_csv : str, optional
+            Path to CSV with target=negative sketches (Mode 2).
+            Must be used together with positive_csv.
+            Format: <feature_name>, <negative_class_sketch>
 
         sample_weight : array-like of shape (n_samples,), default=None
             Not used in sketch-based training (reserved for future).
@@ -180,14 +218,26 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Raises
         ------
         FileNotFoundError
-            If csv_path or config_path doesn't exist.
+            If CSV or config files don't exist.
         ValueError
-            If CSV format is invalid or config is malformed.
+            If both csv_path and positive_csv/negative_csv are provided,
+            or if only one of positive_csv/negative_csv is provided,
+            or if CSV format is invalid or config is malformed.
 
         Examples
         --------
+        >>> # Mode 1: Single CSV
         >>> clf = ThetaSketchDecisionTreeClassifier()
-        >>> clf.fit('sketches.csv', 'config.yaml')
+        >>> clf.fit(csv_path='sketches.csv', config_path='config.yaml')
+        >>> print(f"Tree: {clf.tree_.n_nodes} nodes, {clf.tree_.n_leaves} leaves")
+
+        >>> # Mode 2: Dual CSV (recommended)
+        >>> clf = ThetaSketchDecisionTreeClassifier()
+        >>> clf.fit(
+        ...     positive_csv='target_yes.csv',
+        ...     negative_csv='target_no.csv',
+        ...     config_path='config.yaml'
+        ... )
         >>> print(f"Tree: {clf.tree_.n_nodes} nodes, {clf.tree_.n_leaves} leaves")
         """
         pass
@@ -568,11 +618,21 @@ clf = ThetaSketchDecisionTreeClassifier(
     verbose=1
 )
 
-# Train
-clf.fit('sketches.csv', 'config.yaml')
+# Train - Mode 1: Single CSV with intersections
+clf.fit(csv_path='sketches.csv', config_path='config.yaml')
 
-# Predict
-X_test = np.array([[35, 60000, 1], [25, 45000, 0]])
+# OR - Mode 2: Dual CSV pre-intersected (RECOMMENDED for accuracy)
+clf.fit(
+    positive_csv='target_yes.csv',
+    negative_csv='target_no.csv',
+    config_path='config.yaml'
+)
+
+# Predict (binary features: 0/1 values, already transformed)
+X_test = np.array([
+    [1, 0, 1, 1],  # age>30=1, city=NY=0, gender=M=1, income>50k=1
+    [0, 1, 0, 0]   # age>30=0, city=NY=1, gender=M=0, income>50k=0
+])
 predictions = clf.predict(X_test)
 probabilities = clf.predict_proba(X_test)
 
@@ -593,9 +653,13 @@ pipe = Pipeline([
     ('tree', ThetaSketchDecisionTreeClassifier(max_depth=5))
 ])
 
-# Note: fit still requires csv_path and config_path
+# Note: fit still requires CSV path(s) and config_path
 # This works at inference time
-pipe.named_steps['tree'].fit('sketches.csv', 'config.yaml')
+pipe.named_steps['tree'].fit(
+    positive_csv='target_yes.csv',
+    negative_csv='target_no.csv',
+    config_path='config.yaml'
+)
 pipe.predict(X_test)
 ```
 

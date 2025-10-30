@@ -543,11 +543,16 @@ from datasketches import compact_theta_sketch
 
 class SketchLoader:
     """
-    Load theta sketches from CSV file.
+    Load theta sketches from CSV file(s).
+
+    Supports two modes:
+    -------------------
+    Mode 1 (Single CSV): Load all sketches and perform intersections
+    Mode 2 (Dual CSV): Load pre-intersected sketches (RECOMMENDED)
 
     CSV Format:
     -----------
-    <total|empty>, <base64_sketch_bytes>
+    <feature_name>, <base64_sketch_bytes>
     <feature_name>, <base64_sketch_bytes>
     ...
     """
@@ -565,28 +570,42 @@ class SketchLoader:
 
     def load(
         self,
-        csv_path: str,
-        target_positive: str,
-        target_negative: str
+        csv_path: str = None,
+        positive_csv: str = None,
+        negative_csv: str = None,
+        target_positive: str = None,
+        target_negative: str = None
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
-        Load sketches from CSV file.
+        Load sketches from CSV file(s).
+
+        Mode 1: load(csv_path='features.csv', target_positive='yes', target_negative='no')
+        Mode 2: load(positive_csv='target_yes.csv', negative_csv='target_no.csv')
 
         Parameters
         ----------
-        csv_path : str
-            Path to CSV file
-        target_positive : str
-            Name of positive class sketch (e.g., "target_yes")
-        target_negative : str
-            Name of negative class sketch (e.g., "target_no")
+        csv_path : str, optional
+            Single CSV file (Mode 1). Mutually exclusive with positive_csv/negative_csv.
+        positive_csv : str, optional
+            Positive class CSV (Mode 2). Must be used with negative_csv.
+        negative_csv : str, optional
+            Negative class CSV (Mode 2). Must be used with positive_csv.
+        target_positive : str, optional
+            Positive class identifier in CSV (Mode 1), e.g., "target_yes"
+        target_negative : str, optional
+            Negative class identifier in CSV (Mode 1), e.g., "target_no"
 
         Returns
         -------
         sketches_positive : dict
-            {feature_name: ThetaSketch} for positive class
+            {feature_name: ThetaSketch} for positive class (pre-intersected)
         sketches_negative : dict
-            {feature_name: ThetaSketch} for negative class
+            {feature_name: ThetaSketch} for negative class (pre-intersected)
+
+        Raises
+        ------
+        ValueError
+            If both modes are specified or if mode parameters are incomplete.
         """
         pass
 

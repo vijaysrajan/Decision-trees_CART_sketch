@@ -5,7 +5,37 @@
 
 ## Key Changes
 
-### 1. **Removed FeatureTransformer** ❌
+### 1. **Dual CSV Input Mode Added** ✅
+**Reason**: Pre-computing class-conditional sketches in big data avoids sketch operation error compounding.
+
+**Mode 1 - Single CSV** (original):
+```python
+# All sketches in one file, intersections done during loading
+clf.fit(csv_path='features.csv', config_path='config.yaml')
+# Loader computes: target_yes ∩ age>30, target_no ∩ age>30, etc.
+# Error compounds with each intersection operation
+```
+
+**Mode 2 - Dual CSV** (RECOMMENDED):
+```python
+# Pre-intersected sketches from big data
+clf.fit(
+    positive_csv='target_yes.csv',  # Contains target_yes AND age>30, etc.
+    negative_csv='target_no.csv',   # Contains target_no AND age>30, etc.
+    config_path='config.yaml'
+)
+# No intersection operations needed - better accuracy!
+```
+
+**Benefits of Mode 2**:
+- ✅ Better accuracy (no sketch operation error compounding)
+- ✅ Faster loading (no runtime intersections)
+- ✅ Sketches built directly from raw data in big data system
+- ✅ Cleaner separation: heavy lifting in big data, lightweight training here
+
+---
+
+### 2. **Removed FeatureTransformer** ❌
 **Reason**: Inference data is already binary. No transformation needed.
 
 **Old Design** (WRONG):

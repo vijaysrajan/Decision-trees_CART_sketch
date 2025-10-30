@@ -14,6 +14,21 @@
 
 ## 1. CSV Sketch Format
 
+### Two Input Modes
+
+The classifier supports two input modes for sketch data:
+
+**Mode 1: Single CSV with Intersections**
+- All sketches (features and targets) in one CSV file
+- Loader performs intersection operations (target ∩ feature)
+- Simpler setup but sketch operations compound error
+
+**Mode 2: Dual CSV Pre-Intersected (RECOMMENDED)**
+- Two separate CSV files: `target_yes.csv` and `target_no.csv`
+- Sketches pre-computed in big data (already intersected)
+- Better accuracy (no sketch operation error compounding)
+- Faster loading (no runtime intersections)
+
 ### Format Specification
 
 ```
@@ -22,38 +37,51 @@
 
 **Columns**:
 - **Column 1: Identifier** (string)
-  - `<total>` or `""` (empty string): Population sketch (all records for this target class)
+  - `total`: Population sketch for this class
   - `<feature_name>`: Feature condition sketch (e.g., "age>30", "income>50k")
-  - `<target_name>`: Target class sketch (e.g., "target_yes", "target_no")
+  - **Mode 1 only**: `<target_name>` (e.g., "target_yes", "target_no")
 
 - **Column 2: Sketch Bytes** (base64-encoded or hex-encoded string)
   - Serialized Apache DataSketches theta sketch
   - Encoding: base64 (default) or hex
 
-### Rules
-
-1. **One CSV file per dataset** containing sketches for all classes and features
-2. **Target identification**: Target sketch names must match config file specification
-3. **Feature sketches**: Must be present for both positive and negative target classes
-4. **Total sketch**: Required for each target class (identifier: "total" or "")
-
-### Example CSV Structure
+### Mode 1: Single CSV Example
 
 ```csv
 identifier,sketch
-,<base64_sketch_total_yes>
-target_yes,<base64_sketch_target_yes>
-age>30,<base64_sketch_age_yes>
-income>50k,<base64_sketch_income_yes>
-has_diabetes,<base64_sketch_diabetes_yes>
-,<base64_sketch_total_no>
-target_no,<base64_sketch_target_no>
-age>30,<base64_sketch_age_no>
-income>50k,<base64_sketch_income_no>
-has_diabetes,<base64_sketch_diabetes_no>
+total,<base64_all_records>
+target_yes,<base64_positive_class>
+target_no,<base64_negative_class>
+age>30,<base64_anyone_age>30>
+income>50k,<base64_anyone_income>50k>
+has_diabetes,<base64_anyone_diabetes>
 ```
 
-**Note**: The order of rows doesn't matter, but grouping by target class aids readability.
+**Loading**: Loader intersects `target_yes ∩ age>30`, `target_no ∩ age>30`, etc.
+
+### Mode 2: Dual CSV Example (RECOMMENDED)
+
+**target_yes.csv** (positive class, pre-intersected):
+```csv
+identifier,sketch
+total,<base64_positive_class_total>
+age>30,<base64_positive_AND_age>30>
+income>50k,<base64_positive_AND_income>50k>
+has_diabetes,<base64_positive_AND_diabetes>
+```
+
+**target_no.csv** (negative class, pre-intersected):
+```csv
+identifier,sketch
+total,<base64_negative_class_total>
+age>30,<base64_negative_AND_age>30>
+income>50k,<base64_negative_AND_income>50k>
+has_diabetes,<base64_negative_AND_diabetes>
+```
+
+**Loading**: Sketches already intersected, no operations needed.
+
+**Note**: Feature names must match between both files.
 
 ### Detailed Format by Row Type
 
