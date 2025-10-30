@@ -13,9 +13,9 @@ Key Features:
 - Pre and post-pruning support
 """
 
-__version__ = '0.1.0-dev'
-__author__ = 'Vijay Sankar Rajan'
-__license__ = 'MIT'
+__version__ = "0.1.0-dev"
+__author__ = "Vijay Sankar Rajan"
+__license__ = "MIT"
 
 # Main imports (will be uncommented as modules are implemented)
 # from .classifier import ThetaSketchDecisionTreeClassifier

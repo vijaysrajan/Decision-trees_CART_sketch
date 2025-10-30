@@ -27,7 +27,9 @@ class TreeNode:
         # TODO: Implement
         pass
 
-    def set_split(self, feature_idx: int, feature_name: str, left_child: 'TreeNode', right_child: 'TreeNode') -> None:
+    def set_split(
+        self, feature_idx: int, feature_name: str, left_child: "TreeNode", right_child: "TreeNode"
+    ) -> None:
         """Set split information for internal node."""
         # TODO: Implement
         pass
