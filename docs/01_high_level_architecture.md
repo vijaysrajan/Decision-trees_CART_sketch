@@ -325,15 +325,15 @@ ThetaSketchDecisionTreeClassifier (Main API)
 
 **Inference Flow:**
 ```
-1. User calls predict(X_raw)
+1. User calls predict(X)  # X is already binary features (0/1)
 2. Check is_fitted → raise NotFittedError if not
-3. FeatureTransformer.transform(X_raw, feature_mapping) → X_binary
-4. For each row in X_binary:
+3. For each row in X:
    a. TreeTraverser.traverse(row, tree.root)
+      - Use feature_mapping to get column index for each split feature
       - If missing value: MissingValueHandler.get_direction(node)
       - Follow tree until leaf
    b. Collect leaf prediction
-5. Return predictions array
+4. Return predictions array
 ```
 
 ---
@@ -397,22 +397,25 @@ clf_loaded = pickle.load(f)
 
 **Solution**:
 - Training: Operates on sketches (set cardinalities)
-- Inference: Operates on raw features with transformation layer
+- Inference: Operates on binary features (0/1 values, pre-transformed externally)
 
 ### 6.2 Feature Mapping as Bridge
 
-**Problem**: How to connect sketch-based splits to raw feature values?
+**Problem**: How to connect sketch-based splits (named features) to inference columns?
 
-**Solution**: `feature_mapping` dictionary:
+**Solution**: `feature_mapping` dictionary maps feature names to column indices:
 ```python
 {
-    'age>30': (0, lambda x: x > 30),  # column index, condition function
-    'income>50k': (1, lambda x: x > 50000)
+    'age>30': 0,        # Feature 'age>30' is in column 0
+    'income>50k': 1,    # Feature 'income>50k' is in column 1
+    'city=NY': 2        # Feature 'city=NY' is in column 2
 }
 ```
 
-At training: Use sketch named 'age>30'
-At inference: Apply lambda to column 0 of raw data
+**At training**: Tree learns splits using sketch names like 'age>30'
+**At inference**: Use feature_mapping to find which column contains 'age>30' (already binary 0/1)
+
+**Note**: All transformations (age > 30, city == 'NY', etc.) happen BEFORE data reaches our classifier. Inference data arrives as pre-computed binary features.
 
 ### 6.3 CSV-Based Sketch Input
 
@@ -452,20 +455,12 @@ hyperparameters:
   random_state: 42                     # Random seed
   verbose: 1                           # Verbosity level
 
-# Feature mapping for inference (raw data → binary features)
+# Feature mapping for inference (maps feature names to column indices)
 feature_mapping:
-  "age>30":
-    column_index: 0     # Column in raw data
-    operator: ">"       # Comparison operator
-    threshold: 30       # Threshold value
-  "income>50k":
-    column_index: 1
-    operator: ">"
-    threshold: 50000
-  "has_diabetes":
-    column_index: 2
-    operator: "=="
-    threshold: 1
+  "age>30": 0           # Column 0 contains binary age>30 values (0/1)
+  "income>50k": 1       # Column 1 contains binary income>50k values (0/1)
+  "city=NY": 2          # Column 2 contains binary city=NY values (0/1)
+  "has_diabetes": 3     # Column 3 contains binary diabetes indicator (0/1)
 ```
 
 **Advantages**:

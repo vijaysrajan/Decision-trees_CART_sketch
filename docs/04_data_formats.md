@@ -309,45 +309,22 @@ hyperparameters:
 # Feature Mapping (for Inference)
 # =============================================================================
 feature_mapping:
-  # Format: <feature_name>: {column_index, operator, threshold}
+  # Simple format: <feature_name>: <column_index>
+  # Maps feature names (used in tree splits) to column indices in binary inference data
 
-  "age>30":
-    column_index: 0       # Column in raw data (0-indexed)
-    operator: ">"         # Comparison operator
-    threshold: 30         # Threshold value
-    # Generates: lambda x: x > 30
-
-  "income>50k":
-    column_index: 1
-    operator: ">"
-    threshold: 50000
-    # Generates: lambda x: x > 50000
-
-  "has_diabetes":
-    column_index: 2
-    operator: "=="
-    threshold: 1
-    # Generates: lambda x: x == 1
-
-  "age<=65":
-    column_index: 0
-    operator: "<="
-    threshold: 65
-    # Generates: lambda x: x <= 65
-
-  "income_bracket=high":
-    column_index: 1
-    operator: ">="
-    threshold: 100000
-    # Generates: lambda x: x >= 100000
+  "age>30": 0           # Column 0 contains binary age>30 values (0/1)
+  "income>50k": 1       # Column 1 contains binary income>50k values (0/1)
+  "has_diabetes": 2     # Column 2 contains binary diabetes indicator (0/1)
+  "age<=65": 3          # Column 3 contains binary age<=65 values (0/1)
+  "city=NY": 4          # Column 4 contains binary city=NY indicator (0/1)
 
 # =============================================================================
 # Notes
 # =============================================================================
-# 1. Feature names in feature_mapping must match feature names in CSV
-# 2. Supported operators: ">", ">=", "<", "<=", "==", "!="
-# 3. Threshold types: int, float, or string (for equality checks)
-# 4. Column indices are 0-based and refer to raw inference data
+# 1. Feature names in feature_mapping must match feature names in CSV sketches
+# 2. All inference data must be PRE-TRANSFORMED to binary (0/1) values
+# 3. Feature transformations (age > 30, city == 'NY', etc.) happen BEFORE inference
+# 4. Column indices are 0-based and refer to binary inference data columns
 ```
 
 ### Minimal Config Example
@@ -362,14 +339,9 @@ hyperparameters:
   max_depth: 10
 
 feature_mapping:
-  "age>30":
-    column_index: 0
-    operator: ">"
-    threshold: 30
-  "income>50k":
-    column_index: 1
-    operator: ">"
-    threshold: 50000
+  "age>30": 0        # Simple column index mapping
+  "income>50k": 1
+  "city=NY": 2
 ```
 
 ### Config Validation Rules
@@ -378,9 +350,8 @@ The parser must validate:
 - ✅ Required top-level keys: `targets`, `hyperparameters`, `feature_mapping`
 - ✅ `targets` has `positive` and `negative` keys
 - ✅ `hyperparameters` values are valid types and ranges
-- ✅ `feature_mapping` entries have required keys: `column_index`, `operator`, `threshold`
-- ✅ Operators are in allowed set: {">", ">=", "<", "<=", "==", "!="}
-- ✅ Column indices are non-negative integers
+- ✅ `feature_mapping` values are non-negative integers (column indices)
+- ✅ Feature names are strings
 - ✅ Criterion is in allowed set: {"gini", "entropy", "gain_ratio", "binomial", "binomial_chi"}
 
 ### JSON Alternative
@@ -400,16 +371,9 @@ For users who prefer JSON:
     "min_samples_leaf": 10
   },
   "feature_mapping": {
-    "age>30": {
-      "column_index": 0,
-      "operator": ">",
-      "threshold": 30
-    },
-    "income>50k": {
-      "column_index": 1,
-      "operator": ">",
-      "threshold": 50000
-    }
+    "age>30": 0,
+    "income>50k": 1,
+    "city=NY": 2
   }
 }
 ```
@@ -420,59 +384,59 @@ Both YAML and JSON formats are supported by the ConfigParser.
 
 ## 3. Inference Data Format
 
-### Raw Tabular Data
+### Binary Tabular Data
 
-**Format**: NumPy array or Pandas DataFrame
+**Format**: NumPy array or Pandas DataFrame with binary (0/1) features
+
+**IMPORTANT**: All features must be PRE-TRANSFORMED to binary values before inference.
 
 #### NumPy Array
 ```python
 import numpy as np
 
 # Shape: (n_samples, n_features)
+# All values are binary: 0 or 1 (False or True)
 X = np.array([
-    [35, 60000, 1],    # Sample 1: age=35, income=60000, diabetes=1
-    [25, 45000, 0],    # Sample 2: age=25, income=45000, diabetes=0
-    [55, 120000, 1],   # Sample 3: age=55, income=120000, diabetes=1
-    [42, np.nan, 0],   # Sample 4: age=42, income=missing, diabetes=0
+    [1, 1, 0, 1],    # Sample 1: age>30=Yes, income>50k=Yes, city=NY=No, diabetes=Yes
+    [0, 0, 1, 0],    # Sample 2: age>30=No, income>50k=No, city=NY=Yes, diabetes=No
+    [1, 1, 0, 1],    # Sample 3: age>30=Yes, income>50k=Yes, city=NY=No, diabetes=Yes
+    [1, np.nan, 0, 0], # Sample 4: age>30=Yes, income>50k=MISSING, city=NY=No, diabetes=No
 ], dtype=np.float64)
 
-# Column order must match column_index in feature_mapping
-# Example:
-#   Column 0: age
-#   Column 1: income
-#   Column 2: diabetes
+# Column order must match feature_mapping column indices
+# Example feature_mapping: {"age>30": 0, "income>50k": 1, "city=NY": 2, "diabetes": 3}
+#   Column 0: age>30 (binary: 0=No, 1=Yes)
+#   Column 1: income>50k (binary: 0=No, 1=Yes)
+#   Column 2: city=NY (binary: 0=No, 1=Yes)
+#   Column 3: diabetes (binary: 0=No, 1=Yes)
 ```
 
 #### Pandas DataFrame
 ```python
 import pandas as pd
 
-# Column names are informational only
-# Actual mapping uses column_index from config
+# Columns contain pre-computed binary features
+# Column order must match feature_mapping
 X = pd.DataFrame({
-    'age': [35, 25, 55, 42],
-    'income': [60000, 45000, 120000, np.nan],
-    'diabetes': [1, 0, 1, 0]
+    'age_over_30': [1, 0, 1, 1],        # Binary: age > 30
+    'income_over_50k': [1, 0, 1, np.nan],  # Binary: income > 50k (with missing)
+    'city_NY': [0, 1, 0, 0],            # Binary: city == 'NY'
+    'diabetes': [1, 0, 1, 0]            # Binary: has diabetes
 })
 
 # Internally converted to numpy array:
-X_array = X.values  # Shape: (4, 3)
+X_array = X.values  # Shape: (4, 4)
 ```
 
-### Binary Feature Matrix (Internal)
+**Note**: DataFrame column names are informational only. The classifier uses positional indices from feature_mapping.
 
-After transformation using feature_mapping:
+### Supported Data Types
 
 ```python
-# Shape: (n_samples, n_binary_features)
-# dtype: bool (or float with NaN for missing)
-
-X_binary = np.array([
-    [True, True, True],      # age>30: True, income>50k: True, diabetes==1: True
-    [False, False, False],   # age>30: False, income>50k: False, diabetes==1: False
-    [True, True, True],      # age>30: True, income>50k: True, diabetes==1: True
-    [True, np.nan, False],   # age>30: True, income>50k: NaN (missing), diabetes==1: False
-])
+# All are valid binary representations:
+X_bool = np.array([[True, False], [False, True]])  # Boolean
+X_int = np.array([[1, 0], [0, 1]])                  # Integer 0/1
+X_float = np.array([[1.0, 0.0], [0.0, 1.0]])        # Float 0.0/1.0
 ```
 
 ### Missing Value Handling
@@ -630,18 +594,9 @@ hyperparameters:
   verbose: 1
 
 feature_mapping:
-  "age>30":
-    column_index: 0
-    operator: ">"
-    threshold: 30
-  "income>50k":
-    column_index: 1
-    operator: ">"
-    threshold: 50000
-  "has_diabetes":
-    column_index: 2
-    operator: "=="
-    threshold: 1
+  "age>30": 0        # Column 0 contains binary age>30 values
+  "income>50k": 1    # Column 1 contains binary income>50k values
+  "has_diabetes": 2  # Column 2 contains binary diabetes values
 ```
 
 #### 3. Training
@@ -666,12 +621,12 @@ print(f"Tree built: {clf.tree_.n_nodes} nodes, {clf.tree_.n_leaves} leaves")
 ```python
 import numpy as np
 
-# Raw test data
+# Binary test data (features already transformed to 0/1)
 X_test = np.array([
-    [35, 60000, 1],     # age=35, income=60k, diabetes=1
-    [25, 45000, 0],     # age=25, income=45k, diabetes=0
-    [55, 120000, 1],    # age=55, income=120k, diabetes=1
-    [42, np.nan, 0],    # age=42, income=missing, diabetes=0
+    [1, 1, 1],       # age>30=1, income>50k=1, diabetes=1
+    [0, 0, 0],       # age>30=0, income>50k=0, diabetes=0
+    [1, 1, 1],       # age>30=1, income>50k=1, diabetes=1
+    [1, np.nan, 0],  # age>30=1, income>50k=MISSING, diabetes=0
 ])
 
 # Predictions
@@ -688,6 +643,8 @@ print(f"Probabilities:\n{y_proba}")
 #  [0.1, 0.9],
 #  [0.7, 0.3]]
 ```
+
+**Note**: Data must be pre-transformed to binary before calling predict(). Feature transformations (age > 30, income > 50000, etc.) happen externally.
 
 #### 5. Model Persistence
 
@@ -750,36 +707,21 @@ hyperparameters:
   verbose: 1
 
 feature_mapping:
-  "age>65":
-    column_index: 0
-    operator: ">"
-    threshold: 65
-  "diabetes_diagnosis":
-    column_index: 1
-    operator: "=="
-    threshold: 1
-  "emergency_admission":
-    column_index: 2
-    operator: "=="
-    threshold: 1
-  "length_of_stay>7":
-    column_index: 3
-    operator: ">"
-    threshold: 7
-  "num_medications>5":
-    column_index: 4
-    operator: ">"
-    threshold: 5
+  "age>65": 0               # Binary: patient age > 65
+  "diabetes_diagnosis": 1   # Binary: has diabetes diagnosis
+  "emergency_admission": 2  # Binary: admitted via emergency
+  "length_of_stay>7": 3     # Binary: length of stay > 7 days
+  "num_medications>5": 4    # Binary: taking > 5 medications
 ```
 
 #### Inference Data
 
 ```python
-# Patient records: [age, diabetes, emergency, los, num_meds]
+# Patient records (binary features: age>65, diabetes, emergency, los>7, meds>5)
 X_patients = np.array([
-    [72, 1, 1, 10, 8],    # High risk patient
-    [45, 0, 0, 3, 2],     # Low risk patient
-    [68, 1, 0, 5, 6],     # Medium risk patient
+    [1, 1, 1, 1, 1],    # High risk: all risk factors present
+    [0, 0, 0, 0, 0],    # Low risk: no risk factors
+    [1, 1, 0, 0, 1],    # Medium risk: some risk factors
 ])
 
 # Predict readmission risk
@@ -787,6 +729,8 @@ risk_scores = clf.predict_proba(X_patients)[:, 1]
 print(f"Readmission risk scores: {risk_scores}")
 # Output: [0.85, 0.12, 0.43]
 ```
+
+**Note**: All features must be pre-computed as binary before inference (e.g., age > 65 becomes 1 or 0).
 
 ---
 

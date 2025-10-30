@@ -108,8 +108,7 @@ FUNCTION fit(csv_path, config_path):
 
     # Store internal state
     self._sketch_dict = {'pos': sketches_pos, 'neg': sketches_neg}
-    self._feature_mapping = feature_mapping
-    self._feature_transformer = FeatureTransformer(feature_mapping)
+    self._feature_mapping = feature_mapping  # Simple Dict[str, int] mapping
     self._tree_traverser = TreeTraverser(tree, self.missing_value_strategy)
     self._sketch_cache = sketch_cache
     self._is_fitted = True
@@ -767,12 +766,13 @@ FUNCTION evaluate_chi_square_split(parent_counts, left_counts, right_counts, par
 ### Main predict() Method
 
 ```
-FUNCTION predict(X_raw):
+FUNCTION predict(X):
     """
-    Predict class labels for raw feature data.
+    Predict class labels for binary feature data.
 
     Parameters:
-        X_raw: array of shape (n_samples, n_raw_features)
+        X: array of shape (n_samples, n_features)
+           Binary features (0/1) - already transformed externally
 
     Returns:
         predictions: array of shape (n_samples,) with values in {0, 1}
@@ -780,24 +780,24 @@ FUNCTION predict(X_raw):
 
     # ========== Step 1: Validate ==========
     check_is_fitted(self)  # Raises NotFittedError if not fitted
-    X_raw = check_array(X_raw, dtype=np.float64)
+    X = check_array(X, dtype=np.float64, force_all_finite='allow-nan')
 
-    IF X_raw.shape[1] != expected_n_raw_features:
-        RAISE ValueError("X has wrong number of features")
+    IF X.shape[1] != self.n_features_in_:
+        RAISE ValueError(f"X has {X.shape[1]} features but classifier expects {self.n_features_in_}")
 
-    # ========== Step 2: Transform to Binary Features ==========
-    X_binary = self._feature_transformer.transform(X_raw)
-    # X_binary: shape (n_samples, n_binary_features), dtype bool
-
-    # ========== Step 3: Traverse Tree ==========
-    predictions = self._tree_traverser.predict(X_binary)
+    # ========== Step 2: Traverse Tree (features already binary) ==========
+    predictions = self._tree_traverser.predict(X)
 
     RETURN predictions
 
 
-FUNCTION predict_proba(X_raw):
+FUNCTION predict_proba(X):
     """
-    Predict class probabilities.
+    Predict class probabilities for binary feature data.
+
+    Parameters:
+        X: array of shape (n_samples, n_features)
+           Binary features (0/1) - already transformed externally
 
     Returns:
         probabilities: array of shape (n_samples, 2)
@@ -805,47 +805,17 @@ FUNCTION predict_proba(X_raw):
     """
 
     check_is_fitted(self)
-    X_raw = check_array(X_raw, dtype=np.float64)
+    X = check_array(X, dtype=np.float64, force_all_finite='allow-nan')
 
-    X_binary = self._feature_transformer.transform(X_raw)
-    probabilities = self._tree_traverser.predict_proba(X_binary)
+    IF X.shape[1] != self.n_features_in_:
+        RAISE ValueError(f"X has {X.shape[1]} features but classifier expects {self.n_features_in_}")
+
+    probabilities = self._tree_traverser.predict_proba(X)
 
     RETURN probabilities
 ```
 
----
-
-### Feature Transformation
-
-```
-FUNCTION transform(X_raw):
-    """
-    Transform raw features to binary features.
-
-    Parameters:
-        X_raw: array of shape (n_samples, n_raw_features)
-
-    Returns:
-        X_binary: array of shape (n_samples, n_binary_features), dtype bool
-    """
-
-    n_samples = X_raw.shape[0]
-    X_binary = ZEROS((n_samples, self.n_features), dtype=bool)
-
-    FOR i, feature_name IN ENUMERATE(self.feature_names):
-        column_idx, condition_lambda = self.feature_mapping[feature_name]
-
-        # Apply condition to each row in column
-        FOR row_idx IN RANGE(n_samples):
-            value = X_raw[row_idx, column_idx]
-
-            IF IS_MISSING(value):  # NaN, None, etc.
-                X_binary[row_idx, i] = NaN  # Preserve missing
-            ELSE:
-                X_binary[row_idx, i] = condition_lambda(value)
-
-    RETURN X_binary
-```
+**Note**: All feature transformation (age > 30, city == 'NY', etc.) happens BEFORE data reaches the classifier. The `predict()` and `predict_proba()` methods work directly with binary (0/1) features.
 
 ---
 

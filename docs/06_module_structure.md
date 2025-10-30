@@ -28,7 +28,6 @@ Decision-trees_CART_sketch/
 │   │   # - GainRatioCriterion
 │   │   # - BinomialCriterion
 │   │   # - ChiSquareCriterion
-│   ├── feature_transformer.py          # FeatureTransformer (raw → binary)
 │   ├── tree_traverser.py               # TreeTraverser (inference navigation)
 │   ├── missing_handler.py              # MissingValueHandler
 │   ├── pruner.py                       # BasePruner, PrePruner, PostPruner
@@ -47,7 +46,6 @@ Decision-trees_CART_sketch/
 │   ├── test_tree_builder.py            # Tree building tests
 │   ├── test_splitter.py                # Split evaluation tests
 │   ├── test_criteria.py                # Criterion calculation tests
-│   ├── test_feature_transformer.py     # Feature transformation tests
 │   ├── test_tree_traverser.py          # Tree traversal tests
 │   ├── test_missing_handler.py         # Missing value handling tests
 │   ├── test_pruner.py                  # Pruning tests
@@ -174,7 +172,7 @@ Parse YAML/JSON configuration files.
 **Class**: `ConfigParser`
 **Key Methods**:
 - `load()`: Load and parse config file
-- `parse_feature_mapping()`: Convert to lambdas
+- `parse_feature_mapping()`: Parse simple feature mapping (Dict[str, int])
 - `validate_config()`: Schema validation
 
 ### theta_sketch_tree/tree_builder.py
@@ -217,18 +215,6 @@ All split criteria implementations.
 - `GainRatioCriterion`: C4.5 gain ratio
 - `BinomialCriterion`: Binomial test
 - `ChiSquareCriterion`: Chi-square test
-
-### theta_sketch_tree/feature_transformer.py
-
-**Lines of Code**: ~100-150
-**Dependencies**: numpy, pandas
-
-Transform raw features to binary.
-
-**Class**: `FeatureTransformer`
-**Key Methods**:
-- `transform()`: Apply feature mapping
-- `get_feature_index()`: Feature lookup
 
 ### theta_sketch_tree/tree_traverser.py
 
@@ -413,7 +399,6 @@ from .sketch_loader import SketchLoader
 from .config_parser import ConfigParser
 from .tree_builder import TreeBuilder
 from .splitter import SplitEvaluator
-from .feature_transformer import FeatureTransformer
 from .tree_traverser import TreeTraverser
 from .cache import SketchCache
 from .feature_importance import FeatureImportanceCalculator

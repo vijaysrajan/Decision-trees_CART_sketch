@@ -26,7 +26,6 @@ sklearn.base.ClassifierMixin
             ├─► Uses: SketchLoader
             ├─► Uses: ConfigParser
             ├─► Uses: TreeBuilder
-            ├─► Uses: FeatureTransformer
             ├─► Uses: TreeTraverser
             └─► Uses: FeatureImportanceCalculator
 
@@ -93,14 +92,12 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     -------------------------------------
     _sketch_dict : Dict[str, Dict[str, ThetaSketch]]
         Loaded theta sketches from CSV
-    _feature_mapping : Dict[str, tuple]
-        Feature name → (column_index, lambda_function)
+    _feature_mapping : Dict[str, int]
+        Feature name → column_index (simple mapping)
     _is_fitted : bool
         Whether fit() has been called
     _tree_builder : TreeBuilder
         Tree construction helper
-    _feature_transformer : FeatureTransformer
-        Raw data → binary features transformer
     _tree_traverser : TreeTraverser
         Inference navigation helper
     _sketch_cache : SketchCache
@@ -647,10 +644,8 @@ class ConfigParser:
       max_depth: 10
       ...
     feature_mapping:
-      "age>30":
-        column_index: 0
-        operator: ">"
-        threshold: 30
+      "age>30": 0       # Column 0 contains binary age>30 values
+      "income>50k": 1   # Column 1 contains binary income>50k values
       ...
     """
 
@@ -675,54 +670,36 @@ class ConfigParser:
 
     def parse_feature_mapping(
         self,
-        feature_mapping_config: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Tuple[int, Callable]]:
+        feature_mapping_config: Dict[str, int]
+    ) -> Dict[str, int]:
         """
-        Convert config feature mapping to lambda functions.
+        Parse feature mapping from config (simple pass-through).
 
         Parameters
         ----------
         feature_mapping_config : dict
-            Raw feature mapping from config
+            Feature name → column index mapping
 
         Returns
         -------
         feature_mapping : dict
-            {feature_name: (column_idx, lambda_function)}
+            {feature_name: column_index}
 
         Example
         -------
         Input:
         {
-            "age>30": {"column_index": 0, "operator": ">", "threshold": 30}
+            "age>30": 0,
+            "income>50k": 1
         }
 
-        Output:
+        Output: Same as input (already in correct format)
         {
-            "age>30": (0, lambda x: x > 30)
+            "age>30": 0,
+            "income>50k": 1
         }
         """
-        pass
-
-    def _create_comparison_lambda(
-        self,
-        operator: str,
-        threshold: float
-    ) -> Callable:
-        """Create comparison lambda function."""
-        operator_map = {
-            '>': lambda x: x > threshold,
-            '>=': lambda x: x >= threshold,
-            '<': lambda x: x < threshold,
-            '<=': lambda x: x <= threshold,
-            '==': lambda x: x == threshold,
-            '!=': lambda x: x != threshold
-        }
-
-        if operator not in operator_map:
-            raise ValueError(f"Unknown operator: {operator}")
-
-        return operator_map[operator]
+        return feature_mapping_config
 
     def validate_config(self, config: Dict[str, Any]) -> None:
         """Validate configuration structure."""
@@ -1331,76 +1308,7 @@ class ChiSquareCriterion(BaseCriterion):
 
 ## 5. Inference Classes
 
-### 5.1 FeatureTransformer
-
-**Responsibility**: Transform raw features to binary features
-
-```python
-from typing import Dict, Tuple, Callable
-import numpy as np
-from numpy.typing import NDArray
-import pandas as pd
-
-class FeatureTransformer:
-    """
-    Transform raw tabular data to binary features using feature mapping.
-
-    Attributes
-    ----------
-    feature_mapping : dict
-        {feature_name: (column_idx, lambda_function)}
-    feature_names : list
-        Ordered list of feature names
-    """
-
-    def __init__(
-        self,
-        feature_mapping: Dict[str, Tuple[int, Callable]]
-    ) -> None:
-        """Initialize transformer."""
-        self.feature_mapping = feature_mapping
-        self.feature_names = list(feature_mapping.keys())
-        self.n_features = len(feature_mapping)
-
-    def transform(
-        self,
-        X: NDArray[np.float64]
-    ) -> NDArray[np.bool_]:
-        """
-        Transform raw features to binary features.
-
-        Parameters
-        ----------
-        X : array of shape (n_samples, n_raw_features)
-            Raw feature values
-
-        Returns
-        -------
-        X_binary : array of shape (n_samples, n_binary_features)
-            Binary feature matrix (True/False)
-        """
-        n_samples = X.shape[0]
-        X_binary = np.zeros((n_samples, self.n_features), dtype=np.bool_)
-
-        for i, feature_name in enumerate(self.feature_names):
-            col_idx, condition_fn = self.feature_mapping[feature_name]
-
-            # Apply condition to column
-            X_binary[:, i] = np.array([
-                condition_fn(x) if not pd.isna(x) else np.nan
-                for x in X[:, col_idx]
-            ])
-
-        return X_binary
-
-    def get_feature_index(self, feature_name: str) -> int:
-        """Get index of feature by name."""
-        return self.feature_names.index(feature_name)
-```
-
----
-
-### 5.2 TreeTraverser
+### 5.1 TreeTraverser
 
 **Responsibility**: Navigate tree for inference
 
@@ -1932,21 +1840,12 @@ User
 ```
 User
   │
-  ├─► predict(X_raw)
+  ├─► predict(X)  # X is already binary (0/1)
   │       │
   │       ├─► Validate: check_is_fitted()
   │       ├─► Validate: check_array(X)
   │       │
-  │       ├─► FeatureTransformer.transform(X_raw)
-  │       │       │
-  │       │       ├─► For each feature in feature_mapping:
-  │       │       │       ├─► Get column index
-  │       │       │       ├─► Apply lambda function
-  │       │       │       └─► Store binary result
-  │       │       │
-  │       │       └─► Return X_binary (n_samples × n_features, bool)
-  │       │
-  │       ├─► TreeTraverser.predict(X_binary)
+  │       ├─► TreeTraverser.predict(X)  # Use binary features directly
   │       │       │
   │       │       ├─► For each sample:
   │       │       │       │

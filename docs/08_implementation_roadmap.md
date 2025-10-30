@@ -153,19 +153,9 @@
 
 ## Week 4: Inference & Missing Values
 
-### Day 1-2: Feature Transformer
-- [ ] Implement `FeatureTransformer` class
-  - `transform()` method
-  - Apply feature mapping lambdas
-  - Handle missing values (preserve NaN)
-- [ ] Write unit tests
-  - Test all operators (>, <, ==, !=, >=, <=)
-  - Test missing value preservation
-  - Test edge cases
+**Note**: All feature transformation (raw → binary) happens externally. Inference works directly with binary (0/1) features.
 
-**Files**: `feature_transformer.py`, `tests/test_feature_transformer.py`
-
-### Day 3-4: Tree Traverser
+### Day 1-2: Tree Traverser
 - [ ] Implement `TreeTraverser` class
   - `predict()` method
   - `predict_proba()` method
@@ -364,8 +354,8 @@ pytest tests/test_splitter.py tests/test_tree_builder.py tests/test_cache.py -v
 
 ### After Week 4
 ```bash
-pytest tests/test_classifier.py tests/test_feature_transformer.py tests/test_tree_traverser.py -v
-# Expected: End-to-end workflow works
+pytest tests/test_classifier.py tests/test_tree_traverser.py -v
+# Expected: End-to-end workflow works (using pre-transformed binary features)
 ```
 
 ### After Week 5

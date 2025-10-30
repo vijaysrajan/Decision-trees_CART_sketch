@@ -126,14 +126,9 @@ hyperparameters:
   verbose: 0
 
 feature_mapping:
-  "age>30":
-    column_index: 0
-    operator: ">"
-    threshold: 30
-  "income>50k":
-    column_index: 1
-    operator: ">"
-    threshold: 50000
+  "age>30": 0        # Simple column index mapping
+  "income>50k": 1
+  "city=NY": 2
 """
 
     with open(config_path, 'w') as f:
