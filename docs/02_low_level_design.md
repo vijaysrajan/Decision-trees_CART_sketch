@@ -171,19 +171,38 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(
         self,
-        csv_path: str,
-        config_path: str,
+        sketch_data: Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]],
+        feature_mapping: Dict[str, int],
         sample_weight: Optional[NDArray[np.float64]] = None
     ) -> 'ThetaSketchDecisionTreeClassifier':
         """
-        Build decision tree from theta sketches.
+        Build decision tree from theta sketch data.
 
         Parameters
         ----------
-        csv_path : str
-            Path to CSV file containing theta sketches
-        config_path : str
-            Path to YAML config file with targets and feature mapping
+        sketch_data : dict
+            Dictionary with keys 'positive' and 'negative', each containing:
+            - 'total': ThetaSketch for the class population (required)
+            - '<feature_name>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
+
+            Example:
+            {
+                'positive': {
+                    'total': <ThetaSketch>,
+                    'age>30': (<sketch_present>, <sketch_absent>),
+                    'income>50k': (<sketch_present>, <sketch_absent>)
+                },
+                'negative': {
+                    'total': <ThetaSketch>,
+                    'age>30': (<sketch_present>, <sketch_absent>),
+                    'income>50k': (<sketch_present>, <sketch_absent>)
+                }
+            }
+
+        feature_mapping : dict
+            Maps feature names to column indices for inference.
+            Example: {'age>30': 0, 'income>50k': 1, 'has_diabetes': 2}
+
         sample_weight : array-like of shape (n_samples,), optional
             Sample weights (not used in sketch-based training)
 
@@ -191,6 +210,24 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         -------
         self : ThetaSketchDecisionTreeClassifier
             Fitted classifier
+
+        Raises
+        ------
+        ValueError
+            If sketch_data is missing required keys or has invalid structure.
+
+        Examples
+        --------
+        >>> from theta_sketch_tree import load_sketches, load_config
+        >>> sketch_data = load_sketches('target_yes.csv', 'target_no.csv')
+        >>> config = load_config('config.yaml')
+        >>> clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+        >>> clf.fit(sketch_data, config['feature_mapping'])
+
+        Notes
+        -----
+        Use load_sketches() helper to load sketch data from CSV files.
+        For backward compatibility, use fit_from_csv() class method.
         """
         pass
 
@@ -320,6 +357,65 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     def load_model(cls, path: str) -> 'ThetaSketchDecisionTreeClassifier':
         """Load model from pickle file."""
         pass
+
+    @classmethod
+    def fit_from_csv(
+        cls,
+        positive_csv: str,
+        negative_csv: str,
+        config_path: str,
+        csv_path: Optional[str] = None
+    ) -> 'ThetaSketchDecisionTreeClassifier':
+        """
+        Convenience method: load sketches from CSV and fit model in one call.
+
+        Parameters
+        ----------
+        positive_csv : str
+            Path to CSV with positive class sketches.
+        negative_csv : str
+            Path to CSV with negative class sketches.
+        config_path : str
+            Path to YAML config file.
+        csv_path : str, optional
+            If provided, uses single CSV mode instead (for backward compatibility).
+
+        Returns
+        -------
+        clf : ThetaSketchDecisionTreeClassifier
+            Fitted classifier.
+
+        Examples
+        --------
+        >>> clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
+        ...     positive_csv='target_yes.csv',
+        ...     negative_csv='target_no.csv',
+        ...     config_path='config.yaml'
+        ... )
+        >>> predictions = clf.predict(X_test)
+        """
+        from theta_sketch_tree import load_sketches, load_config
+
+        # Load data
+        if csv_path:
+            config = load_config(config_path)
+            sketch_data = load_sketches(
+                csv_path=csv_path,
+                target_positive=config['targets']['positive'],
+                target_negative=config['targets']['negative']
+            )
+        else:
+            sketch_data = load_sketches(positive_csv, negative_csv)
+
+        config = load_config(config_path)
+
+        # Initialize with hyperparameters
+        clf = cls(**config['hyperparameters'])
+
+        # Fit model
+        clf.fit(sketch_data, config['feature_mapping'])
+
+        return clf
 
     # ========== Private Methods ==========
 
@@ -567,26 +663,26 @@ class SketchLoader:
 
     def load(
         self,
-        csv_path: str = None,
         positive_csv: str = None,
         negative_csv: str = None,
+        csv_path: str = None,
         target_positive: str = None,
         target_negative: str = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]]:
         """
-        Load sketches from CSV file(s).
+        Load sketches from CSV file(s) into unified data structure.
 
         Mode 1: load(csv_path='features.csv', target_positive='yes', target_negative='no')
         Mode 2: load(positive_csv='target_yes.csv', negative_csv='target_no.csv')
 
         Parameters
         ----------
-        csv_path : str, optional
-            Single CSV file (Mode 1). Mutually exclusive with positive_csv/negative_csv.
         positive_csv : str, optional
             Positive class CSV (Mode 2). Must be used with negative_csv.
         negative_csv : str, optional
             Negative class CSV (Mode 2). Must be used with positive_csv.
+        csv_path : str, optional
+            Single CSV file (Mode 1). Mutually exclusive with positive_csv/negative_csv.
         target_positive : str, optional
             Positive class identifier in CSV (Mode 1), e.g., "target_yes"
         target_negative : str, optional
@@ -594,15 +690,33 @@ class SketchLoader:
 
         Returns
         -------
-        sketches_positive : dict
-            {feature_name: ThetaSketch} for positive class (pre-intersected)
-        sketches_negative : dict
-            {feature_name: ThetaSketch} for negative class (pre-intersected)
+        sketch_data : dict
+            Dictionary with 'positive' and 'negative' keys, each containing:
+            - 'total': ThetaSketch for class population
+            - '<feature>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
+
+            Example:
+            {
+                'positive': {
+                    'total': <ThetaSketch>,
+                    'age>30': (<sketch_present>, <sketch_absent>),
+                    'income>50k': (<sketch_present>, <sketch_absent>)
+                },
+                'negative': { ... }
+            }
 
         Raises
         ------
         ValueError
             If both modes are specified or if mode parameters are incomplete.
+        FileNotFoundError
+            If CSV files don't exist.
+
+        Notes
+        -----
+        Auto-detects 2-column vs 3-column CSV format:
+        - 2 columns: identifier, sketch
+        - 3 columns: identifier, sketch_present, sketch_absent (RECOMMENDED)
         """
         pass
 

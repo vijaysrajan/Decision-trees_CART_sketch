@@ -5,10 +5,11 @@
 
 ## Table of Contents
 1. [CSV Sketch Format](#1-csv-sketch-format)
-2. [Config File Format (YAML)](#2-config-file-format-yaml)
-3. [Inference Data Format](#3-inference-data-format)
-4. [Model Persistence Format](#4-model-persistence-format)
-5. [Examples](#5-examples)
+2. [Sketch Data Structure (Python)](#2-sketch-data-structure-python)
+3. [Config File Format (YAML)](#3-config-file-format-yaml)
+4. [Inference Data Format](#4-inference-data-format)
+5. [Model Persistence Format](#5-model-persistence-format)
+6. [Examples](#6-examples)
 
 ---
 
@@ -395,7 +396,162 @@ Error: RSE × √1.4 ≈ 1.56% × 1.18 ≈ 1.8%
 
 ---
 
-## 2. Config File Format (YAML)
+## 2. Sketch Data Structure (Python)
+
+After loading sketches from CSV files, they are organized into a unified Python data structure that is passed to the `fit()` method.
+
+### Data Structure Definition
+
+```python
+from typing import Dict, Union, Tuple
+from datasketches import compact_theta_sketch
+
+SketchData = Dict[str, Dict[str, Union[compact_theta_sketch, Tuple[compact_theta_sketch, compact_theta_sketch]]]]
+```
+
+### Structure Format
+
+```python
+sketch_data: SketchData = {
+    'positive': {
+        'total': <ThetaSketch>,                          # Required: population sketch
+        '<feature_name>': (
+            <sketch_present>,                             # Feature=1 (True)
+            <sketch_absent>                               # Feature=0 (False)
+        ),
+        # Or for backward compatibility (triggers a_not_b fallback):
+        '<feature_name>': <single_sketch>                # Only feature=1 sketch
+    },
+    'negative': {
+        'total': <ThetaSketch>,                          # Required: population sketch
+        '<feature_name>': (
+            <sketch_present>,
+            <sketch_absent>
+        ),
+        ...
+    }
+}
+```
+
+### Example
+
+```python
+from theta_sketch_tree import load_sketches
+
+# Load from CSV files (auto-detects 2-column vs 3-column format)
+sketch_data = load_sketches(
+    positive_csv='target_yes.csv',
+    negative_csv='target_no.csv'
+)
+
+# Result structure:
+# {
+#     'positive': {
+#         'total': <ThetaSketch with 10000 items>,
+#         'age>30': (
+#             <ThetaSketch with 6500 items>,    # target=yes AND age>30
+#             <ThetaSketch with 3500 items>     # target=yes AND age<=30
+#         ),
+#         'income>50k': (
+#             <ThetaSketch with 7200 items>,    # target=yes AND income>50k
+#             <ThetaSketch with 2800 items>     # target=yes AND income<=50k
+#         )
+#     },
+#     'negative': {
+#         'total': <ThetaSketch with 50000 items>,
+#         'age>30': (
+#             <ThetaSketch with 28000 items>,   # target=no AND age>30
+#             <ThetaSketch with 22000 items>    # target=no AND age<=30
+#         ),
+#         'income>50k': (
+#             <ThetaSketch with 25000 items>,   # target=no AND income>50k
+#             <ThetaSketch with 25000 items>    # target=no AND income<=50k
+#         )
+#     }
+# }
+```
+
+### Helper Functions
+
+#### load_sketches()
+
+```python
+from theta_sketch_tree import load_sketches
+
+# Load from dual CSV files (recommended)
+sketch_data = load_sketches(
+    positive_csv='target_yes.csv',
+    negative_csv='target_no.csv'
+)
+
+# Or load from single CSV (backward compatibility)
+sketch_data = load_sketches(
+    csv_path='features.csv',
+    target_positive='target_yes',
+    target_negative='target_no'
+)
+```
+
+**Auto-detection**: The loader automatically detects whether CSV files have:
+- 2 columns: `identifier, sketch` (performs a_not_b for absent sketches)
+- 3 columns: `identifier, sketch_present, sketch_absent` (recommended)
+
+#### load_config()
+
+```python
+from theta_sketch_tree import load_config
+
+config = load_config('config.yaml')
+
+# Returns dictionary with:
+# {
+#     'targets': {'positive': 'target_yes', 'negative': 'target_no'},
+#     'hyperparameters': {'criterion': 'gini', 'max_depth': 5, ...},
+#     'feature_mapping': {'age>30': 0, 'income>50k': 1, ...}
+# }
+```
+
+### Validation Rules
+
+The `fit()` method validates the sketch_data structure:
+
+✅ **Required keys**: `'positive'` and `'negative'`
+✅ **Required 'total' sketch**: Each class must have a `'total'` key
+✅ **Consistent features**: Both classes must have the same feature names
+✅ **Valid sketch types**: Values must be ThetaSketch or Tuple[ThetaSketch, ThetaSketch]
+✅ **Feature mapping alignment**: All features in sketch_data must be in feature_mapping
+
+### Usage in fit()
+
+```python
+from theta_sketch_tree import ThetaSketchDecisionTreeClassifier, load_sketches, load_config
+
+# Load data
+sketch_data = load_sketches('target_yes.csv', 'target_no.csv')
+config = load_config('config.yaml')
+
+# Initialize classifier
+clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+
+# Fit with sketch_data and feature_mapping
+clf.fit(
+    sketch_data=sketch_data,
+    feature_mapping=config['feature_mapping']
+)
+```
+
+### Benefits of This Structure
+
+1. **Separation of concerns**: Data loading is separate from model fitting
+2. **Flexibility**: Load sketches from CSV, database, S3, API, or create programmatically
+3. **Testability**: Easy to mock sketch data for unit tests
+4. **Type safety**: Clear type hints for IDE autocompletion
+5. **sklearn-compatible**: Similar to `fit(X, y)` pattern
+6. **No file I/O in fit()**: Pure computation for better performance
+
+---
+
+## 3. Config File Format (YAML)
 
 ### Complete Specification
 
@@ -592,7 +748,7 @@ Both YAML and JSON formats are supported by the ConfigParser.
 
 ---
 
-## 3. Inference Data Format
+## 4. Inference Data Format
 
 ### Binary Tabular Data
 
@@ -682,7 +838,7 @@ probabilities = clf.predict_proba(X)
 
 ---
 
-## 4. Model Persistence Format
+## 5. Model Persistence Format
 
 ### Pickle Format (Primary)
 
@@ -768,7 +924,7 @@ To restore full functionality, use pickle format.
 
 ---
 
-## 5. Examples
+## 6. Examples
 
 ### Complete End-to-End Example
 

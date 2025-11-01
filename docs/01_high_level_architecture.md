@@ -304,23 +304,36 @@ ThetaSketchDecisionTreeClassifier (Main API)
 
 ### 4.2 Interaction Sequence
 
-**Training Flow:**
+**Training Flow (NEW - Separated Concerns):**
 ```
-1. User calls fit(csv_path, config_path)
-2. SketchLoader.load(csv_path) → sketch_dict
-3. ConfigParser.load(config_path) → targets, hyperparams, feature_mapping
-4. TreeBuilder.build(sketch_dict, targets, hyperparams)
-   a. SplitEvaluator.find_best_split(current_sketches, features)
-      - For each feature:
-        * SketchOperator.compute_splits(sketches)
-        * CriterionCalculator.evaluate(split)
-        * SketchCache.get_or_compute()
-      - Return best split
-   b. Create node with split
-   c. Pruner.should_prune(node) → True/False
-   d. Recurse on children if not pruned
-5. Return trained tree
-6. Compute feature_importances_
+1. User loads data (separate from fitting):
+   a. sketch_data = load_sketches(positive_csv, negative_csv)
+   b. config = load_config(config_path)
+
+2. User initializes classifier with hyperparameters:
+   clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+
+3. User calls fit(sketch_data, feature_mapping):
+   a. Validate sketch_data structure (has 'positive', 'negative', 'total')
+   b. TreeBuilder.build(sketch_data, hyperparams)
+      - SplitEvaluator.find_best_split(current_sketches, features)
+        * For each feature:
+          - Get sketch_present and sketch_absent from sketch_data
+          - CriterionCalculator.evaluate(split)
+          - SketchCache.get_or_compute()
+        * Return best split
+      - Create node with split
+      - Pruner.should_prune(node) → True/False
+      - Recurse on children if not pruned
+   c. Return trained tree
+   d. Compute feature_importances_
+
+Alternative (Convenience Method):
+clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
+    positive_csv='yes.csv',
+    negative_csv='no.csv',
+    config_path='config.yaml'
+)
 ```
 
 **Inference Flow:**
@@ -615,13 +628,26 @@ class CustomSketchLoader(BaseSketchLoader):
 
 ```python
 # Training (offline)
-clf = ThetaSketchDecisionTreeClassifier()
-clf.fit(csv_path="sketches.csv", config_path="config.yaml")
+from theta_sketch_tree import load_sketches, load_config, ThetaSketchDecisionTreeClassifier
+
+# Method 1: Explicit (more control)
+sketch_data = load_sketches('target_yes.csv', 'target_no.csv')
+config = load_config('config.yaml')
+clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+clf.fit(sketch_data, config['feature_mapping'])
+clf.save("model.pkl")
+
+# Method 2: Convenience (one-liner)
+clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
+    positive_csv='target_yes.csv',
+    negative_csv='target_no.csv',
+    config_path='config.yaml'
+)
 clf.save("model.pkl")
 
 # Inference (online)
 clf = ThetaSketchDecisionTreeClassifier.load("model.pkl")
-predictions = clf.predict(X_test)
+predictions = clf.predict(X_test)  # X_test has binary features (0/1)
 ```
 
 ### 11.3 Monitoring

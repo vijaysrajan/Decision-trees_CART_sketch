@@ -5,7 +5,7 @@ This module contains the ThetaSketchDecisionTreeClassifier class,
 the main API for the theta sketch decision tree.
 """
 
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Tuple, Any
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -51,15 +51,21 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     Examples
     --------
-    >>> # Mode 1: Single CSV
-    >>> clf = ThetaSketchDecisionTreeClassifier(max_depth=5)
-    >>> clf.fit(csv_path='sketches.csv', config_path='config.yaml')
+    >>> from theta_sketch_tree import load_sketches, load_config
+    >>> # Load data
+    >>> sketch_data = load_sketches('target_yes.csv', 'target_no.csv')
+    >>> config = load_config('config.yaml')
+    >>> # Fit model
+    >>> clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+    >>> clf.fit(sketch_data, config['feature_mapping'])
     >>> predictions = clf.predict(X_test)
     >>>
-    >>> # Mode 2: Dual CSV (recommended)
-    >>> clf = ThetaSketchDecisionTreeClassifier(max_depth=5)
-    >>> clf.fit(positive_csv='target_yes.csv', negative_csv='target_no.csv',
-    ...         config_path='config.yaml')
+    >>> # Or use convenience method
+    >>> clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
+    ...     positive_csv='target_yes.csv',
+    ...     negative_csv='target_no.csv',
+    ...     config_path='config.yaml'
+    ... )
     >>> predictions = clf.predict(X_test)
     """
 
@@ -81,21 +87,94 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(
         self,
-        config_path: str,
-        csv_path: Optional[str] = None,
-        positive_csv: Optional[str] = None,
-        negative_csv: Optional[str] = None,
+        sketch_data: Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]],
+        feature_mapping: Dict[str, int],
+        sample_weight: Optional[NDArray] = None,
     ):
         """
-        Train decision tree from theta sketches.
+        Build decision tree from theta sketch data.
 
-        Two modes:
-        - Mode 1: fit(csv_path='features.csv', config_path='config.yaml')
-        - Mode 2: fit(positive_csv='yes.csv', negative_csv='no.csv', config_path='config.yaml')
+        Parameters
+        ----------
+        sketch_data : dict
+            Dictionary with keys 'positive' and 'negative', each containing:
+            - 'total': ThetaSketch for the class population (required)
+            - '<feature_name>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
+
+        feature_mapping : dict
+            Maps feature names to column indices for inference.
+            Example: {'age>30': 0, 'income>50k': 1, 'has_diabetes': 2}
+
+        sample_weight : array-like, optional
+            Sample weights (not used in sketch-based training)
+
+        Returns
+        -------
+        self : ThetaSketchDecisionTreeClassifier
 
         See docs/05_api_design.md for full documentation.
         """
         raise NotImplementedError("To be implemented in Week 1-4")
+
+    @classmethod
+    def fit_from_csv(
+        cls,
+        positive_csv: str,
+        negative_csv: str,
+        config_path: str,
+        csv_path: Optional[str] = None,
+    ) -> "ThetaSketchDecisionTreeClassifier":
+        """
+        Convenience method: load sketches from CSV and fit model in one call.
+
+        Parameters
+        ----------
+        positive_csv : str
+            Path to CSV with positive class sketches.
+        negative_csv : str
+            Path to CSV with negative class sketches.
+        config_path : str
+            Path to YAML config file.
+        csv_path : str, optional
+            If provided, uses single CSV mode instead (for backward compatibility).
+
+        Returns
+        -------
+        clf : ThetaSketchDecisionTreeClassifier
+            Fitted classifier.
+
+        Examples
+        --------
+        >>> clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
+        ...     positive_csv='target_yes.csv',
+        ...     negative_csv='target_no.csv',
+        ...     config_path='config.yaml'
+        ... )
+        >>> predictions = clf.predict(X_test)
+        """
+        # Import here to avoid circular imports
+        from theta_sketch_tree import load_sketches, load_config
+
+        # Load data
+        if csv_path:
+            config = load_config(config_path)
+            sketch_data = load_sketches(
+                csv_path=csv_path,
+                target_positive=config["targets"]["positive"],
+                target_negative=config["targets"]["negative"],
+            )
+        else:
+            sketch_data = load_sketches(positive_csv, negative_csv)
+
+        config = load_config(config_path)
+
+        # Initialize with hyperparameters
+        clf = cls(**config["hyperparameters"])
+
+        # Fit model
+        clf.fit(sketch_data, config["feature_mapping"])
+
+        return clf
 
     def predict(self, X: NDArray) -> NDArray:
         """Predict class labels for binary feature data."""

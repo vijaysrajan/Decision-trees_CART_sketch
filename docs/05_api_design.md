@@ -166,46 +166,34 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     # ========== Core sklearn Methods ==========
 
-    def fit(self, config_path, csv_path=None, positive_csv=None, negative_csv=None, sample_weight=None):
+    def fit(self, sketch_data, feature_mapping, sample_weight=None):
         """
-        Build decision tree from theta sketches.
-
-        Two input modes supported:
-
-        **Mode 1 - Single CSV with intersections:**
-            fit(csv_path='features.csv', config_path='config.yaml')
-            - CSV contains all feature sketches (including target sketches)
-            - Config must specify target_positive and target_negative identifiers
-            - Sketches are intersected during loading (target ∩ feature)
-            - Simpler setup, but sketch operations compound error
-
-        **Mode 2 - Dual CSV pre-intersected (RECOMMENDED):**
-            fit(positive_csv='target_yes.csv', negative_csv='target_no.csv', config_path='config.yaml')
-            - Two separate CSVs with pre-computed class-conditional sketches
-            - target_yes.csv: sketches for positive class (already intersected in big data)
-            - target_no.csv: sketches for negative class (already intersected in big data)
-            - No intersection operations needed during loading
-            - Better accuracy (no sketch operation error compounding)
+        Build decision tree from theta sketch data.
 
         Parameters
         ----------
-        config_path : str
-            Path to YAML config file specifying hyperparameters and feature_mapping.
+        sketch_data : dict
+            Dictionary with keys 'positive' and 'negative', each containing:
+            - 'total': ThetaSketch for the class population (required)
+            - '<feature_name>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
 
-        csv_path : str, optional
-            Path to single CSV with all feature sketches (Mode 1).
-            Mutually exclusive with positive_csv/negative_csv.
-            Format: <identifier>, <sketch_bytes>
+            Example:
+            {
+                'positive': {
+                    'total': <ThetaSketch>,
+                    'age>30': (<sketch_present>, <sketch_absent>),
+                    'income>50k': (<sketch_present>, <sketch_absent>)
+                },
+                'negative': {
+                    'total': <ThetaSketch>,
+                    'age>30': (<sketch_present>, <sketch_absent>),
+                    'income>50k': (<sketch_present>, <sketch_absent>)
+                }
+            }
 
-        positive_csv : str, optional
-            Path to CSV with target=positive sketches (Mode 2).
-            Must be used together with negative_csv.
-            Format: <feature_name>, <positive_class_sketch>
-
-        negative_csv : str, optional
-            Path to CSV with target=negative sketches (Mode 2).
-            Must be used together with positive_csv.
-            Format: <feature_name>, <negative_class_sketch>
+        feature_mapping : dict
+            Maps feature names to column indices for inference.
+            Example: {'age>30': 0, 'income>50k': 1, 'has_diabetes': 2}
 
         sample_weight : array-like of shape (n_samples,), default=None
             Not used in sketch-based training (reserved for future).
@@ -217,28 +205,34 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
         Raises
         ------
-        FileNotFoundError
-            If CSV or config files don't exist.
         ValueError
-            If both csv_path and positive_csv/negative_csv are provided,
-            or if only one of positive_csv/negative_csv is provided,
-            or if CSV format is invalid or config is malformed.
+            If sketch_data is missing required keys ('positive', 'negative', 'total')
+            or has invalid structure.
 
         Examples
         --------
-        >>> # Mode 1: Single CSV
-        >>> clf = ThetaSketchDecisionTreeClassifier()
-        >>> clf.fit(csv_path='sketches.csv', config_path='config.yaml')
+        >>> from theta_sketch_tree import load_sketches, load_config
+        >>>
+        >>> # Load sketch data from CSV files
+        >>> sketch_data = load_sketches('target_yes.csv', 'target_no.csv')
+        >>> config = load_config('config.yaml')
+        >>>
+        >>> # Initialize and fit
+        >>> clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+        >>> clf.fit(sketch_data, config['feature_mapping'])
         >>> print(f"Tree: {clf.tree_.n_nodes} nodes, {clf.tree_.n_leaves} leaves")
 
-        >>> # Mode 2: Dual CSV (recommended)
-        >>> clf = ThetaSketchDecisionTreeClassifier()
-        >>> clf.fit(
+        >>> # Alternative: use convenience method
+        >>> clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
         ...     positive_csv='target_yes.csv',
         ...     negative_csv='target_no.csv',
         ...     config_path='config.yaml'
         ... )
-        >>> print(f"Tree: {clf.tree_.n_nodes} nodes, {clf.tree_.n_leaves} leaves")
+
+        Notes
+        -----
+        Use load_sketches() helper function to load sketch data from CSV files.
+        For convenience, use the fit_from_csv() class method to load and fit in one call.
         """
         pass
 
@@ -607,22 +601,28 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 ### Basic Classification
 
 ```python
-from theta_sketch_tree import ThetaSketchDecisionTreeClassifier
+from theta_sketch_tree import ThetaSketchDecisionTreeClassifier, load_sketches, load_config
 import numpy as np
 
-# Initialize
-clf = ThetaSketchDecisionTreeClassifier(
-    criterion='gini',
-    max_depth=10,
-    min_samples_leaf=5,
-    verbose=1
+# Step 1: Load sketch data from CSV files
+sketch_data = load_sketches(
+    positive_csv='target_yes.csv',
+    negative_csv='target_no.csv'
 )
 
-# Train - Mode 1: Single CSV with intersections
-clf.fit(csv_path='sketches.csv', config_path='config.yaml')
+# Step 2: Load config
+config = load_config('config.yaml')
 
-# OR - Mode 2: Dual CSV pre-intersected (RECOMMENDED for accuracy)
-clf.fit(
+# Step 3: Initialize with hyperparameters
+clf = ThetaSketchDecisionTreeClassifier(
+    **config['hyperparameters']  # Unpack hyperparameters from config
+)
+
+# Step 4: Fit model
+clf.fit(sketch_data, config['feature_mapping'])
+
+# OR - Use convenience method (all-in-one)
+clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
     positive_csv='target_yes.csv',
     negative_csv='target_no.csv',
     config_path='config.yaml'
@@ -647,19 +647,22 @@ auc = roc_auc_score(y_test, probabilities[:, 1])
 ```python
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from theta_sketch_tree import load_sketches, load_config
 
+# Load data first
+sketch_data = load_sketches('target_yes.csv', 'target_no.csv')
+config = load_config('config.yaml')
+
+# Create pipeline
 pipe = Pipeline([
     ('scaler', StandardScaler()),
-    ('tree', ThetaSketchDecisionTreeClassifier(max_depth=5))
+    ('tree', ThetaSketchDecisionTreeClassifier(**config['hyperparameters']))
 ])
 
-# Note: fit still requires CSV path(s) and config_path
-# This works at inference time
-pipe.named_steps['tree'].fit(
-    positive_csv='target_yes.csv',
-    negative_csv='target_no.csv',
-    config_path='config.yaml'
-)
+# Fit the tree step
+pipe.named_steps['tree'].fit(sketch_data, config['feature_mapping'])
+
+# Use pipeline for inference
 pipe.predict(X_test)
 ```
 
