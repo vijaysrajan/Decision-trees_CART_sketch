@@ -133,6 +133,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     - Missing values handled via majority path method (no imputation)
     - Supports imbalanced classification via class_weight parameter
     - Statistical criteria (binomial, chi-square) recommended for medical applications
+    - Feature importance limited to 'gini' and 'split_frequency' methods (regardless of training criterion)
 
     See Also
     --------
@@ -450,6 +451,12 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Computed lazily on first access and cached.
         Based on weighted impurity decrease at each split.
 
+        **Important**: This property always returns Gini-based importance, regardless
+        of which criterion was used during training (gini, entropy, gain_ratio,
+        binomial, or binomial_chi). This is because TreeNode.impurity always stores
+        Gini values for consistency and efficiency. For criterion-agnostic importance,
+        use `get_feature_importance(method='split_frequency')`.
+
         Examples
         --------
         >>> importances = clf.feature_importances_
@@ -473,6 +480,20 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         -------
         importances : ndarray of shape (n_features,)
             Feature importance scores (sum to 1.0).
+
+        Notes
+        -----
+        Feature importance supports only 'gini' and 'split_frequency' methods,
+        regardless of which criterion was used during training (gini, entropy,
+        gain_ratio, binomial, or binomial_chi). This is because:
+
+        - TreeNode.impurity always stores Gini values for consistency
+        - Gini importance provides interpretable results across all criteria
+        - Split frequency is criterion-agnostic (counts feature usage)
+        - Criterion-specific importance would require additional node storage
+
+        For trees trained with non-Gini criteria, both methods remain valid
+        importance measures.
 
         Examples
         --------
@@ -498,6 +519,11 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Returns
         -------
         None
+
+        Notes
+        -----
+        Only 'gini' and 'split_frequency' methods are supported. See
+        `get_feature_importance()` for details on method limitations and rationale.
 
         Examples
         --------

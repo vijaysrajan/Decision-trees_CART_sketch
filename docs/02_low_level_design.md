@@ -350,7 +350,13 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self,
         method: Literal['gini', 'split_frequency'] = 'gini'
     ) -> NDArray[np.float64]:
-        """Get feature importance scores."""
+        """
+        Get feature importance scores.
+
+        Note: Only 'gini' and 'split_frequency' methods supported. Gini importance
+        is available regardless of training criterion. See docs/CORRECTIONS.md
+        section 11 for rationale.
+        """
         pass
 
     def plot_feature_importance(
@@ -358,7 +364,12 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         method: Literal['gini', 'split_frequency'] = 'gini',
         top_n: int = 10
     ) -> None:
-        """Plot feature importance bar chart."""
+        """
+        Plot feature importance bar chart.
+
+        Note: Only 'gini' and 'split_frequency' methods supported.
+        See get_feature_importance() for details.
+        """
         pass
 
     def export_tree_json(self) -> str:
@@ -1821,6 +1832,19 @@ class SketchCache:
 class FeatureImportanceCalculator:
     """
     Calculate feature importance scores.
+
+    Design Note
+    -----------
+    Only Gini-based and split-frequency importance methods are implemented,
+    despite the classifier supporting 5 split criteria (gini, entropy,
+    gain_ratio, binomial, binomial_chi). This is because:
+
+    - TreeNode.impurity always stores Gini values regardless of training criterion
+    - Gini importance provides interpretable results across all criteria
+    - Split frequency is criterion-agnostic (counts feature usage)
+    - Criterion-specific importance would require storing multiple impurity values per node
+
+    See docs/CORRECTIONS.md section 11 for detailed rationale.
     """
 
     def __init__(self, tree: Tree, n_features: int) -> None:

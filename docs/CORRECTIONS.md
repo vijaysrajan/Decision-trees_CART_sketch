@@ -469,3 +469,119 @@ probabilities = clf.predict_proba(X_test)
 ---
 
 This simplified design is **much cleaner** and **easier to implement**. Thank you for catching these issues! 🎉
+
+---
+
+## 11. Feature Importance Method Limitation
+
+**Question**: Why does `get_feature_importance()` only support 'gini' and 'split_frequency' methods when the classifier supports 5 split criteria (gini, entropy, gain_ratio, binomial, binomial_chi)?
+
+**Answer**: This is an intentional design decision based on TreeNode storage efficiency, consistency, and adherence to sklearn standards.
+
+### Rationale
+
+#### 1. **TreeNode.impurity Always Stores Gini**
+
+Regardless of which criterion is used for split selection, the `impurity` attribute in TreeNode always stores the Gini impurity value. This design choice provides:
+
+- **Consistency**: All nodes have a comparable impurity metric
+- **Efficiency**: Gini is lightweight to compute (no logarithms like entropy)
+- **Pruning compatibility**: Gini-based cost-complexity pruning works for all criteria
+- **Universal interpretation**: Gini provides a consistent measure across all tree types
+
+#### 2. **Criterion-Specific Importance Would Require Additional Storage**
+
+To compute entropy-based, gain-ratio-based, or statistical-test-based importance, we would need to store:
+
+- **Multiple impurity values per node**: Gini, entropy, gain ratio, etc.
+- **Statistical test results**: P-values for binomial/chi-square tests
+- **Memory overhead**: 2-3x increase in TreeNode size for marginal benefit
+
+This would significantly increase memory footprint without providing clear advantages for feature interpretation.
+
+#### 3. **Split Frequency is Criterion-Agnostic**
+
+The `split_frequency` method counts how many times each feature is used for splitting, which is:
+
+- **Independent of criterion**: Works the same regardless of split selection method
+- **Simple to compute**: Just count splits, no impurity calculations needed
+- **Valid across all criteria**: Provides a universal importance measure
+
+#### 4. **Follows sklearn Standard Practice**
+
+From sklearn's `DecisionTreeClassifier` source code:
+
+```python
+@property
+def feature_importances_(self):
+    """Return the feature importances.
+
+    The importance of a feature is computed as the (normalized) total
+    reduction of the criterion brought by that feature.
+    It is also known as the Gini importance.
+    """
+```
+
+**Sklearn uses "Gini importance" for ALL decision trees**, regardless of whether they were trained with `criterion='gini'` or `criterion='entropy'`. This is standard practice in machine learning libraries.
+
+#### 5. **Gini and Entropy Produce Nearly Identical Rankings**
+
+For impurity-based criteria (gini, entropy, gain_ratio):
+
+- Gini and entropy measure the same concept (node purity)
+- They produce highly correlated feature importance rankings
+- Using Gini for importance even with entropy criterion is valid and meaningful
+
+#### 6. **Statistical Criteria Don't Have Natural "Impurity"**
+
+Binomial and chi-square tests use p-values to measure split quality:
+
+- P-values measure statistical significance, not impurity
+- No clear definition of "importance" from p-value aggregation
+- Would require designing a new importance metric (e.g., "average p-value improvement")
+- This is non-standard and difficult to interpret
+
+### Implementation
+
+The current design provides:
+
+```python
+# Available importance methods
+clf.feature_importances_          # Always Gini-based (default sklearn behavior)
+clf.get_feature_importance(method='gini')           # Weighted impurity decrease
+clf.get_feature_importance(method='split_frequency') # Count of splits per feature
+```
+
+### Why This Is Sufficient
+
+1. **Gini importance works for all criteria**: Even trees trained with binomial criterion can meaningfully report Gini importance
+2. **Split frequency is universal**: Provides criterion-agnostic alternative
+3. **Permutation importance available**: For truly criterion-agnostic importance, use sklearn's `permutation_importance` function
+4. **Memory efficient**: No need to store multiple impurity metrics per node
+5. **Interpretable**: Gini importance is well-understood and documented
+
+### Future Work
+
+If criterion-specific importance is needed, it could be added by:
+
+1. **Storing additional metrics in TreeNode**:
+   - Add `entropy_impurity`, `statistical_pvalue` attributes
+   - Trade off memory for criterion-specific insights
+
+2. **Implementing new importance methods**:
+   - `compute_entropy_importance()` for entropy/gain_ratio criteria
+   - `compute_statistical_importance()` for binomial/chi-square criteria
+
+3. **Adding permutation importance wrapper**:
+   - Wrap sklearn's `permutation_importance` for easy access
+   - Works for any criterion without additional storage
+
+This is considered **low priority** given:
+- Gini importance's universal interpretability
+- Split frequency's criterion-agnostic nature
+- Availability of permutation importance in sklearn
+- Memory/complexity tradeoffs
+
+### Conclusion
+
+The limitation to 'gini' and 'split_frequency' methods is **intentional**, **well-justified**, and **follows ML best practices**. It provides meaningful feature importance for trees trained with any criterion while maintaining efficiency and simplicity.

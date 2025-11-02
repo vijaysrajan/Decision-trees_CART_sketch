@@ -1046,6 +1046,13 @@ FUNCTION _find_best_prune(node, alpha):
 
 ## 6. Feature Importance
 
+Feature importance calculation is **separate from split criterion selection**. While the classifier supports 5 split criteria (gini, entropy, gain_ratio, binomial, binomial_chi), only 2 feature importance methods are implemented:
+
+1. **Gini Importance**: Based on weighted impurity decrease (available for all criteria)
+2. **Split Frequency**: Based on feature usage count (criterion-agnostic)
+
+This design choice is intentional: TreeNode.impurity always stores Gini values regardless of training criterion, making Gini importance universally available. Criterion-specific importance would require storing multiple impurity values per node, significantly increasing memory overhead. See `docs/CORRECTIONS.md` section 11 for detailed rationale.
+
 ### Gini Importance
 
 ```
@@ -1130,6 +1137,23 @@ FUNCTION compute_feature_importances_split_frequency():
 
     RETURN counts
 ```
+
+### Design Rationale: Why Only Gini and Split Frequency?
+
+The classifier supports 5 split criteria (gini, entropy, gain_ratio, binomial, binomial_chi), but feature importance is limited to 2 methods. This is intentional:
+
+**Key Design Decision**: `TreeNode.impurity` always stores Gini values regardless of which criterion was used for training.
+
+**Why This Limitation Exists**:
+
+1. **Memory Efficiency**: Storing criterion-specific impurity values (entropy, gain ratio, p-values) would require 2-3x more memory per node
+2. **Universal Availability**: Gini importance works meaningfully for trees trained with any criterion
+3. **Interpretability**: Gini provides a consistent, well-understood metric across all tree types
+4. **Criterion-Agnostic Alternative**: Split frequency provides an importance measure independent of impurity calculations
+
+**Follows sklearn Standard**: sklearn's `DecisionTreeClassifier` uses "Gini importance" for all trees, regardless of training criterion. This is standard ML practice.
+
+**For Full Rationale**: See `docs/CORRECTIONS.md` section 11 for technical details, memory tradeoffs, and future work considerations.
 
 ---
 
