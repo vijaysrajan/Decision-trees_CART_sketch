@@ -183,21 +183,37 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         sketch_data : dict
             Dictionary with keys 'positive' and 'negative', each containing:
             - 'total': ThetaSketch for the class population (required)
-            - '<feature_name>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
+            - '<feature_name>': Tuple (sketch_present, sketch_absent) [RECOMMENDED]
+                               OR single ThetaSketch [Legacy]
 
-            Example:
+            **RECOMMENDED format (from 3-column CSV)** - Provides 29% better accuracy:
             {
                 'positive': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_present>, <sketch_absent>),
-                    'income>50k': (<sketch_present>, <sketch_absent>)
+                    'age>30': (<sketch_yes_AND_age>30>, <sketch_yes_AND_age<=30>),  # Tuple
+                    'income>50k': (<sketch_yes_AND_income>50k>, <sketch_yes_AND_income<=50k>),
+                    'clicked': (<sketch_yes_AND_clicked>, <sketch_yes_AND_not_clicked>)
                 },
                 'negative': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_present>, <sketch_absent>),
-                    'income>50k': (<sketch_present>, <sketch_absent>)
+                    'age>30': (<sketch_no_AND_age>30>, <sketch_no_AND_age<=30>),    # Tuple
+                    'income>50k': (<sketch_no_AND_income>50k>, <sketch_no_AND_income<=50k>),
+                    'clicked': (<sketch_no_AND_clicked>, <sketch_no_AND_not_clicked>)
                 }
             }
+
+            **Legacy format (from 2-column CSV)** - Not recommended:
+            {
+                'positive': {
+                    'total': <ThetaSketch>,
+                    'age>30': <ThetaSketch>,  # Single sketch - requires runtime a_not_b
+                    'income>50k': <ThetaSketch>
+                },
+                'negative': { ... }
+            }
+
+            Tuple format eliminates a_not_b operations, reducing error by ~29% at all depths.
+            Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3).
 
         feature_mapping : dict
             Maps feature names to column indices for inference.
@@ -638,16 +654,37 @@ class SketchLoader:
     """
     Load theta sketches from CSV file(s).
 
-    Supports two modes:
-    -------------------
+    CSV Formats Supported:
+    ----------------------
+    **3-Column Format (RECOMMENDED for accuracy)**:
+        identifier, sketch_present, sketch_absent
+
+        Stores BOTH feature=TRUE and feature=FALSE sketches per feature.
+        ✅ Eliminates a_not_b operations → 29% error reduction at all depths
+        ✅ Critical for imbalanced datasets (CTR, fraud detection)
+        ✅ Required for optimal accuracy on deep trees (depth ≥3)
+
+        Example:
+            age>30,<base64_yes_AND_age>30>,<base64_yes_AND_age<=30>
+            clicked,<base64_yes_AND_clicked>,<base64_yes_AND_not_clicked>
+
+    **2-Column Format (Legacy - backward compatibility only)**:
+        identifier, sketch
+
+        Single sketch per feature (feature=TRUE only).
+        ⚠️ Requires runtime a_not_b to compute feature=FALSE counts
+        ⚠️ Error compounds by ~40% per level vs 3-column format
+        ⚠️ Not recommended for production use
+
+        Example:
+            age>30,<base64_yes_AND_age>30>
+
+    Loading Modes:
+    --------------
     Mode 1 (Single CSV): Load all sketches and perform intersections
     Mode 2 (Dual CSV): Load pre-intersected sketches (RECOMMENDED)
 
-    CSV Format:
-    -----------
-    <feature_name>, <base64_sketch_bytes>
-    <feature_name>, <base64_sketch_bytes>
-    ...
+    See docs/04_data_formats.md Section 1.5 for detailed error analysis.
     """
 
     def __init__(self, encoding: str = 'base64') -> None:
@@ -693,17 +730,36 @@ class SketchLoader:
         sketch_data : dict
             Dictionary with 'positive' and 'negative' keys, each containing:
             - 'total': ThetaSketch for class population
-            - '<feature>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
+            - '<feature>': Tuple (sketch_present, sketch_absent) [RECOMMENDED]
+                          OR single ThetaSketch [Legacy - backward compatibility]
 
-            Example:
+            **RECOMMENDED format (3-column CSV)**:
             {
                 'positive': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_present>, <sketch_absent>),
-                    'income>50k': (<sketch_present>, <sketch_absent>)
+                    'age>30': (<sketch_yes_AND_age>30>, <sketch_yes_AND_age<=30>),  # Tuple
+                    'income>50k': (<sketch_yes_AND_income>50k>, <sketch_yes_AND_income<=50k>)
+                },
+                'negative': {
+                    'total': <ThetaSketch>,
+                    'age>30': (<sketch_no_AND_age>30>, <sketch_no_AND_age<=30>),    # Tuple
+                    'income>50k': (<sketch_no_AND_income>50k>, <sketch_no_AND_income<=50k>)
+                }
+            }
+
+            **Legacy format (2-column CSV - not recommended)**:
+            {
+                'positive': {
+                    'total': <ThetaSketch>,
+                    'age>30': <ThetaSketch>,  # Single sketch - will require runtime a_not_b
+                    'income>50k': <ThetaSketch>
                 },
                 'negative': { ... }
             }
+
+            Note: RECOMMENDED format eliminates a_not_b operations during tree building,
+            reducing error by ~29% at all tree depths. See docs/04_data_formats.md
+            Section 1.5 for detailed error analysis.
 
         Raises
         ------

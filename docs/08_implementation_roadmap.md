@@ -36,24 +36,41 @@
 
 ### Day 3-4: CSV Sketch Loader ⏸️ IN PROGRESS ← **YOU ARE HERE**
 - [ ] Implement `SketchLoader` class
-  - CSV parsing (auto-detect 2-column vs 3-column format)
+  - **CSV parsing (auto-detect 2-column vs 3-column format)**
+    - **3-column (RECOMMENDED)**: identifier, sketch_present, sketch_absent
+    - 2-column (legacy): identifier, sketch
   - Base64/hex decoding
   - ThetaSketch deserialization
   - Support Mode 1 (single CSV) and Mode 2 (dual CSV)
-  - Build unified sketch_data structure
-  - Error handling and validation
+  - **Build unified sketch_data structure with tuples for 3-column format**
+    - `{'age>30': (sketch_present, sketch_absent)}` for 3-column
+    - `{'age>30': sketch}` for 2-column (backward compatibility)
+  - **Validation: Check sketch_present + sketch_absent ≈ total (within error bounds)**
+  - Error handling and detailed error messages
 - [ ] Write unit tests for `SketchLoader` (target >80% coverage)
+  - Test 3-column CSV parsing
+  - Test 2-column CSV parsing (backward compatibility)
+  - Test validation (sketch cardinality checks)
 - [ ] Create test fixtures with real theta sketches
+  - Both 2-column and 3-column formats
 
 **Files**: `sketch_loader.py`, `tests/test_sketch_loader.py`, `tests/conftest.py`
 
 **Next Actions**:
 1. Implement `_decode_sketch_bytes()` method
 2. Implement `_deserialize_sketch()` method
-3. Implement `_parse_csv()` method
-4. Implement `load()` main method
-5. Create CSV test fixtures
-6. Write comprehensive tests
+3. Implement `_parse_csv()` method with column count detection
+4. **Implement tuple unpacking for 3-column format**
+5. **Implement validation: sketch_present.estimate() + sketch_absent.estimate() ≈ total.estimate()**
+6. Implement `load()` main method
+7. Create CSV test fixtures (both 2-column and 3-column)
+8. Write comprehensive tests
+
+**Why 3-column format matters**:
+- Eliminates a_not_b operations during tree building
+- **29% error reduction** at all tree depths vs 2-column format
+- Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3)
+- See docs/04_data_formats.md Section 1.5 for detailed error analysis
 
 ### Day 5-7: Config Parser ⏸️ PENDING
 - [ ] Implement `ConfigParser` class

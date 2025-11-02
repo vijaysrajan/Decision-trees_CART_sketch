@@ -159,59 +159,75 @@ CSV Input Format (all sketches in one file):
                 ↓
 ```
 
-**MODE 2: Dual CSV Pre-Intersected (RECOMMENDED)**
+**MODE 2: Dual CSV Pre-Intersected with Feature-Absent Sketches (RECOMMENDED)**
 ```
+CSV Format: identifier, sketch_present, sketch_absent  ← 3-column format
+
 target_yes.csv:                    target_no.csv:
-┌────────────────────────────┐    ┌────────────────────────────┐
-│ total, <pos_class_sketch>  │    │ total, <neg_class_sketch>  │
-│ age>30, <pos_AND_age_sketch>│   │ age>30, <neg_AND_age_sketch>│
-│ income>50k, <pos_AND_inc>  │    │ income>50k, <neg_AND_inc>  │
-│ has_diabetes, <pos_AND_dia>│    │ has_diabetes, <neg_AND_dia>│
-└────────────────────────────┘    └────────────────────────────┘
+┌──────────────────────────────────────────┐    ┌──────────────────────────────────────────┐
+│ total, <pos_total>, <pos_total>         │    │ total, <neg_total>, <neg_total>         │
+│ age>30, <pos_AND_age>30>, <pos_AND_age<=30>│    │ age>30, <neg_AND_age>30>, <neg_AND_age<=30>│
+│ income>50k, <pos_AND_inc>50k>, <pos_AND_inc<=50k>│    │ income>50k, <neg_AND_inc>50k>, <neg_AND_inc<=50k>│
+│ clicked, <pos_AND_clicked>, <pos_AND_not_clicked>│    │ clicked, <neg_AND_clicked>, <neg_AND_not_clicked>│
+└──────────────────────────────────────────┘    └──────────────────────────────────────────┘
     ↓                                   ↓
-    [Parse Sketches - NO intersection needed]
+    [Parse Sketches - NO set operations needed! Direct lookup only]
+    ✅ Eliminates a_not_b operations → 29% error reduction at all depths
+    ✅ Critical for imbalanced datasets (CTR, fraud)
                 ↓
 ```
 
-**Result (both modes):**
+**Why Feature-Absent Sketches Matter:**
+- Traditional approach: Must compute `n_without_feature = total.a_not_b(feature)`
+- Error compounds: Each a_not_b multiplies error by √F (F≈2-3 typically)
+- With feature-absent: Direct lookup, no error multiplication
+- See docs/04_data_formats.md Section 1.5 for detailed error analysis
+
+**Result (Mode 2 with 3-column CSV):**
 ```
-┌────────────────────────────────────────┐
-│ sketch_dict = {                        │
-│   'target_yes': {                      │
-│     'total': ThetaSketch,              │  ← Positive class total
-│     'age>30': ThetaSketch,             │  ← Positive AND age>30
-│     'income>50k': ThetaSketch,         │  ← Positive AND income>50k
-│     ...                                │
-│   },                                   │
-│   'target_no': {                       │
-│     'total': ThetaSketch,              │  ← Negative class total
-│     'age>30': ThetaSketch,             │  ← Negative AND age>30
-│     ...                                │
-│   }                                    │
-│ }                                      │
-└────────────────┬───────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ sketch_dict = {                                    │
+│   'target_yes': {                                  │
+│     'total': ThetaSketch,                          │  ← Positive class total
+│     'age>30': (ThetaSketch_present,                │  ← Tuple: (pos AND age>30,
+│                ThetaSketch_absent),                 │            pos AND age<=30)
+│     'income>50k': (ThetaSketch_present,            │  ← Tuple: (pos AND income>50k,
+│                    ThetaSketch_absent),             │            pos AND income<=50k)
+│     'clicked': (ThetaSketch_clicked,               │  ← Tuple: (pos AND clicked,
+│                 ThetaSketch_not_clicked),           │            pos AND not_clicked)
+│     ...                                            │
+│   },                                               │
+│   'target_no': {                                   │
+│     'total': ThetaSketch,                          │  ← Negative class total
+│     'age>30': (ThetaSketch_present,                │  ← Tuple: (neg AND age>30,
+│                ThetaSketch_absent),                 │            neg AND age<=30)
+│     ...                                            │
+│   }                                                │
+│ }                                                  │
+└────────────────┬───────────────────────────────────┘
                  ↓
         [Tree Building]
                  ↓
     For each node, evaluate splits:
                  ↓
-┌────────────────────────────────────────┐
-│ For feature "age>30":                  │
-│                                        │
-│ Class 0 (target_no):                   │
-│   - n_total = sketch_total.estimate()  │
-│   - n_with_feature = sketch_age.estimate()│
-│   - n_without = n_total - n_with       │
-│                                        │
-│ Class 1 (target_yes):                  │
-│   - n_total = sketch_total.estimate()  │
-│   - n_with_feature = sketch_age.estimate()│
-│   - n_without = n_total - n_with       │
-│                                        │
-│ Compute criterion:                     │
-│   - Gini/Entropy/Binomial/etc.        │
-│   - Select best split                  │
-└────────────────┬───────────────────────┘
+┌────────────────────────────────────────────────────┐
+│ For feature "age>30":                              │
+│                                                    │
+│ Class 0 (target_no):                               │
+│   sketch_present, sketch_absent = sketches['age>30']│  ← Unpack tuple
+│   - n_with_feature = sketch_present.get_estimate() │  ← Direct lookup (no a_not_b!)
+│   - n_without_feature = sketch_absent.get_estimate()│  ← Direct lookup (no a_not_b!)
+│                                                    │
+│ Class 1 (target_yes):                              │
+│   sketch_present, sketch_absent = sketches['age>30']│  ← Unpack tuple
+│   - n_with_feature = sketch_present.get_estimate() │  ← Direct lookup
+│   - n_without_feature = sketch_absent.get_estimate()│  ← Direct lookup
+│                                                    │
+│ Compute criterion (Gini/Entropy/Binomial):         │
+│   left_counts = [n_without_no, n_without_yes]      │
+│   right_counts = [n_with_no, n_with_yes]           │
+│   → Select best split based on impurity reduction  │
+└────────────────┬───────────────────────────────────┘
                  ↓
          [Create Node]
                  ↓
