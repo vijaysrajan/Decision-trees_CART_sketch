@@ -13,42 +13,66 @@
 
 ## Week 1: Foundation & Data Loading
 
-### Day 1-2: Project Setup
-- [ ] Initialize git repository
-- [ ] Create directory structure
-- [ ] Setup virtual environment
-- [ ] Install dependencies (datasketches, sklearn, numpy, etc.)
-- [ ] Configure pytest, black, flake8, mypy
-- [ ] Write README.md skeleton
+### Day 1-2: Project Setup ✅ COMPLETE
+- [x] Initialize git repository
+- [x] Create directory structure
+- [x] Setup virtual environment (Python 3.13)
+- [x] Install dependencies (datasketches, sklearn, numpy, scipy, pandas, pyyaml, etc.)
+- [x] Configure pytest, black, flake8, mypy
+- [x] Write README.md skeleton
+- [x] Create pyproject.toml, .flake8, pytest.ini
+- [x] API refactored: fit() now uses sketch_data structure (separated data loading from fitting)
+- [x] Helper functions created: load_sketches(), load_config() in __init__.py
+- [x] Complete documentation suite (12 files including deployment strategies and tuning guide)
 
-**Deliverables**:
+**Deliverables**: ✅ DONE
 - Working development environment
-- Dependencies installed
-- Basic project structure
+- All dependencies installed
+- Complete project structure with all module scaffolds
+- All documentation complete
+- API refactored for better separation of concerns
 
-### Day 3-4: CSV Sketch Loader
+**Status**: Completed 2025-11-02
+
+### Day 3-4: CSV Sketch Loader ⏸️ IN PROGRESS ← **YOU ARE HERE**
 - [ ] Implement `SketchLoader` class
-  - CSV parsing
+  - CSV parsing (auto-detect 2-column vs 3-column format)
   - Base64/hex decoding
   - ThetaSketch deserialization
+  - Support Mode 1 (single CSV) and Mode 2 (dual CSV)
+  - Build unified sketch_data structure
   - Error handling and validation
-- [ ] Write unit tests for `SketchLoader`
-- [ ] Create test fixtures (mock sketches)
+- [ ] Write unit tests for `SketchLoader` (target >80% coverage)
+- [ ] Create test fixtures with real theta sketches
 
 **Files**: `sketch_loader.py`, `tests/test_sketch_loader.py`, `tests/conftest.py`
 
-### Day 5-7: Config Parser
+**Next Actions**:
+1. Implement `_decode_sketch_bytes()` method
+2. Implement `_deserialize_sketch()` method
+3. Implement `_parse_csv()` method
+4. Implement `load()` main method
+5. Create CSV test fixtures
+6. Write comprehensive tests
+
+### Day 5-7: Config Parser ⏸️ PENDING
 - [ ] Implement `ConfigParser` class
   - YAML/JSON parsing
-  - Feature mapping creation (lambdas)
+  - Feature mapping simplified (no lambdas - just Dict[str, int])
   - Config validation
   - Schema checking
-- [ ] Write unit tests for `ConfigParser`
-- [ ] Create test config files
+- [ ] Write unit tests for `ConfigParser` (target >80% coverage)
+- [ ] Create test config files (YAML and JSON)
 
 **Files**: `config_parser.py`, `tests/test_config_parser.py`
 
 **Week 1 Milestone**: Can load sketches from CSV and parse config files
+
+**Checkpoint Test**:
+```bash
+pytest tests/test_sketch_loader.py tests/test_config_parser.py -v --cov=theta_sketch_tree --cov-report=term
+```
+**Success Criteria**: All tests pass, coverage >80%
 
 ---
 
