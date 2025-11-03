@@ -26,12 +26,41 @@ FUNCTION fit(sketch_data, feature_mapping):
     # sketch_data structure:
     # {
     #     'positive': {'total': <ThetaSketch>, 'feature1': (<present>, <absent>), ...},
-    #     'negative': {'total': <ThetaSketch>, 'feature1': (<present>, <absent>), ...}
+    #     'negative_or_total': {'total': <ThetaSketch>, 'feature1': (<present>, <absent>), ...}
     # }
-    # Note: 'negative' may be computed from 'total' in one-vs-all mode
+    #
+    # CRITICAL DISTINCTION BETWEEN CLASSIFICATION MODES:
+    #
+    # Dual-Class Mode (treatment vs control, yes vs no):
+    #   - 'positive': Sketches filtered to positive class (e.g., treatment group)
+    #   - 'negative_or_total': Sketches filtered to negative class (e.g., control group)
+    #   → Use get_estimate() DIRECTLY on negative_or_total sketches
+    #   Example:
+    #     n_pos = sketch_data['positive']['total'].get_estimate()     # 400 treatment patients
+    #     n_neg = sketch_data['negative_or_total']['total'].get_estimate()  # 600 control patients
+    #
+    # One-vs-All Mode (CTR, disease, fraud):
+    #   - 'positive': Sketches filtered to positive class (e.g., clicked, has diabetes)
+    #   - 'negative_or_total': Sketches of ENTIRE dataset (unfiltered by class label)
+    #   → NEVER use get_estimate() directly on negative_or_total
+    #   → ALWAYS compute negative counts via ARITHMETIC SUBTRACTION:
+    #   Example (CTR):
+    #     n_pos = sketch_data['positive']['total'].get_estimate()          # 100M clicks
+    #     n_all = sketch_data['negative_or_total']['total'].get_estimate() # 10B impressions (ALL data)
+    #     n_neg = n_all - n_pos  # 9.9B non-clicks (arithmetic, NOT sketch operation!)
+    #
+    #   Example (feature age>30):
+    #     n_pos_age30 = sketch_data['positive']['age>30'][0].get_estimate()  # Clicks AND age>30
+    #     n_all_age30 = sketch_data['negative_or_total']['age>30'][0].get_estimate()  # ALL impressions AND age>30
+    #     n_neg_age30 = n_all_age30 - n_pos_age30  # Non-clicks AND age>30 (arithmetic!)
+    #
+    # Why arithmetic for One-vs-All?
+    #   - Avoids compounding sketch errors from additional a_not_b operations
+    #   - The negative class was already computed once (total - positive) during loading
+    #   - Additional sketch operations would multiply errors
 
     sketches_pos = sketch_data['positive']
-    sketches_neg = sketch_data['negative']
+    sketches_neg_or_all = sketch_data['negative_or_total']  # Could be neg class OR all data
 
     # ========== Step 2: Extract Feature Names ==========
     # feature_mapping: {'age>30': 0, 'income>50k': 1, ...}
@@ -86,7 +115,7 @@ FUNCTION fit(sketch_data, feature_mapping):
 
     root_node = tree_builder.build_tree(
         sketch_dict_pos=sketches_pos,
-        sketch_dict_neg=sketches_neg,
+        sketch_dict_neg_or_all=sketches_neg_or_all,
         feature_names=feature_names,
         depth=0
     )
@@ -107,7 +136,7 @@ FUNCTION fit(sketch_data, feature_mapping):
     self.tree_ = tree
 
     # Store internal state
-    self._sketch_dict = {'pos': sketches_pos, 'neg': sketches_neg}
+    self._sketch_dict = {'pos': sketches_pos, 'neg_or_all': sketches_neg_or_all}
     self._feature_mapping = feature_mapping  # Simple Dict[str, int] mapping
     self._tree_traverser = TreeTraverser(tree, self.missing_value_strategy)
     self._sketch_cache = sketch_cache
@@ -127,13 +156,14 @@ FUNCTION fit(sketch_data, feature_mapping):
 ### Tree Building (Recursive)
 
 ```
-FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg, feature_names, depth):
+FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, depth):
     """
     Recursively build decision tree.
 
     Parameters:
         sketch_dict_pos: Dict of sketches for positive class
-        sketch_dict_neg: Dict of sketches for negative class
+        sketch_dict_neg_or_all: Dict of sketches for negative class (Dual-Class)
+                                OR entire dataset (One-vs-All)
         feature_names: List of feature names to consider
         depth: Current depth in tree
 
@@ -143,10 +173,22 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg, feature_names, depth):
 
     # ========== Step 1: Calculate Node Statistics ==========
     total_sketch_pos = sketch_dict_pos['total']
-    total_sketch_neg = sketch_dict_neg['total']
+    total_sketch_neg_or_all = sketch_dict_neg_or_all['total']
 
     n_pos = total_sketch_pos.get_estimate()
-    n_neg = total_sketch_neg.get_estimate()
+
+    # CRITICAL: For One-vs-All mode, use arithmetic subtraction
+    # Dual-Class: total_sketch_neg_or_all is negative class → use get_estimate() directly
+    # One-vs-All: total_sketch_neg_or_all is ALL data → compute n_neg = n_all - n_pos
+    n_neg_or_all = total_sketch_neg_or_all.get_estimate()
+
+    # For One-vs-All mode, this will be: n_neg = n_all - n_pos (arithmetic)
+    # For Dual-Class mode, this will be: n_total = n_neg + n_pos (arithmetic)
+    # Implementation must detect mode and apply correct formula
+    n_neg = n_neg_or_all  # Dual-Class mode
+    # OR
+    n_neg = n_neg_or_all - n_pos  # One-vs-All mode (arithmetic subtraction!)
+
     n_total = n_pos + n_neg
 
     class_counts = np.array([n_neg, n_pos])
@@ -159,7 +201,8 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg, feature_names, depth):
         depth=depth,
         n_samples=n_total,
         class_counts=class_counts,
-        impurity=impurity
+        impurity=impurity,
+        parent=null
     )
 
     IF self.verbose >= 2:
@@ -182,7 +225,7 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg, feature_names, depth):
     # ========== Step 3: Find Best Split ==========
     best_split = split_evaluator.find_best_split(
         sketch_dict_pos=sketch_dict_pos,
-        sketch_dict_neg=sketch_dict_neg,
+        sketch_dict_neg_or_all=sketch_dict_neg_or_all,
         feature_names=feature_names,
         parent_impurity=impurity
     )
@@ -194,20 +237,27 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg, feature_names, depth):
             LOG f"No valid split found at depth {depth}, creating leaf"
         RETURN node
 
-    feature_name, score, left_sketches_pos, left_sketches_neg, right_sketches_pos, right_sketches_neg = best_split
+    feature_name, score, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all = best_split
 
-    # Calculate impurity decrease
-    n_left = left_sketches_pos['total'].get_estimate() + left_sketches_neg['total'].get_estimate()
-    n_right = right_sketches_pos['total'].get_estimate() + right_sketches_neg['total'].get_estimate()
+    # Calculate impurity decrease (use arithmetic for One-vs-All)
+    n_left_pos = left_sketches_pos['total'].get_estimate()
+    n_left_neg_or_all = left_sketches_neg_or_all['total'].get_estimate()
 
-    left_counts = np.array([
-        left_sketches_neg['total'].get_estimate(),
-        left_sketches_pos['total'].get_estimate()
-    ])
-    right_counts = np.array([
-        right_sketches_neg['total'].get_estimate(),
-        right_sketches_pos['total'].get_estimate()
-    ])
+    n_right_pos = right_sketches_pos['total'].get_estimate()
+    n_right_neg_or_all = right_sketches_neg_or_all['total'].get_estimate()
+
+    # CRITICAL: For One-vs-All, use arithmetic subtraction
+    n_left_neg = n_left_neg_or_all  # Dual-Class
+    # OR n_left_neg = n_left_neg_or_all - n_left_pos  # One-vs-All (arithmetic!)
+
+    n_right_neg = n_right_neg_or_all  # Dual-Class
+    # OR n_right_neg = n_right_neg_or_all - n_right_pos  # One-vs-All (arithmetic!)
+
+    n_left = n_left_pos + n_left_neg
+    n_right = n_right_pos + n_right_neg
+
+    left_counts = np.array([n_left_neg, n_left_pos])
+    right_counts = np.array([n_right_neg, n_right_pos])
 
     left_impurity = criterion.compute_impurity(left_counts)
     right_impurity = criterion.compute_impurity(right_counts)
@@ -229,14 +279,14 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg, feature_names, depth):
     # Recursively build children
     left_child = build_tree(
         sketch_dict_pos=left_sketches_pos,
-        sketch_dict_neg=left_sketches_neg,
+        sketch_dict_neg_or_all=left_sketches_neg_or_all,
         feature_names=feature_names,  # All features available at each node
         depth=depth + 1
     )
 
     right_child = build_tree(
         sketch_dict_pos=right_sketches_pos,
-        sketch_dict_neg=right_sketches_neg,
+        sketch_dict_neg_or_all=right_sketches_neg_or_all,
         feature_names=feature_names,
         depth=depth + 1
     )
@@ -284,13 +334,13 @@ FUNCTION _should_stop_splitting(n_samples, depth, impurity, class_counts):
 ### Find Best Split
 
 ```
-FUNCTION find_best_split(sketch_dict_pos, sketch_dict_neg, feature_names, parent_impurity):
+FUNCTION find_best_split(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, parent_impurity):
     """
     Evaluate all candidate features and select best split.
 
     Returns:
-        (feature_name, score, left_sketches_pos, left_sketches_neg,
-         right_sketches_pos, right_sketches_neg) or None
+        (feature_name, score, left_sketches_pos, left_sketches_neg_or_all,
+         right_sketches_pos, right_sketches_neg_or_all) or None
     """
 
     # ========== Step 1: Select Features to Try ==========
@@ -306,15 +356,15 @@ FUNCTION find_best_split(sketch_dict_pos, sketch_dict_neg, feature_names, parent
 
     FOR feature_name IN features_to_try:
         # Skip if feature not in sketch dict
-        IF feature_name NOT IN sketch_dict_pos OR feature_name NOT IN sketch_dict_neg:
+        IF feature_name NOT IN sketch_dict_pos OR feature_name NOT IN sketch_dict_neg_or_all:
             CONTINUE
 
         # Evaluate this feature
-        score, left_sketches_pos, left_sketches_neg, right_sketches_pos, right_sketches_neg = \
+        score, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all = \
             _evaluate_feature_split(
                 feature_name=feature_name,
                 sketch_dict_pos=sketch_dict_pos,
-                sketch_dict_neg=sketch_dict_neg,
+                sketch_dict_neg_or_all=sketch_dict_neg_or_all,
                 parent_impurity=parent_impurity
             )
 
@@ -327,14 +377,14 @@ FUNCTION find_best_split(sketch_dict_pos, sketch_dict_neg, feature_names, parent
             # Lower p-value is better (more significant)
             IF score < self.min_pvalue AND score < best_score:
                 best_score = score
-                best_split = (feature_name, score, left_sketches_pos, left_sketches_neg,
-                             right_sketches_pos, right_sketches_neg)
+                best_split = (feature_name, score, left_sketches_pos, left_sketches_neg_or_all,
+                             right_sketches_pos, right_sketches_neg_or_all)
         ELSE:
             # Lower impurity is better (or higher information gain, represented as negative)
             IF score < best_score:
                 best_score = score
-                best_split = (feature_name, score, left_sketches_pos, left_sketches_neg,
-                             right_sketches_pos, right_sketches_neg)
+                best_split = (feature_name, score, left_sketches_pos, left_sketches_neg_or_all,
+                             right_sketches_pos, right_sketches_neg_or_all)
 
     RETURN best_split  # None if no valid split found
 ```
@@ -344,13 +394,13 @@ FUNCTION find_best_split(sketch_dict_pos, sketch_dict_neg, feature_names, parent
 ### Evaluate Single Feature Split
 
 ```
-FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg, parent_impurity):
+FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg_or_all, parent_impurity):
     """
     Evaluate split on a single feature.
 
     Returns:
-        (score, left_sketches_pos, left_sketches_neg,
-         right_sketches_pos, right_sketches_neg)
+        (score, left_sketches_pos, left_sketches_neg_or_all,
+         right_sketches_pos, right_sketches_neg_or_all)
     """
 
     # ========== Step 1: Compute Child Sketches ==========
@@ -366,29 +416,47 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg,
         class_label='pos'
     )
 
-    # For negative class
-    total_sketch_neg = sketch_dict_neg['total']
-    feature_sketch_neg = sketch_dict_neg[feature_name]
+    # For negative/total class
+    total_sketch_neg_or_all = sketch_dict_neg_or_all['total']
+    feature_sketch_neg_or_all = sketch_dict_neg_or_all[feature_name]
 
-    left_total_neg, right_total_neg = _compute_child_sketches(
-        parent_sketch=total_sketch_neg,
-        feature_sketch=feature_sketch_neg,
+    left_total_neg_or_all, right_total_neg_or_all = _compute_child_sketches(
+        parent_sketch=total_sketch_neg_or_all,
+        feature_sketch=feature_sketch_neg_or_all,
         feature_name=feature_name,
-        class_label='neg'
+        class_label='neg_or_all'
     )
 
     # ========== Step 2: Get Cardinalities ==========
     n_left_pos = left_total_pos.get_estimate()  # Cached if available
     n_right_pos = right_total_pos.get_estimate()
-    n_left_neg = left_total_neg.get_estimate()
-    n_right_neg = right_total_neg.get_estimate()
+    n_left_neg_or_all = left_total_neg_or_all.get_estimate()
+    n_right_neg_or_all = right_total_neg_or_all.get_estimate()
+
+    # CRITICAL: Compute actual negative counts based on classification mode
+    # Dual-Class Mode: Use get_estimate() directly
+    #   n_left_neg = n_left_neg_or_all
+    #   n_right_neg = n_right_neg_or_all
+    #
+    # One-vs-All Mode: Use ARITHMETIC SUBTRACTION (avoids sketch error compounding)
+    #   n_left_neg = n_left_neg_or_all - n_left_pos
+    #   n_right_neg = n_right_neg_or_all - n_right_pos
+
+    n_left_neg = n_left_neg_or_all  # Dual-Class
+    # OR n_left_neg = n_left_neg_or_all - n_left_pos  # One-vs-All (arithmetic!)
+
+    n_right_neg = n_right_neg_or_all  # Dual-Class
+    # OR n_right_neg = n_right_neg_or_all - n_right_pos  # One-vs-All (arithmetic!)
 
     # ========== Step 3: Build Class Counts ==========
-    parent_counts = np.array([
-        total_sketch_neg.get_estimate(),
-        total_sketch_pos.get_estimate()
-    ])
+    parent_neg_or_all = total_sketch_neg_or_all.get_estimate()
+    parent_pos = total_sketch_pos.get_estimate()
 
+    # CRITICAL: Compute actual parent negative count
+    parent_neg = parent_neg_or_all  # Dual-Class
+    # OR parent_neg = parent_neg_or_all - parent_pos  # One-vs-All (arithmetic!)
+
+    parent_counts = np.array([parent_neg, parent_pos])
     left_counts = np.array([n_left_neg, n_left_pos])
     right_counts = np.array([n_right_neg, n_right_pos])
 
@@ -408,10 +476,10 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg,
 
     # For left child, need to propagate ALL feature sketches
     left_sketches_pos = {}
-    left_sketches_neg = {}
+    left_sketches_neg_or_all = {}
 
     left_sketches_pos['total'] = left_total_pos
-    left_sketches_neg['total'] = left_total_neg
+    left_sketches_neg_or_all['total'] = left_total_neg_or_all
 
     FOR other_feature IN sketch_dict_pos.keys():
         IF other_feature == 'total':
@@ -426,18 +494,18 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg,
             # So all records in left don't have this feature
             # Use empty sketch or zero estimate
             left_sketches_pos[other_feature] = EMPTY_SKETCH()
-            left_sketches_neg[other_feature] = EMPTY_SKETCH()
+            left_sketches_neg_or_all[other_feature] = EMPTY_SKETCH()
         ELSE:
             # General case: intersect other feature with left total
             left_sketches_pos[other_feature] = sketch_dict_pos[other_feature].intersection(left_total_pos)
-            left_sketches_neg[other_feature] = sketch_dict_neg[other_feature].intersection(left_total_neg)
+            left_sketches_neg_or_all[other_feature] = sketch_dict_neg_or_all[other_feature].intersection(left_total_neg_or_all)
 
     # Similarly for right child
     right_sketches_pos = {}
-    right_sketches_neg = {}
+    right_sketches_neg_or_all = {}
 
     right_sketches_pos['total'] = right_total_pos
-    right_sketches_neg['total'] = right_total_neg
+    right_sketches_neg_or_all['total'] = right_total_neg_or_all
 
     FOR other_feature IN sketch_dict_pos.keys():
         IF other_feature == 'total':
@@ -447,12 +515,12 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg,
             # Right child has feature_name = True
             # So all records in right have this feature
             right_sketches_pos[other_feature] = right_total_pos  # All in right have feature
-            right_sketches_neg[other_feature] = right_total_neg
+            right_sketches_neg_or_all[other_feature] = right_total_neg_or_all
         ELSE:
             right_sketches_pos[other_feature] = sketch_dict_pos[other_feature].intersection(right_total_pos)
-            right_sketches_neg[other_feature] = sketch_dict_neg[other_feature].intersection(right_total_neg)
+            right_sketches_neg_or_all[other_feature] = sketch_dict_neg_or_all[other_feature].intersection(right_total_neg_or_all)
 
-    RETURN (score, left_sketches_pos, left_sketches_neg, right_sketches_pos, right_sketches_neg)
+    RETURN (score, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all)
 ```
 
 ---
@@ -936,12 +1004,26 @@ FUNCTION should_prune_pre(node, proposed_split, impurity_decrease):
 
     # ========== Check Min Samples in Leaves ==========
     IF proposed_split IS NOT None:
-        _, _, left_sketches_pos, left_sketches_neg, right_sketches_pos, right_sketches_neg = proposed_split
+        _, _, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all = proposed_split
 
-        n_left = (left_sketches_pos['total'].get_estimate() +
-                  left_sketches_neg['total'].get_estimate())
-        n_right = (right_sketches_pos['total'].get_estimate() +
-                   right_sketches_neg['total'].get_estimate())
+        n_left_pos = left_sketches_pos['total'].get_estimate()
+        n_left_neg_or_all = left_sketches_neg_or_all['total'].get_estimate()
+        n_right_pos = right_sketches_pos['total'].get_estimate()
+        n_right_neg_or_all = right_sketches_neg_or_all['total'].get_estimate()
+
+        # CRITICAL: Compute actual negative counts
+        # Dual-Class Mode:
+        #   n_left = n_left_pos + n_left_neg_or_all
+        #   n_right = n_right_pos + n_right_neg_or_all
+        # One-vs-All Mode (arithmetic subtraction):
+        #   n_left = n_left_neg_or_all  # Already represents total
+        #   n_right = n_right_neg_or_all  # Already represents total
+
+        n_left = n_left_pos + n_left_neg_or_all  # Dual-Class
+        # OR n_left = n_left_neg_or_all  # One-vs-All (already total)
+
+        n_right = n_right_pos + n_right_neg_or_all  # Dual-Class
+        # OR n_right = n_right_neg_or_all  # One-vs-All (already total)
 
         IF n_left < self.min_samples_leaf OR n_right < self.min_samples_leaf:
             RETURN True

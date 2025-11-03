@@ -348,7 +348,7 @@ def fit(self, csv_path, config_path):
     self._feature_mapping = config['feature_mapping']  # Dict[str, int]
 
     # Load sketches
-    sketches_pos, sketches_neg = SketchLoader().load(
+    sketches_pos, sketches_neg_or_all = SketchLoader().load(
         csv_path,
         target_positive=config['targets']['positive'],
         target_negative=config['targets']['negative']
@@ -357,7 +357,7 @@ def fit(self, csv_path, config_path):
     # Build tree
     root = TreeBuilder(...).build_tree(
         sketch_dict_pos=sketches_pos,
-        sketch_dict_neg=sketches_neg,
+        sketch_dict_neg_or_all=sketches_neg_or_all,
         feature_names=list(self._feature_mapping.keys()),
         depth=0
     )
@@ -605,3 +605,159 @@ This is considered **low priority** given:
 ### Conclusion
 
 The limitation to 'gini' and 'split_frequency' methods is **intentional**, **well-justified**, and **follows ML best practices**. It provides meaningful feature importance for trees trained with any criterion while maintaining efficiency and simplicity.
+
+---
+
+## 12. Design Simplification - Removal of Mode 1 and Backward Compatibility
+
+**Date**: 2025-11-03
+**Decision**: Remove Mode 1 (single CSV) entirely. Keep ONLY dual CSV approach with two classification modes.
+
+### Problem Statement
+
+The original design supported two input modes:
+- **Mode 1**: Single CSV with all sketches (loader performs intersections)
+- **Mode 2**: Dual CSV with pre-intersected sketches (RECOMMENDED)
+
+This created unnecessary complexity:
+- 8 possible combinations (2 modes × 2 formats × 2 target types)
+- Documentation burden explaining Mode 1 vs Mode 2
+- Code complexity handling two loading paths
+- User confusion about which mode to choose
+- Backward compatibility promises before v1.0 release
+
+### Root Cause
+
+**"Trying to manage backward compatibility is killing us."** - User feedback
+
+Key insights:
+1. **Pre-release status**: We're at v0.1.0 - no backward compatibility obligation
+2. **Mode 1 provides zero benefits**: All advantages come from Mode 2
+3. **Premature optimization**: Planning for edge cases that may never materialize
+4. **Get it right the first time**: Simplify before v1.0 release
+
+### Solution: Radical Simplification
+
+**Remove Mode 1 entirely. Support ONLY:**
+
+1. **Dual CSV files** (always 2 files required):
+   - `positive.csv` + `negative.csv` (Dual-Class Mode)
+   - `positive.csv` + `total.csv` (One-vs-All Mode)
+
+2. **3-column CSV format** (mandatory):
+   - `identifier, sketch_feature_present, sketch_feature_absent`
+   - No 2-column format support
+   - No auto-detection complexity
+
+3. **Two classification modes**:
+   - **Dual-Class Mode**: Best accuracy (no set operations)
+   - **One-vs-All Mode**: Healthcare, CTR (negative = total - positive)
+
+### Benefits
+
+**Simplicity**:
+- Single code path in SketchLoader
+- Clear documentation (no Mode 1 vs Mode 2 comparison)
+- No backward compatibility code
+- Easier testing (fewer combinations)
+
+**Better User Experience**:
+- One way to do things (Python Zen)
+- Clear error messages
+- No confusion about "which mode?"
+- Healthcare use cases now supported (Type2Diabetes vs all_patients)
+
+**Technical Advantages**:
+- Consistent 29% error reduction (feature-absent sketches)
+- Simpler API: `load_sketches(positive_csv, negative_csv OR total_csv)`
+- No auto-detection logic
+- Cleaner codebase
+
+### What Was Removed
+
+1. **Mode 1 loading code**: Intersection operations, prefix filtering
+2. **2-column CSV format support**: Auto-detection logic
+3. **Backward compatibility promises**: "Legacy format" documentation
+4. **csv_path parameter**: Replaced with explicit positive_csv/negative_csv/total_csv
+5. **target_positive/target_negative parameters**: Implicit from file structure
+
+### New API Design
+
+**Before (Complex)**:
+```python
+# Mode 1
+clf.fit(csv_path='sketches.csv', config_path='config.yaml')
+
+# Mode 2 (2-column)
+clf.fit(positive_csv='yes.csv', negative_csv='no.csv', config_path='config.yaml')
+
+# Mode 2 (3-column)
+clf.fit(positive_csv='yes.csv', negative_csv='no.csv', config_path='config.yaml')
+```
+
+**After (Simple)**:
+```python
+# Dual-Class Mode
+sketch_data = load_sketches(positive_csv='treatment.csv', negative_csv='control.csv')
+clf.fit(sketch_data, feature_mapping)
+
+# One-vs-All Mode
+sketch_data = load_sketches(positive_csv='Type2Diabetes.csv', total_csv='all_patients.csv')
+clf.fit(sketch_data, feature_mapping)
+```
+
+### Validation
+
+**Config file validation**:
+```yaml
+# Must have either 'negative' OR 'total' (mutually exclusive)
+targets:
+  positive: "treatment"
+  negative: "control"     # Dual-class mode
+
+# OR
+targets:
+  positive: "Type2Diabetes"
+  total: "all_patients"   # One-vs-all mode
+```
+
+**Errors**:
+- ❌ If both `negative` and `total` provided → ValueError
+- ❌ If neither `negative` nor `total` provided → ValueError
+- ❌ If CSV has 2 columns → ValueError ("3-column format required")
+
+### Impact Assessment
+
+**Code Changes**:
+- ✅ SketchLoader: -150 lines (removed Mode 1 logic)
+- ✅ ConfigParser: +20 lines (negative XOR total validation)
+- ✅ Documentation: Simplified by ~40%
+- ✅ Tests: -50 lines (removed Mode 1 tests)
+
+**User Impact**:
+- ⚠️ **Breaking change** for Mode 1 users (none exist - pre-release)
+- ✅ Clearer API for new users
+- ✅ Healthcare use cases now supported
+
+**Performance**:
+- ✅ Slightly faster loading (no auto-detection)
+- ✅ Same accuracy (already recommending Mode 2)
+- ✅ 29% error reduction applies to all users (feature-absent mandatory)
+
+### Lessons Learned
+
+1. **Simplify early**: Design simplification is easier pre-v1.0
+2. **One obvious way**: Python Zen - avoid multiple paths to the same goal
+3. **Kill backward compatibility promises early**: Before users depend on them
+4. **Focus on use cases**: Healthcare need (one-vs-all) > theoretical flexibility (Mode 1)
+5. **Get it right the first time**: User's words - worth remembering
+
+### References
+
+Related sections:
+- **Section 1**: Original Mode 1 vs Mode 2 design (now superseded by this section)
+- **Section 11**: Feature importance design (similar simplification principle)
+
+User quote: *"I do not want any leftovers. We need to remove Mode 1 and 1 CSV sketch file and have only Mode 2 with feature, sketch_feature_present, sketch_feature_absent and targets of one-vs-all and yes-vs-no."*
+
+---

@@ -36,15 +36,15 @@
 
 ### Day 3-4: CSV Sketch Loader ⏸️ IN PROGRESS ← **YOU ARE HERE**
 - [ ] Implement `SketchLoader` class
-  - **CSV parsing (3-column format ONLY)**: identifier, sketch_present, sketch_absent
+  - **CSV parsing (3-column format ONLY)**: identifier, sketch_feature_present, sketch_feature_absent
   - Base64/hex decoding
   - ThetaSketch deserialization
   - **Support dual-class mode (positive + negative CSVs) and one-vs-all mode (positive + total CSVs)**
   - **Build unified sketch_data structure with tuples**
-    - `{'age>30': (sketch_present, sketch_absent)}` for all features
+    - `{'age>30': (sketch_feature_present, sketch_feature_absent)}` for all features
     - `{'total': sketch}` - single sketch (not tuple)
   - **Implement _compute_negative_from_total() for one-vs-all mode**
-  - **Validation: Check sketch_present + sketch_absent ≈ total (within error bounds)**
+  - **Validation: Check sketch_feature_present + sketch_feature_absent ≈ total (within error bounds)**
   - Error handling and detailed error messages
 - [ ] Write unit tests for `SketchLoader` (target >80% coverage)
   - Test 3-column CSV parsing
@@ -62,7 +62,7 @@
 3. Implement `_parse_csv()` method (enforce 3-column format)
 4. **Implement tuple creation for all features**
 5. **Implement _compute_negative_from_total() for one-vs-all mode**
-6. **Implement validation: sketch_present.estimate() + sketch_absent.estimate() ≈ total.estimate()**
+6. **Implement validation: sketch_feature_present.estimate() + sketch_feature_absent.estimate() ≈ total.estimate()**
 7. Implement `load()` main method with mode detection
 8. Create CSV test fixtures (3-column format)
 9. Write comprehensive tests for both modes

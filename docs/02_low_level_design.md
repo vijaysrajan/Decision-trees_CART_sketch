@@ -183,27 +183,42 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         sketch_data : dict
             Dictionary with keys 'positive' and 'negative', each containing:
             - 'total': ThetaSketch for the class population (always single sketch)
-            - '<feature_name>': Tuple (sketch_present, sketch_absent) for all features
+            - '<feature_name>': Tuple (sketch_feature_present, sketch_feature_absent) for all features
 
-            **Format (from 3-column CSV - ONLY supported format)**:
+            **Dual-Class Mode** (treatment vs control, yes vs no):
             {
                 'positive': {
-                    'total': <ThetaSketch>,
-                    'age>30': (<sketch_yes_AND_age>30>, <sketch_yes_AND_age<=30>),
-                    'income>50k': (<sketch_yes_AND_income>50k>, <sketch_yes_AND_income<=50k>),
-                    'clicked': (<sketch_yes_AND_clicked>, <sketch_yes_AND_not_clicked>)
+                    'total': <ThetaSketch>,                    # Treatment/yes class
+                    'age>30': (<sketch_pos_AND_age>30>, <sketch_pos_AND_age<=30>),
+                    'income>50k': (<sketch_pos_AND_inc>50k>, <sketch_pos_AND_inc<=50k>)
                 },
                 'negative': {
-                    'total': <ThetaSketch>,
-                    'age>30': (<sketch_no_AND_age>30>, <sketch_no_AND_age<=30>),
-                    'income>50k': (<sketch_no_AND_income>50k>, <sketch_no_AND_income<=50k>),
-                    'clicked': (<sketch_no_AND_clicked>, <sketch_no_AND_not_clicked>)
+                    'total': <ThetaSketch>,                    # Control/no class (separate)
+                    'age>30': (<sketch_neg_AND_age>30>, <sketch_neg_AND_age<=30>),
+                    'income>50k': (<sketch_neg_AND_inc>50k>, <sketch_neg_AND_inc<=50k>)
                 }
             }
 
-            Notes:
-            - Tuple format (sketch_present, sketch_absent) is mandatory
-            - Eliminates a_not_b operations → 29% error reduction at all depths
+            **One-vs-All Mode** (CTR, disease, fraud - negative computed from total):
+            {
+                'positive': {
+                    'total': <ThetaSketch>,                    # Clicked/diabetes class
+                    'mobile': (<sketch_pos_AND_mobile>, <sketch_pos_AND_desktop>),
+                    'age>65': (<sketch_pos_AND_age>65>, <sketch_pos_AND_age<=65>)
+                },
+                'negative': {
+                    'total': <ThetaSketch>,                    # Total population (impressions/all_patients)
+                    'mobile': (<sketch_all_AND_mobile>, <sketch_all_AND_desktop>),
+                    'age>65': (<sketch_all_AND_age>65>, <sketch_all_AND_age<=65>)
+                }
+            }
+            Note: In One-vs-All mode, 'negative' sketches represent the TOTAL population.
+                  Negative class counts computed via arithmetic: n_neg = n_total - n_pos
+                  (avoids compounding errors from additional sketch operations)
+
+            General Notes:
+            - Tuple format (sketch_feature_present, sketch_feature_absent) is mandatory
+            - Eliminates a_not_b operations within features → 29% error reduction at all depths
             - Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3)
             - Loaded via SketchLoader.load() from dual CSV files
 
@@ -235,7 +250,6 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Notes
         -----
         Use load_sketches() helper to load sketch data from CSV files.
-        For backward compatibility, use fit_from_csv() class method.
         """
         pass
 
@@ -381,9 +395,9 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
     def fit_from_csv(
         cls,
         positive_csv: str,
-        negative_csv: str,
-        config_path: str,
-        csv_path: Optional[str] = None
+        negative_csv: Optional[str] = None,
+        total_csv: Optional[str] = None,
+        config_path: str = None
     ) -> 'ThetaSketchDecisionTreeClassifier':
         """
         Convenience method: load sketches from CSV and fit model in one call.
@@ -392,12 +406,12 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         ----------
         positive_csv : str
             Path to CSV with positive class sketches.
-        negative_csv : str
-            Path to CSV with negative class sketches.
+        negative_csv : str, optional
+            Path to CSV with negative class sketches (for dual-class mode).
+        total_csv : str, optional
+            Path to CSV with total population sketches (for one-vs-all mode).
         config_path : str
             Path to YAML config file.
-        csv_path : str, optional
-            If provided, uses single CSV mode instead (for backward compatibility).
 
         Returns
         -------
@@ -480,6 +494,8 @@ class TreeNode:
         Impurity value (Gini, entropy, etc.) at this node
     class_counts : NDArray[np.float64]
         Count of samples per class [n_class_0, n_class_1]
+    patent : TreeNode
+        Parent node of the existing node
 
     Attributes (for internal nodes)
     -------------------------------
@@ -515,7 +531,8 @@ class TreeNode:
         depth: int,
         n_samples: float,
         class_counts: NDArray[np.float64],
-        impurity: float
+        impurity: float,
+        parent : TreeNode
     ) -> None:
         """Initialize tree node."""
         self.depth = depth
@@ -531,6 +548,7 @@ class TreeNode:
         self.n_samples_left: float = 0.0
         self.n_samples_right: float = 0.0
         self.missing_direction: Optional[str] = None
+        self.parent = parent
 
         # Leaf node attributes
         self.is_leaf: bool = False
@@ -567,6 +585,8 @@ class TreeNode:
         """
         self.feature_idx = feature_idx
         self.feature_name = feature_name
+        left_child.parent = self
+        right_child.parent = self
         self.left = left_child
         self.right = right_child
         self.n_samples_left = left_child.n_samples
@@ -675,7 +695,7 @@ class SketchLoader:
     CSV Format:
     -----------
     **3-Column Format (ONLY supported format)**:
-        identifier, sketch_present, sketch_absent
+        identifier, sketch_feature_present, sketch_feature_absent
 
         Stores BOTH feature=TRUE and feature=FALSE sketches per feature.
         ✅ Eliminates a_not_b operations → 29% error reduction at all depths
@@ -741,7 +761,7 @@ class SketchLoader:
         sketch_data : dict
             Dictionary with 'positive' and 'negative' keys, each containing:
             - 'total': ThetaSketch for class population (always single sketch)
-            - '<feature>': Tuple (sketch_present, sketch_absent) for all features
+            - '<feature>': Tuple (sketch_feature_present, sketch_feature_absent) for all features
 
             **Dual-Class Mode format**:
             {
@@ -769,7 +789,7 @@ class SketchLoader:
                 }
             }
 
-            Note: All features are tuples (sketch_present, sketch_absent).
+            Note: All features are tuples (sketch_feature_present, sketch_feature_absent).
             'total' is always a single ThetaSketch (not a tuple).
 
         Raises
@@ -784,7 +804,7 @@ class SketchLoader:
 
         Notes
         -----
-        - Only 3-column CSV format is supported: identifier, sketch_present, sketch_absent
+        - Only 3-column CSV format is supported: identifier, sketch_feature_present, sketch_feature_absent
         - One-vs-all mode adds ~0.4% error from a_not_b computation
         - Dual-class mode provides best accuracy (no set operations)
         """
@@ -984,7 +1004,7 @@ class TreeBuilder:
     def build_tree(
         self,
         sketch_dict_pos: Dict[str, Any],
-        sketch_dict_neg: Dict[str, Any],
+        sketch_dict_neg_or_all: Dict[str, Any],
         feature_names: List[str],
         depth: int = 0
     ) -> TreeNode:
@@ -995,8 +1015,8 @@ class TreeBuilder:
         ----------
         sketch_dict_pos : dict
             Sketches for positive class at this node
-        sketch_dict_neg : dict
-            Sketches for negative class at this node
+        sketch_dict_neg_or_all : dict
+            Sketches for negative class (Dual-Class) OR entire dataset (One-vs-All) at this node
         feature_names : list
             List of feature names to consider for splitting
         depth : int
@@ -1076,7 +1096,7 @@ class SplitEvaluator:
     def find_best_split(
         self,
         sketch_dict_pos: Dict[str, Any],
-        sketch_dict_neg: Dict[str, Any],
+        sketch_dict_neg_or_all: Dict[str, Any],
         feature_names: List[str],
         parent_impurity: float
     ) -> Optional[Tuple[str, float, Dict, Dict, Dict, Dict]]:
@@ -1087,8 +1107,8 @@ class SplitEvaluator:
         ----------
         sketch_dict_pos : dict
             Sketches for positive class
-        sketch_dict_neg : dict
-            Sketches for negative class
+        sketch_dict_neg_or_all : dict
+            Sketches for negative class (Dual-Class) OR entire dataset (One-vs-All)
         feature_names : list
             Features to consider
         parent_impurity : float
@@ -1098,8 +1118,8 @@ class SplitEvaluator:
         -------
         best_split : tuple or None
             (feature_name, score,
-             left_sketches_pos, left_sketches_neg,
-             right_sketches_pos, right_sketches_neg)
+             left_sketches_pos, left_sketches_neg_or_all,
+             right_sketches_pos, right_sketches_neg_or_all)
             or None if no valid split found
         """
         pass
@@ -1108,7 +1128,7 @@ class SplitEvaluator:
         self,
         feature_name: str,
         sketch_dict_pos: Dict[str, Any],
-        sketch_dict_neg: Dict[str, Any],
+        sketch_dict_neg_or_all: Dict[str, Any],
         parent_impurity: float
     ) -> Tuple[float, Dict, Dict, Dict, Dict]:
         """
@@ -1120,12 +1140,12 @@ class SplitEvaluator:
             Split score (lower is better for impurity, higher for information gain)
         left_sketches_pos : dict
             Positive class sketches for left child
-        left_sketches_neg : dict
-            Negative class sketches for left child
+        left_sketches_neg_or_all : dict
+            Negative/total class sketches for left child
         right_sketches_pos : dict
             Positive class sketches for right child
-        right_sketches_neg : dict
-            Negative class sketches for right child
+        right_sketches_neg_or_all : dict
+            Negative/total class sketches for right child
         """
         pass
 
@@ -1712,9 +1732,11 @@ class PrePruner:
 
         # Check min_samples_leaf for proposed children
         if proposed_split is not None:
-            _, _, left_sketches_pos, left_sketches_neg, right_sketches_pos, right_sketches_neg = proposed_split
-            n_left = left_sketches_pos['total'].get_estimate() + left_sketches_neg['total'].get_estimate()
-            n_right = right_sketches_pos['total'].get_estimate() + right_sketches_neg['total'].get_estimate()
+            _, _, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all = proposed_split
+            # For Dual-Class: n_left = n_pos + n_neg
+            # For One-vs-All: n_left = n_total (neg_or_all already represents total)
+            n_left = left_sketches_pos['total'].get_estimate() + left_sketches_neg_or_all['total'].get_estimate()
+            n_right = right_sketches_pos['total'].get_estimate() + right_sketches_neg_or_all['total'].get_estimate()
 
             if n_left < self.min_samples_leaf or n_right < self.min_samples_leaf:
                 return True
@@ -2035,7 +2057,7 @@ User
   │       │       ├─► Pruner (Pre/Post/Both)
   │       │       └─► TreeBuilder(criterion, splitter, pruner)
   │       │
-  │       ├─► TreeBuilder.build_tree(sketches_pos, sketches_neg, feature_names)
+  │       ├─► TreeBuilder.build_tree(sketches_pos, sketches_neg_or_all, feature_names)
   │       │       │
   │       │       ├─► Calculate node statistics
   │       │       ├─► Check stopping criteria
@@ -2146,8 +2168,8 @@ SplitEvaluator.find_best_split()
   │               ├─► Criterion.evaluate_split(parent_counts, left_counts, right_counts)
   │               │       └─► Returns: score
   │               │
-  │               └─► Returns: (score, left_sketches_pos, left_sketches_neg,
-  │                            right_sketches_pos, right_sketches_neg)
+  │               └─► Returns: (score, left_sketches_pos, left_sketches_neg_or_all,
+  │                            right_sketches_pos, right_sketches_neg_or_all)
   │
   ├─► Track best split (lowest score for Gini/Entropy, lowest p-value for statistical)
   │

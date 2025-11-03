@@ -32,7 +32,7 @@ The classifier supports two classification modes using **dual CSV files** (two s
 - **Use cases**: Rare events, healthcare (Type2Diabetes vs all patients), CTR (clicked vs impressions)
 
 **Common Properties (Both Modes)**:
-- **3-column CSV format only**: `identifier, sketch_present, sketch_absent`
+- **3-column CSV format only**: `identifier, sketch_feature_present, sketch_feature_absent`
 - Sketches pre-computed in big data pipeline (already intersected)
 - **Stores BOTH feature_present AND feature_absent sketches** per feature
 - Eliminates a_not_b operations during tree building (29% error reduction)
@@ -42,12 +42,12 @@ The classifier supports two classification modes using **dual CSV files** (two s
 
 **3-Column CSV Format** (ONLY supported format):
 ```
-<identifier>, <sketch_present>, <sketch_absent>
+<identifier>, <sketch_feature_present>, <sketch_feature_absent>
 ```
 
 **Columns**:
 - **Column 1: Identifier** (string)
-  - `total`: Population sketch for this class (sketch_absent = same as sketch_present)
+  - `total`: Population sketch for this class (sketch_feature_absent = same as sketch_feature_present)
   - `<feature_name>`: Feature condition (e.g., "age>30", "income>50k", "clicked")
 
 - **Column 2: Sketch Present** (base64-encoded or hex-encoded string)
@@ -63,7 +63,7 @@ The classifier supports two classification modes using **dual CSV files** (two s
 
 **target_yes.csv** (positive class, pre-intersected with both present and absent):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_positive_class_total>,<base64_positive_class_total>
 age>30,<base64_yes_AND_age>30>,<base64_yes_AND_age<=30>
 income>50k,<base64_yes_AND_income>50k>,<base64_yes_AND_income<=50k>
@@ -73,7 +73,7 @@ clicked,<base64_yes_AND_clicked>,<base64_yes_AND_not_clicked>
 
 **target_no.csv** (negative class, pre-intersected with both present and absent):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_negative_class_total>,<base64_negative_class_total>
 age>30,<base64_no_AND_age>30>,<base64_no_AND_age<=30>
 income>50k,<base64_no_AND_income>50k>,<base64_no_AND_income<=50k>
@@ -82,8 +82,8 @@ clicked,<base64_no_AND_clicked>,<base64_no_AND_not_clicked>
 ```
 
 **Key Points**:
-- **sketch_present**: Records where (target AND feature=TRUE)
-- **sketch_absent**: Records where (target AND feature=FALSE)
+- **sketch_feature_present**: Records where (target AND feature=TRUE)
+- **sketch_feature_absent**: Records where (target AND feature=FALSE)
 - Both sketches built **directly from raw data** in big data pipeline (single pass, no set operations)
 - **Eliminates a_not_b operations** during tree building → 29% error reduction at all tree levels
 - **Best accuracy**: No negative class computation needed
@@ -96,7 +96,7 @@ clicked,<base64_no_AND_clicked>,<base64_no_AND_not_clicked>
 
 **Type2Diabetes.csv** (positive class: patients with Type 2 Diabetes):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_diabetes_patients>,<base64_diabetes_patients>
 age>65,<base64_diabetes_AND_age>65>,<base64_diabetes_AND_age<=65>
 bmi>30,<base64_diabetes_AND_obese>,<base64_diabetes_AND_not_obese>
@@ -105,7 +105,7 @@ family_history,<base64_diabetes_AND_fh>,<base64_diabetes_AND_no_fh>
 
 **all_patients.csv** (total population: all patients in system):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_all_patients>,<base64_all_patients>
 age>65,<base64_all_AND_age>65>,<base64_all_AND_age<=65>
 bmi>30,<base64_all_AND_obese>,<base64_all_AND_not_obese>
@@ -131,22 +131,22 @@ targets:
 
 #### 1. Total/Population Sketch
 ```
-total, <sketch_present>, <sketch_absent>
+total, <sketch_feature_present>, <sketch_feature_absent>
 ```
 - **Purpose**: Represents all records for a target class
 - **Identifier**: Always "total" (lowercase)
-- **sketch_present**: Full population sketch for this class
-- **sketch_absent**: Must be identical to sketch_present
+- **sketch_feature_present**: Full population sketch for this class
+- **sketch_feature_absent**: Must be identical to sketch_feature_present
 - **Example**: `total,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
 
 #### 2. Feature Condition Sketch
 ```
-<feature_name>, <sketch_present>, <sketch_absent>
+<feature_name>, <sketch_feature_present>, <sketch_feature_absent>
 ```
 - **Purpose**: Represents records where feature condition is TRUE or FALSE
 - **Format**: `dimension=value`, `dimension>value`, `dimension<value`, or simple `item_name`
-- **sketch_present**: Sketch where (class AND feature=TRUE)
-- **sketch_absent**: Sketch where (class AND feature=FALSE)
+- **sketch_feature_present**: Sketch where (class AND feature=TRUE)
+- **sketch_feature_absent**: Sketch where (class AND feature=FALSE)
 - **Examples**:
   - `age>30,<base64_present>,<base64_absent>`
   - `income>50000,<base64_present>,<base64_absent>`
@@ -203,24 +203,24 @@ count = sketch.get_estimate()
 
 ### CSV Parsing Requirements
 
-1. **Header**: Optional. If present, must be: `identifier,sketch_present,sketch_absent`
+1. **Header**: Optional. If present, must be: `identifier,sketch_feature_present,sketch_feature_absent`
 2. **Delimiter**: Comma (`,`)
 3. **Quoting**: Optional for identifiers, required if identifier contains commas
 4. **Line endings**: Unix (`\n`), Windows (`\r\n`), or Mac (`\r`) - all supported
 5. **Encoding**: UTF-8
-6. **Format**: 3-column ONLY (2-column format no longer supported)
+6. **Format**: 3-column format only (identifier, sketch_feature_present, sketch_feature_absent)
 
 ### Validation Rules
 
 The loader must validate:
-- ✅ Each row has exactly **3 columns** (identifier, sketch_present, sketch_absent)
+- ✅ Each row has exactly **3 columns** (identifier, sketch_feature_present, sketch_feature_absent)
 - ✅ Sketch bytes can be decoded (base64 or hex)
 - ✅ Sketch bytes can be deserialized to ThetaSketch
 - ✅ 'total' row exists in each CSV file
 - ✅ Feature sketches are present for both CSV files (or positive + total for one-vs-all)
-- ✅ Both sketch_present and sketch_absent are provided for each feature
-- ✅ For 'total' row: sketch_present equals sketch_absent
-- ✅ Cardinality of sketch_present + sketch_absent ≈ total sketch (within error bounds)
+- ✅ Both sketch_feature_present and sketch_feature_absent are provided for each feature
+- ✅ For 'total' row: sketch_feature_present equals sketch_feature_absent
+- ✅ Cardinality of sketch_feature_present + sketch_feature_absent ≈ total sketch (within error bounds)
 
 ---
 
@@ -263,10 +263,10 @@ Where F = |Union(A,B)| / |Intersection(A,B)|
 At each tree node, we must compute:
 ```python
 # Right child (feature=TRUE): Direct lookup from pre-computed sketch ✓
-right_pos = sketch_present_yes.get_estimate()
+right_pos = sketch_feature_present_yes.get_estimate()
 
 # Left child (feature=FALSE): Runtime A-not-B operation ✗
-left_pos = sketch_total_yes.a_not_b(sketch_present_yes).get_estimate()
+left_pos = sketch_total_yes.a_not_b(sketch_feature_present_yes).get_estimate()
 #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #         ERROR MULTIPLIES BY √F ≈ 1.4-2× at EVERY split!
 ```
@@ -296,10 +296,10 @@ Depth d: RSE × (√F)^(d+1)
 At each tree node:
 ```python
 # Right child (feature=TRUE): Direct lookup ✓
-right_pos = sketch_present_yes.get_estimate()
+right_pos = sketch_feature_present_yes.get_estimate()
 
 # Left child (feature=FALSE): Direct lookup ✓
-left_pos = sketch_absent_yes.get_estimate()
+left_pos = sketch_feature_absent_yes.get_estimate()
 #         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #         NO SET OPERATION! Base error only!
 ```
@@ -432,16 +432,16 @@ sketch_data: SketchData = {
     'positive': {
         'total': <ThetaSketch>,                          # Required: population sketch
         '<feature_name>': (
-            <sketch_present>,                             # Feature=1 (True)
-            <sketch_absent>                               # Feature=0 (False)
+            <sketch_feature_present>,                             # Feature=1 (True)
+            <sketch_feature_absent>                               # Feature=0 (False)
         ),
         ...
     },
     'negative': {  # OR 'total' for one-vs-all mode
         'total': <ThetaSketch>,                          # Required: population sketch
         '<feature_name>': (
-            <sketch_present>,
-            <sketch_absent>
+            <sketch_feature_present>,
+            <sketch_feature_absent>
         ),
         ...
     }
@@ -451,7 +451,7 @@ sketch_data: SketchData = {
 **Notes**:
 - For **dual-class mode**: Structure has both 'positive' and 'negative' keys
 - For **one-vs-all mode**: Loader creates 'negative' from 'total' using a_not_b
-- All features MUST be tuples: (sketch_present, sketch_absent)
+- All features MUST be tuples: (sketch_feature_present, sketch_feature_absent)
 - 'total' is always a single ThetaSketch (not a tuple)
 
 ### Example
@@ -459,7 +459,7 @@ sketch_data: SketchData = {
 ```python
 from theta_sketch_tree import load_sketches
 
-# Load from CSV files (auto-detects 2-column vs 3-column format)
+# Load from dual CSV files (3-column format)
 sketch_data = load_sketches(
     positive_csv='target_yes.csv',
     negative_csv='target_no.csv'
@@ -512,7 +512,7 @@ sketch_data = load_sketches(
 )
 ```
 
-**Format**: Only 3-column CSV format is supported: `identifier, sketch_present, sketch_absent`
+**Format**: Only 3-column CSV format is supported: `identifier, sketch_feature_present, sketch_feature_absent`
 
 **Mode detection**: Loader automatically detects:
 - If `negative_csv` provided → Dual-class mode
@@ -997,7 +997,7 @@ To restore full functionality, use pickle format.
 
 **treatment.csv** (positive class):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_treatment_total>,<base64_treatment_total>
 age>30,<base64_treat_age>30>,<base64_treat_age<=30>
 income>50k,<base64_treat_income>50k>,<base64_treat_income<=50k>
@@ -1006,7 +1006,7 @@ has_diabetes,<base64_treat_diabetes_yes>,<base64_treat_diabetes_no>
 
 **control.csv** (negative class):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_control_total>,<base64_control_total>
 age>30,<base64_ctrl_age>30>,<base64_ctrl_age<=30>
 income>50k,<base64_ctrl_income>50k>,<base64_ctrl_income<=50k>
@@ -1110,7 +1110,7 @@ Features for predicting hospital readmission:
 
 **readmitted.csv** (positive class: patients who were readmitted):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_readmitted_total>,<base64_readmitted_total>
 age>65,<base64_readm_age>65>,<base64_readm_age<=65>
 diabetes_diagnosis,<base64_readm_diabetes>,<base64_readm_no_diabetes>
@@ -1121,7 +1121,7 @@ num_medications>5,<base64_readm_meds>5>,<base64_readm_meds<=5>
 
 **all_discharges.csv** (total population: all discharged patients):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_all_discharges>,<base64_all_discharges>
 age>65,<base64_all_age>65>,<base64_all_age<=65>
 diabetes_diagnosis,<base64_all_diabetes>,<base64_all_no_diabetes>
@@ -1314,7 +1314,7 @@ hyperparameters:
 
 **clicked.csv** (positive class: impressions that were clicked):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_100M_clicks>,<base64_100M_clicks>
 mobile_device,<base64_70M_mobile_clicks>,<base64_30M_desktop_clicks>
 weekend,<base64_15M_weekend_clicks>,<base64_85M_weekday_clicks>
@@ -1326,7 +1326,7 @@ ad_category=gaming,<base64_8M_gaming_clicks>,<base64_92M_other_cat_clicks>
 
 **impressions.csv** (total population: all impressions):
 ```csv
-identifier,sketch_present,sketch_absent
+identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_10B_impressions>,<base64_10B_impressions>
 mobile_device,<base64_6B_mobile_impressions>,<base64_4B_desktop_impressions>
 weekend,<base64_1.5B_weekend_impressions>,<base64_8.5B_weekday_impressions>
@@ -1489,7 +1489,7 @@ The same principles apply to:
 
 This specification defines:
 
-✅ **CSV Sketch Format**: 3-column format (identifier, sketch_present, sketch_absent) - ONLY supported format
+✅ **CSV Sketch Format**: 3-column format (identifier, sketch_feature_present, sketch_feature_absent) - ONLY supported format
 ✅ **Classification Modes**: Dual-class (best accuracy) and One-vs-all (healthcare, CTR)
 ✅ **Config File Format**: YAML/JSON configuration for targets, hyperparameters, and feature mapping
 ✅ **Inference Format**: NumPy/Pandas format for binary tabular data
@@ -1497,10 +1497,10 @@ This specification defines:
 ✅ **Examples**: Complete end-to-end workflows for dual-class, healthcare, and CTR use cases
 
 **Key Design Decisions**:
-- **No Mode 1**: Single CSV mode removed for simplicity
-- **No 2-column format**: Only 3-column (sketch_present, sketch_absent) supported
-- **Dual CSV only**: Always requires 2 CSV files (positive + negative OR positive + total)
-- **Feature-absent mandatory**: Provides 29% error reduction at all tree depths
+- **Dual CSV files**: Always requires 2 CSV files (positive + negative OR positive + total)
+- **3-column format**: identifier, sketch_feature_present, sketch_feature_absent (mandatory for all features)
+- **Feature-absent sketches**: Provides 29% error reduction at all tree depths
+- **Two classification modes**: Dual-Class (best accuracy) and One-vs-All (healthcare, CTR)
 - Base64 encoding for sketch bytes (human-readable, CSV-safe)
 - YAML config for easy hyperparameter tuning
 - sklearn-compatible data formats (numpy/pandas)

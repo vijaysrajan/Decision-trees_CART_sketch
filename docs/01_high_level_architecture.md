@@ -41,14 +41,15 @@ This implementation focuses on a **single decision tree classifier** with the fo
 │                     TRAINING PHASE                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
-│  CSV File Input (2 modes)          Config File                   │
+│  CSV File Input (Dual CSV)         Config File                   │
 │  ┌──────────────────┐             ┌──────────────────┐          │
-│  │ MODE 1: Single   │             │ hyperparams: ... │          │
-│  │ sketches.csv     │             │ feature_mapping: │          │
-│  │ OR               │             │   age>30: 0      │          │
-│  │ MODE 2: Dual CSVs│             │   income>50k: 1  │          │
-│  │ target_yes.csv   │             └────────┬─────────┘          │
-│  │ target_no.csv    │                      │                    │
+│  │ Dual-Class Mode: │             │ hyperparams: ... │          │
+│  │  positive.csv    │             │ feature_mapping: │          │
+│  │  negative.csv    │             │   age>30: 0      │          │
+│  │ OR               │             │   income>50k: 1  │          │
+│  │ One-vs-All Mode: │             └────────┬─────────┘          │
+│  │  positive.csv    │                      │                    │
+│  │  total.csv       │                      │                    │
 │  └────────┬─────────┘                      │                    │
 │           │                                 │                    │
 │           ▼                                 ▼                    │
@@ -142,38 +143,22 @@ This implementation focuses on a **single decision tree classifier** with the fo
 
 ### 3.1 Training Data Flow
 
-**MODE 1: Single CSV with Intersections**
+**CSV Sketch Format (Dual CSV with Feature-Absent Sketches)**
 ```
-CSV Input Format (all sketches in one file):
-┌────────────────────────────────┐
-│ total, <sketch_bytes>          │  ← All records
-│ age>30, <sketch_bytes>         │  ← Anyone with age>30 (any class)
-│ income>50k, <sketch_bytes>     │  ← Anyone with income>50k (any class)
-│ has_diabetes, <sketch_bytes>   │  ← Anyone with diabetes
-│ target_yes, <sketch_bytes>     │  ← Positive class members
-│ target_no, <sketch_bytes>      │  ← Negative class members
-└────────────────────────────────┘
-                ↓
-    [Parse & Intersect Sketches]
-    (target_yes ∩ age>30, target_no ∩ age>30, ...)
-                ↓
-```
+CSV Format: identifier, sketch_feature_present, sketch_feature_absent  ← 3-column format
 
-**MODE 2: Dual CSV Pre-Intersected with Feature-Absent Sketches (RECOMMENDED)**
-```
-CSV Format: identifier, sketch_present, sketch_absent  ← 3-column format
-
-target_yes.csv:                    target_no.csv:
+positive.csv:                      negative.csv (Dual-Class) OR total.csv (One-vs-All):
 ┌──────────────────────────────────────────┐    ┌──────────────────────────────────────────┐
-│ total, <pos_total>, <pos_total>         │    │ total, <neg_total>, <neg_total>         │
-│ age>30, <pos_AND_age>30>, <pos_AND_age<=30>│    │ age>30, <neg_AND_age>30>, <neg_AND_age<=30>│
-│ income>50k, <pos_AND_inc>50k>, <pos_AND_inc<=50k>│    │ income>50k, <neg_AND_inc>50k>, <neg_AND_inc<=50k>│
-│ clicked, <pos_AND_clicked>, <pos_AND_not_clicked>│    │ clicked, <neg_AND_clicked>, <neg_AND_not_clicked>│
+│ total, <pos_total>, <pos_total>         │    │ total, <neg/all_total>, <neg/all_total> │
+│ age>30, <pos_AND_age>30>, <pos_AND_age<=30>│    │ age>30, <neg/all_AND_age>30>, <neg/all_AND_age<=30>│
+│ income>50k, <pos_AND_inc>50k>, <pos_AND_inc<=50k>│    │ income>50k, <neg/all_AND_inc>50k>, <neg/all_AND_inc<=50k>│
+│ clicked, <pos_AND_clicked>, <pos_AND_not_clicked>│    │ clicked, <neg/all_AND_clicked>, <neg/all_AND_not_clicked>│
 └──────────────────────────────────────────┘    └──────────────────────────────────────────┘
     ↓                                   ↓
     [Parse Sketches - NO set operations needed! Direct lookup only]
     ✅ Eliminates a_not_b operations → 29% error reduction at all depths
     ✅ Critical for imbalanced datasets (CTR, fraud)
+    ✅ Dual-Class: negative.csv is separate class | One-vs-All: total.csv, negative computed
                 ↓
 ```
 
@@ -183,11 +168,11 @@ target_yes.csv:                    target_no.csv:
 - With feature-absent: Direct lookup, no error multiplication
 - See docs/04_data_formats.md Section 1.5 for detailed error analysis
 
-**Result (Mode 2 with 3-column CSV):**
+**Result (sketch_data structure):**
 ```
 ┌────────────────────────────────────────────────────┐
 │ sketch_dict = {                                    │
-│   'target_yes': {                                  │
+│   'positive': {        # Key from config: 'target_yes', 'clicked', 'Type2Diabetes', etc.
 │     'total': ThetaSketch,                          │  ← Positive class total
 │     'age>30': (ThetaSketch_present,                │  ← Tuple: (pos AND age>30,
 │                ThetaSketch_absent),                 │            pos AND age<=30)
@@ -197,13 +182,15 @@ target_yes.csv:                    target_no.csv:
 │                 ThetaSketch_not_clicked),           │            pos AND not_clicked)
 │     ...                                            │
 │   },                                               │
-│   'target_no': {                                   │
-│     'total': ThetaSketch,                          │  ← Negative class total
-│     'age>30': (ThetaSketch_present,                │  ← Tuple: (neg AND age>30,
-│                ThetaSketch_absent),                 │            neg AND age<=30)
+│   'negative': {        # Key from config: 'target_no' OR computed from 'total'
+│     'total': ThetaSketch,                          │  ← Negative/Total class
+│     'age>30': (ThetaSketch_present,                │  ← Tuple: (neg/all AND age>30,
+│                ThetaSketch_absent),                 │            neg/all AND age<=30)
 │     ...                                            │
 │   }                                                │
 │ }                                                  │
+│ Note: Dual-Class uses 'negative' key directly from CSV    │
+│       One-vs-All computes 'negative' from 'total' via a_not_b │
 └────────────────┬───────────────────────────────────┘
                  ↓
         [Tree Building]
@@ -213,19 +200,19 @@ target_yes.csv:                    target_no.csv:
 ┌────────────────────────────────────────────────────┐
 │ For feature "age>30":                              │
 │                                                    │
-│ Class 0 (target_no):                               │
-│   sketch_present, sketch_absent = sketches['age>30']│  ← Unpack tuple
-│   - n_with_feature = sketch_present.get_estimate() │  ← Direct lookup (no a_not_b!)
-│   - n_without_feature = sketch_absent.get_estimate()│  ← Direct lookup (no a_not_b!)
+│ Class 0 (negative):                                │
+│   sketch_feature_present, sketch_feature_absent = sketches['age>30']│  ← Unpack tuple
+│   - n_with_feature = sketch_feature_present.get_estimate() │  ← Direct lookup (no a_not_b!)
+│   - n_without_feature = sketch_feature_absent.get_estimate()│  ← Direct lookup (no a_not_b!)
 │                                                    │
-│ Class 1 (target_yes):                              │
-│   sketch_present, sketch_absent = sketches['age>30']│  ← Unpack tuple
-│   - n_with_feature = sketch_present.get_estimate() │  ← Direct lookup
-│   - n_without_feature = sketch_absent.get_estimate()│  ← Direct lookup
+│ Class 1 (positive):                                │
+│   sketch_feature_present, sketch_feature_absent = sketches['age>30']│  ← Unpack tuple
+│   - n_with_feature = sketch_feature_present.get_estimate() │  ← Direct lookup
+│   - n_without_feature = sketch_feature_absent.get_estimate()│  ← Direct lookup
 │                                                    │
 │ Compute criterion (Gini/Entropy/Binomial):         │
-│   left_counts = [n_without_no, n_without_yes]      │
-│   right_counts = [n_with_no, n_with_yes]           │
+│   left_counts = [n_without_neg, n_without_pos]     │
+│   right_counts = [n_with_neg, n_with_pos]          │
 │   → Select best split based on impurity reduction  │
 └────────────────┬───────────────────────────────────┘
                  ↓
@@ -334,7 +321,7 @@ ThetaSketchDecisionTreeClassifier (Main API)
    b. TreeBuilder.build(sketch_data, hyperparams)
       - SplitEvaluator.find_best_split(current_sketches, features)
         * For each feature:
-          - Get sketch_present and sketch_absent from sketch_data
+          - Get sketch_feature_present and sketch_feature_absent from sketch_data
           - CriterionCalculator.evaluate(split)
           - SketchCache.get_or_compute()
         * Return best split

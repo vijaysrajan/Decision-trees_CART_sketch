@@ -99,7 +99,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         sketch_data : dict
             Dictionary with keys 'positive' and 'negative', each containing:
             - 'total': ThetaSketch for the class population (required)
-            - '<feature_name>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
+            - '<feature_name>': Tuple (sketch_feature_present, sketch_feature_absent) or single ThetaSketch
 
         feature_mapping : dict
             Maps feature names to column indices for inference.

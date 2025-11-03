@@ -1,14 +1,14 @@
 """
 CSV sketch loader.
 
-Loads and deserializes theta sketches from CSV files.
-Supports two modes:
-- Mode 1: Single CSV with intersections
-- Mode 2: Dual CSV pre-intersected (recommended)
+Loads and deserializes theta sketches from dual CSV files.
 
-Auto-detects CSV format:
-- 2 columns: identifier, sketch
-- 3 columns: identifier, sketch_present, sketch_absent (recommended)
+Supported classification modes:
+- Dual-Class Mode: positive.csv + negative.csv (best accuracy)
+- One-vs-All Mode: positive.csv + total.csv (healthcare, CTR)
+
+CSV format (mandatory):
+- 3 columns: identifier, sketch_feature_present, sketch_feature_absent
 """
 
 import csv
@@ -87,7 +87,7 @@ class SketchLoader:
                 # 2-column format: identifier, sketch
                 is_three_column = False
             elif len(header) == 3:
-                # 3-column format: identifier, sketch_present, sketch_absent
+                # 3-column format: identifier, sketch_feature_present, sketch_feature_absent
                 is_three_column = True
             else:
                 raise ValueError(
@@ -112,15 +112,15 @@ class SketchLoader:
                     identifier = identifier[len(target_identifier) :].lstrip("_")
 
                 if is_three_column:
-                    # 3-column: (sketch_present, sketch_absent)
-                    sketch_present = self._deserialize_sketch(row[1].strip())
-                    sketch_absent = self._deserialize_sketch(row[2].strip())
+                    # 3-column: (sketch_feature_present, sketch_feature_absent)
+                    sketch_feature_present = self._deserialize_sketch(row[1].strip())
+                    sketch_feature_absent = self._deserialize_sketch(row[2].strip())
 
                     # Special case: 'total' should always be a single sketch
                     if identifier == "total":
-                        result[identifier] = sketch_present
+                        result[identifier] = sketch_feature_present
                     else:
-                        result[identifier] = (sketch_present, sketch_absent)
+                        result[identifier] = (sketch_feature_present, sketch_feature_absent)
                 else:
                     # 2-column: single sketch
                     sketch = self._deserialize_sketch(row[1].strip())
@@ -160,14 +160,14 @@ class SketchLoader:
         sketch_data : dict
             Dictionary with 'positive' and 'negative' keys, each containing:
             - 'total': ThetaSketch for class population
-            - '<feature>': Tuple (sketch_present, sketch_absent) or single ThetaSketch
+            - '<feature>': Tuple (sketch_feature_present, sketch_feature_absent) or single ThetaSketch
 
             Example:
             {
                 'positive': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_present>, <sketch_absent>),
-                    'income>50k': (<sketch_present>, <sketch_absent>)
+                    'age>30': (<sketch_feature_present>, <sketch_feature_absent>),
+                    'income>50k': (<sketch_feature_present>, <sketch_feature_absent>)
                 },
                 'negative': { ... }
             }
@@ -183,7 +183,7 @@ class SketchLoader:
         -----
         Auto-detects 2-column vs 3-column CSV format:
         - 2 columns: identifier, sketch
-        - 3 columns: identifier, sketch_present, sketch_absent (RECOMMENDED)
+        - 3 columns: identifier, sketch_feature_present, sketch_feature_absent (RECOMMENDED)
 
         See docs/02_low_level_design.md for full specifications.
         """

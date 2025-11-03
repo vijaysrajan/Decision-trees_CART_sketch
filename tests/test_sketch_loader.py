@@ -57,7 +57,7 @@ def csv_3column_positive(tmp_path, sample_sketches):
 
     with open(csv_file, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["identifier", "sketch_present", "sketch_absent"])
+        writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
         writer.writerow(
             [
                 "total",
@@ -83,7 +83,7 @@ def csv_3column_negative(tmp_path, sample_sketches):
 
     with open(csv_file, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["identifier", "sketch_present", "sketch_absent"])
+        writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
         writer.writerow(
             [
                 "total",
@@ -157,7 +157,7 @@ def csv_single_file(tmp_path, sample_sketches):
 
     with open(csv_file, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["identifier", "sketch_present", "sketch_absent"])
+        writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
         # Positive class
         writer.writerow(
             [
@@ -264,7 +264,7 @@ class TestSketchLoader:
 
         with open(csv_file, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["identifier", "sketch_present", "sketch_absent"])
+            writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
             writer.writerow(
                 [
                     "age>30",

@@ -79,7 +79,7 @@ From Apache DataSketches formula: **RSE = 1/√k**
 
 #### By Storage Constraints
 
-For 5,000 features with Mode 2 (3-column CSV with feature-absent sketches):
+For 5,000 features with 3-column CSV format (with feature-absent sketches):
 
 | Storage Budget | Max k | log₂(k) | Total Storage | Trade-off |
 |----------------|-------|---------|---------------|-----------|
@@ -432,7 +432,7 @@ n_jobs: 4                          # Use 4 CPU cores (if implemented)
 # config_ctr.yaml
 targets:
   positive: "clicked"
-  negative: "not_clicked"
+  total: "impressions"  # One-vs-All mode: negative = impressions - clicked
 
 hyperparameters:
   # Sketch and tree structure
