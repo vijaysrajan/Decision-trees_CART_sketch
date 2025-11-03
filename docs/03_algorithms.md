@@ -19,22 +19,22 @@
 ### Main fit() Method
 
 ```
-FUNCTION fit(csv_path, config_path):
+FUNCTION fit(sketch_data, feature_mapping):
     """Build decision tree from theta sketches."""
 
-    # ========== Step 1: Load Data ==========
-    config = ConfigParser.load(config_path)
-    target_positive = config['targets']['positive']
-    target_negative = config['targets']['negative']
+    # ========== Step 1: Extract Sketch Data ==========
+    # sketch_data structure:
+    # {
+    #     'positive': {'total': <ThetaSketch>, 'feature1': (<present>, <absent>), ...},
+    #     'negative': {'total': <ThetaSketch>, 'feature1': (<present>, <absent>), ...}
+    # }
+    # Note: 'negative' may be computed from 'total' in one-vs-all mode
 
-    sketches_pos, sketches_neg = SketchLoader.load(
-        csv_path, target_positive, target_negative
-    )
+    sketches_pos = sketch_data['positive']
+    sketches_neg = sketch_data['negative']
 
-    # ========== Step 2: Parse Feature Mapping ==========
-    feature_mapping = ConfigParser.parse_feature_mapping(
-        config['feature_mapping']
-    )
+    # ========== Step 2: Extract Feature Names ==========
+    # feature_mapping: {'age>30': 0, 'income>50k': 1, ...}
     feature_names = list(feature_mapping.keys())
 
     # ========== Step 3: Validate Hyperparameters ==========
@@ -242,7 +242,9 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg, feature_names, depth):
     )
 
     # Set split information
-    feature_idx = feature_names.index(feature_name)
+    # feature_idx is the DIRECT COLUMN INDEX in X (not index into feature_names)
+    # This allows fast O(1) array access during inference: X[sample, feature_idx]
+    feature_idx = self._feature_mapping[feature_name]  # Get column index from mapping
     node.set_split(
         feature_idx=feature_idx,
         feature_name=feature_name,

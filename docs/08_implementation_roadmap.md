@@ -36,50 +36,58 @@
 
 ### Day 3-4: CSV Sketch Loader ⏸️ IN PROGRESS ← **YOU ARE HERE**
 - [ ] Implement `SketchLoader` class
-  - **CSV parsing (auto-detect 2-column vs 3-column format)**
-    - **3-column (RECOMMENDED)**: identifier, sketch_present, sketch_absent
-    - 2-column (legacy): identifier, sketch
+  - **CSV parsing (3-column format ONLY)**: identifier, sketch_present, sketch_absent
   - Base64/hex decoding
   - ThetaSketch deserialization
-  - Support Mode 1 (single CSV) and Mode 2 (dual CSV)
-  - **Build unified sketch_data structure with tuples for 3-column format**
-    - `{'age>30': (sketch_present, sketch_absent)}` for 3-column
-    - `{'age>30': sketch}` for 2-column (backward compatibility)
+  - **Support dual-class mode (positive + negative CSVs) and one-vs-all mode (positive + total CSVs)**
+  - **Build unified sketch_data structure with tuples**
+    - `{'age>30': (sketch_present, sketch_absent)}` for all features
+    - `{'total': sketch}` - single sketch (not tuple)
+  - **Implement _compute_negative_from_total() for one-vs-all mode**
   - **Validation: Check sketch_present + sketch_absent ≈ total (within error bounds)**
   - Error handling and detailed error messages
 - [ ] Write unit tests for `SketchLoader` (target >80% coverage)
   - Test 3-column CSV parsing
-  - Test 2-column CSV parsing (backward compatibility)
+  - Test dual-class mode
+  - Test one-vs-all mode (negative computation)
   - Test validation (sketch cardinality checks)
 - [ ] Create test fixtures with real theta sketches
-  - Both 2-column and 3-column formats
+  - 3-column format only
 
 **Files**: `sketch_loader.py`, `tests/test_sketch_loader.py`, `tests/conftest.py`
 
 **Next Actions**:
 1. Implement `_decode_sketch_bytes()` method
 2. Implement `_deserialize_sketch()` method
-3. Implement `_parse_csv()` method with column count detection
-4. **Implement tuple unpacking for 3-column format**
-5. **Implement validation: sketch_present.estimate() + sketch_absent.estimate() ≈ total.estimate()**
-6. Implement `load()` main method
-7. Create CSV test fixtures (both 2-column and 3-column)
-8. Write comprehensive tests
+3. Implement `_parse_csv()` method (enforce 3-column format)
+4. **Implement tuple creation for all features**
+5. **Implement _compute_negative_from_total() for one-vs-all mode**
+6. **Implement validation: sketch_present.estimate() + sketch_absent.estimate() ≈ total.estimate()**
+7. Implement `load()` main method with mode detection
+8. Create CSV test fixtures (3-column format)
+9. Write comprehensive tests for both modes
 
-**Why 3-column format matters**:
+**Why 3-column format is mandatory**:
 - Eliminates a_not_b operations during tree building
-- **29% error reduction** at all tree depths vs 2-column format
+- **29% error reduction** at all tree depths
 - Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3)
-- See docs/04_data_formats.md Section 1.5 for detailed error analysis
+- Simpler API - no backward compatibility complexity
+- See docs/04_data_formats.md for detailed specification
 
 ### Day 5-7: Config Parser ⏸️ PENDING
 - [ ] Implement `ConfigParser` class
   - YAML/JSON parsing
   - Feature mapping simplified (no lambdas - just Dict[str, int])
   - Config validation
+    - **Validate: targets has 'positive' AND either 'negative' OR 'total' (mutually exclusive)**
+    - **Error if both 'negative' and 'total' are present**
   - Schema checking
 - [ ] Write unit tests for `ConfigParser` (target >80% coverage)
+  - Test dual-class mode validation (positive + negative)
+  - Test one-vs-all mode validation (positive + total)
+  - Test error when both negative and total provided
 - [ ] Create test config files (YAML and JSON)
+  - Examples for both dual-class and one-vs-all modes
 
 **Files**: `config_parser.py`, `tests/test_config_parser.py`
 

@@ -182,38 +182,30 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         ----------
         sketch_data : dict
             Dictionary with keys 'positive' and 'negative', each containing:
-            - 'total': ThetaSketch for the class population (required)
-            - '<feature_name>': Tuple (sketch_present, sketch_absent) [RECOMMENDED]
-                               OR single ThetaSketch [Legacy]
+            - 'total': ThetaSketch for the class population (always single sketch)
+            - '<feature_name>': Tuple (sketch_present, sketch_absent) for all features
 
-            **RECOMMENDED format (from 3-column CSV)** - Provides 29% better accuracy:
+            **Format (from 3-column CSV - ONLY supported format)**:
             {
                 'positive': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_yes_AND_age>30>, <sketch_yes_AND_age<=30>),  # Tuple
+                    'age>30': (<sketch_yes_AND_age>30>, <sketch_yes_AND_age<=30>),
                     'income>50k': (<sketch_yes_AND_income>50k>, <sketch_yes_AND_income<=50k>),
                     'clicked': (<sketch_yes_AND_clicked>, <sketch_yes_AND_not_clicked>)
                 },
                 'negative': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_no_AND_age>30>, <sketch_no_AND_age<=30>),    # Tuple
+                    'age>30': (<sketch_no_AND_age>30>, <sketch_no_AND_age<=30>),
                     'income>50k': (<sketch_no_AND_income>50k>, <sketch_no_AND_income<=50k>),
                     'clicked': (<sketch_no_AND_clicked>, <sketch_no_AND_not_clicked>)
                 }
             }
 
-            **Legacy format (from 2-column CSV)** - Not recommended:
-            {
-                'positive': {
-                    'total': <ThetaSketch>,
-                    'age>30': <ThetaSketch>,  # Single sketch - requires runtime a_not_b
-                    'income>50k': <ThetaSketch>
-                },
-                'negative': { ... }
-            }
-
-            Tuple format eliminates a_not_b operations, reducing error by ~29% at all depths.
-            Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3).
+            Notes:
+            - Tuple format (sketch_present, sketch_absent) is mandatory
+            - Eliminates a_not_b operations → 29% error reduction at all depths
+            - Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3)
+            - Loaded via SketchLoader.load() from dual CSV files
 
         feature_mapping : dict
             Maps feature names to column indices for inference.
@@ -492,7 +484,9 @@ class TreeNode:
     Attributes (for internal nodes)
     -------------------------------
     feature_idx : int
-        Index of feature used for split
+        Column index in X for this feature (direct array access).
+        This is the value from feature_mapping[feature_name].
+        Enables fast O(1) inference: X[sample, feature_idx]
     feature_name : str
         Name of feature (e.g., "age>30")
     left : TreeNode
@@ -557,7 +551,20 @@ class TreeNode:
         left_child: 'TreeNode',
         right_child: 'TreeNode'
     ) -> None:
-        """Set split information for internal node."""
+        """
+        Set split information for internal node.
+
+        Parameters
+        ----------
+        feature_idx : int
+            Direct column index in X (from feature_mapping[feature_name])
+        feature_name : str
+            Name of the feature (e.g., "age>30")
+        left_child : TreeNode
+            Node for samples where feature=False
+        right_child : TreeNode
+            Node for samples where feature=True
+        """
         self.feature_idx = feature_idx
         self.feature_name = feature_name
         self.left = left_child
@@ -663,11 +670,11 @@ from datasketches import compact_theta_sketch
 
 class SketchLoader:
     """
-    Load theta sketches from CSV file(s).
+    Load theta sketches from dual CSV files.
 
-    CSV Formats Supported:
-    ----------------------
-    **3-Column Format (RECOMMENDED for accuracy)**:
+    CSV Format:
+    -----------
+    **3-Column Format (ONLY supported format)**:
         identifier, sketch_present, sketch_absent
 
         Stores BOTH feature=TRUE and feature=FALSE sketches per feature.
@@ -676,26 +683,22 @@ class SketchLoader:
         ✅ Required for optimal accuracy on deep trees (depth ≥3)
 
         Example:
-            age>30,<base64_yes_AND_age>30>,<base64_yes_AND_age<=30>
-            clicked,<base64_yes_AND_clicked>,<base64_yes_AND_not_clicked>
+            total,<base64_total>,<base64_total>
+            age>30,<base64_class_AND_age>30>,<base64_class_AND_age<=30>
+            clicked,<base64_class_AND_clicked>,<base64_class_AND_not_clicked>
 
-    **2-Column Format (Legacy - backward compatibility only)**:
-        identifier, sketch
+    Classification Modes:
+    ---------------------
+    **Dual-Class Mode** (best accuracy):
+        Requires: positive_csv AND negative_csv
+        Use case: Explicit positive and negative classes (treatment vs control)
 
-        Single sketch per feature (feature=TRUE only).
-        ⚠️ Requires runtime a_not_b to compute feature=FALSE counts
-        ⚠️ Error compounds by ~40% per level vs 3-column format
-        ⚠️ Not recommended for production use
+    **One-vs-All Mode** (healthcare, CTR):
+        Requires: positive_csv AND total_csv
+        Use case: Positive class vs total population (Type2Diabetes vs all patients)
+        Note: Negative class computed as total - positive (adds ~0.4% error)
 
-        Example:
-            age>30,<base64_yes_AND_age>30>
-
-    Loading Modes:
-    --------------
-    Mode 1 (Single CSV): Load all sketches and perform intersections
-    Mode 2 (Dual CSV): Load pre-intersected sketches (RECOMMENDED)
-
-    See docs/04_data_formats.md Section 1.5 for detailed error analysis.
+    See docs/04_data_formats.md for detailed format specification.
     """
 
     def __init__(self, encoding: str = 'base64') -> None:
@@ -711,79 +714,79 @@ class SketchLoader:
 
     def load(
         self,
-        positive_csv: str = None,
-        negative_csv: str = None,
-        csv_path: str = None,
-        target_positive: str = None,
-        target_negative: str = None
+        positive_csv: str,
+        negative_csv: Optional[str] = None,
+        total_csv: Optional[str] = None
     ) -> Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]]:
         """
-        Load sketches from CSV file(s) into unified data structure.
+        Load sketches from dual CSV files into unified data structure.
 
-        Mode 1: load(csv_path='features.csv', target_positive='yes', target_negative='no')
-        Mode 2: load(positive_csv='target_yes.csv', negative_csv='target_no.csv')
+        Dual-Class Mode: load(positive_csv='treatment.csv', negative_csv='control.csv')
+        One-vs-All Mode: load(positive_csv='Type2Diabetes.csv', total_csv='all_patients.csv')
 
         Parameters
         ----------
-        positive_csv : str, optional
-            Positive class CSV (Mode 2). Must be used with negative_csv.
+        positive_csv : str
+            Positive class CSV file path (required)
         negative_csv : str, optional
-            Negative class CSV (Mode 2). Must be used with positive_csv.
-        csv_path : str, optional
-            Single CSV file (Mode 1). Mutually exclusive with positive_csv/negative_csv.
-        target_positive : str, optional
-            Positive class identifier in CSV (Mode 1), e.g., "target_yes"
-        target_negative : str, optional
-            Negative class identifier in CSV (Mode 1), e.g., "target_no"
+            Negative class CSV file path (for dual-class mode)
+            Mutually exclusive with total_csv
+        total_csv : str, optional
+            Total population CSV file path (for one-vs-all mode)
+            Mutually exclusive with negative_csv
+            Negative class will be computed as: total - positive
 
         Returns
         -------
         sketch_data : dict
             Dictionary with 'positive' and 'negative' keys, each containing:
-            - 'total': ThetaSketch for class population
-            - '<feature>': Tuple (sketch_present, sketch_absent) [RECOMMENDED]
-                          OR single ThetaSketch [Legacy - backward compatibility]
+            - 'total': ThetaSketch for class population (always single sketch)
+            - '<feature>': Tuple (sketch_present, sketch_absent) for all features
 
-            **RECOMMENDED format (3-column CSV)**:
+            **Dual-Class Mode format**:
             {
                 'positive': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_yes_AND_age>30>, <sketch_yes_AND_age<=30>),  # Tuple
+                    'age>30': (<sketch_yes_AND_age>30>, <sketch_yes_AND_age<=30>),
                     'income>50k': (<sketch_yes_AND_income>50k>, <sketch_yes_AND_income<=50k>)
                 },
                 'negative': {
                     'total': <ThetaSketch>,
-                    'age>30': (<sketch_no_AND_age>30>, <sketch_no_AND_age<=30>),    # Tuple
+                    'age>30': (<sketch_no_AND_age>30>, <sketch_no_AND_age<=30>),
                     'income>50k': (<sketch_no_AND_income>50k>, <sketch_no_AND_income<=50k>)
                 }
             }
 
-            **Legacy format (2-column CSV - not recommended)**:
+            **One-vs-All Mode format** (negative computed from total):
             {
                 'positive': {
-                    'total': <ThetaSketch>,
-                    'age>30': <ThetaSketch>,  # Single sketch - will require runtime a_not_b
-                    'income>50k': <ThetaSketch>
+                    'total': <ThetaSketch>,  # Type2Diabetes patients
+                    'age>65': (<sketch_diabetes_AND_age>65>, <sketch_diabetes_AND_age<=65>)
                 },
-                'negative': { ... }
+                'negative': {
+                    'total': <ThetaSketch>,  # total.a_not_b(positive) - computed
+                    'age>65': (<sketch_no_diabetes_AND_age>65>, <sketch_no_diabetes_AND_age<=65>)
+                }
             }
 
-            Note: RECOMMENDED format eliminates a_not_b operations during tree building,
-            reducing error by ~29% at all tree depths. See docs/04_data_formats.md
-            Section 1.5 for detailed error analysis.
+            Note: All features are tuples (sketch_present, sketch_absent).
+            'total' is always a single ThetaSketch (not a tuple).
 
         Raises
         ------
         ValueError
-            If both modes are specified or if mode parameters are incomplete.
+            If neither negative_csv nor total_csv is specified
+            If both negative_csv and total_csv are specified
+            If CSV files have invalid format (not 3 columns)
+            If 'total' row is missing from CSV
         FileNotFoundError
-            If CSV files don't exist.
+            If CSV files don't exist
 
         Notes
         -----
-        Auto-detects 2-column vs 3-column CSV format:
-        - 2 columns: identifier, sketch
-        - 3 columns: identifier, sketch_present, sketch_absent (RECOMMENDED)
+        - Only 3-column CSV format is supported: identifier, sketch_present, sketch_absent
+        - One-vs-all mode adds ~0.4% error from a_not_b computation
+        - Dual-class mode provides best accuracy (no set operations)
         """
         pass
 
@@ -817,9 +820,16 @@ class ConfigParser:
 
     Expected Format:
     ----------------
+    # Dual-Class Mode (best accuracy):
     targets:
-      positive: "target_yes"
-      negative: "target_no"
+      positive: "treatment"
+      negative: "control"
+
+    # OR One-vs-All Mode (healthcare, CTR):
+    targets:
+      positive: "Type2Diabetes"
+      total: "all_patients"  # negative = total - positive
+
     hyperparameters:
       criterion: "gini"
       max_depth: 10
@@ -843,9 +853,15 @@ class ConfigParser:
         -------
         config : dict
             Parsed configuration with keys:
-            - 'targets': dict with 'positive' and 'negative'
+            - 'targets': dict with 'positive' and either 'negative' OR 'total'
             - 'hyperparameters': dict of hyperparameters
             - 'feature_mapping': dict of feature mappings
+
+        Raises
+        ------
+        ValueError
+            If targets has both 'negative' and 'total' keys
+            If targets has neither 'negative' nor 'total'
         """
         pass
 
@@ -883,14 +899,35 @@ class ConfigParser:
         return feature_mapping_config
 
     def validate_config(self, config: Dict[str, Any]) -> None:
-        """Validate configuration structure."""
+        """
+        Validate configuration structure.
+
+        Raises
+        ------
+        ValueError
+            If required keys are missing
+            If targets has both 'negative' and 'total' (mutually exclusive)
+            If targets has neither 'negative' nor 'total'
+            If 'positive' key is missing from targets
+        """
         required_keys = ['targets', 'hyperparameters', 'feature_mapping']
         for key in required_keys:
             if key not in config:
                 raise ValueError(f"Missing required config key: {key}")
 
-        if 'positive' not in config['targets'] or 'negative' not in config['targets']:
-            raise ValueError("targets must have 'positive' and 'negative' keys")
+        # Check positive key exists
+        if 'positive' not in config['targets']:
+            raise ValueError("targets must have 'positive' key")
+
+        # Check for mutually exclusive negative/total
+        has_negative = 'negative' in config['targets']
+        has_total = 'total' in config['targets']
+
+        if not has_negative and not has_total:
+            raise ValueError("targets must have either 'negative' (dual-class) or 'total' (one-vs-all)")
+
+        if has_negative and has_total:
+            raise ValueError("targets cannot have both 'negative' and 'total' keys (mutually exclusive)")
 ```
 
 ---

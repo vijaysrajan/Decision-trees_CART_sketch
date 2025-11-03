@@ -15,33 +15,39 @@
 
 ## 1. CSV Sketch Format
 
-### Two Input Modes
+### Classification Modes
 
-The classifier supports two input modes for sketch data:
+The classifier supports two classification modes using **dual CSV files** (two separate files):
 
-**Mode 1: Single CSV with Intersections**
-- All sketches (features and targets) in one CSV file
-- Loader performs intersection operations (target ∩ feature)
-- Simpler setup but sketch operations compound error
+**Dual-Class Mode (Best Accuracy)**
+- Two CSV files: `positive.csv` and `negative.csv`
+- Each represents a distinct class (e.g., treatment vs control, yes vs no)
+- **Best accuracy**: No set operations needed
+- **Use cases**: A/B testing, clinical trials, balanced binary classification
 
-**Mode 2: Dual CSV Pre-Intersected with Feature-Absent Sketches (RECOMMENDED)**
-- Two separate CSV files: `target_yes.csv` and `target_no.csv`
-- Sketches pre-computed in big data (already intersected)
+**One-vs-All Mode (Healthcare, CTR)**
+- Two CSV files: `positive.csv` and `total.csv`
+- Positive class + entire population (negative computed as total - positive)
+- **Slightly lower accuracy**: Requires a_not_b computation for negative class
+- **Use cases**: Rare events, healthcare (Type2Diabetes vs all patients), CTR (clicked vs impressions)
+
+**Common Properties (Both Modes)**:
+- **3-column CSV format only**: `identifier, sketch_present, sketch_absent`
+- Sketches pre-computed in big data pipeline (already intersected)
 - **Stores BOTH feature_present AND feature_absent sketches** per feature
-- **Best accuracy**: Eliminates a_not_b operations at all tree levels
-- **Critical for deep trees and imbalanced datasets** (e.g., CTR prediction)
-- Faster loading (no runtime intersections or set difference operations)
+- Eliminates a_not_b operations during tree building (29% error reduction)
+- **Critical for deep trees and imbalanced datasets**
 
 ### Format Specification
 
-**Mode 2 (3-Column Format with Feature-Absent)**:
+**3-Column CSV Format** (ONLY supported format):
 ```
 <identifier>, <sketch_present>, <sketch_absent>
 ```
 
 **Columns**:
 - **Column 1: Identifier** (string)
-  - `total`: Population sketch for this class (sketch_absent not applicable)
+  - `total`: Population sketch for this class (sketch_absent = same as sketch_present)
   - `<feature_name>`: Feature condition (e.g., "age>30", "income>50k", "clicked")
 
 - **Column 2: Sketch Present** (base64-encoded or hex-encoded string)
@@ -51,23 +57,9 @@ The classifier supports two input modes for sketch data:
 - **Column 3: Sketch Absent** (base64-encoded or hex-encoded string)
   - Sketch where feature condition is FALSE (feature=0)
   - Serialized Apache DataSketches theta sketch
-  - **For `total` row**: Use same sketch as column 2 or leave empty
+  - **For `total` row**: Must be same sketch as column 2
 
-### Mode 1: Single CSV Example
-
-```csv
-identifier,sketch
-total,<base64_all_records>
-target_yes,<base64_positive_class>
-target_no,<base64_negative_class>
-age>30,<base64_anyone_age>30>
-income>50k,<base64_anyone_income>50k>
-has_diabetes,<base64_anyone_diabetes>
-```
-
-**Loading**: Loader intersects `target_yes ∩ age>30`, `target_no ∩ age>30`, etc.
-
-### Mode 2: Dual CSV Example with Feature-Absent Sketches (RECOMMENDED)
+### Dual-Class Mode Example
 
 **target_yes.csv** (positive class, pre-intersected with both present and absent):
 ```csv
@@ -93,46 +85,73 @@ clicked,<base64_no_AND_clicked>,<base64_no_AND_not_clicked>
 - **sketch_present**: Records where (target AND feature=TRUE)
 - **sketch_absent**: Records where (target AND feature=FALSE)
 - Both sketches built **directly from raw data** in big data pipeline (single pass, no set operations)
-- **Eliminates a_not_b operations** during tree building → 30% error reduction at root level
-- **Critical for imbalanced datasets**: CTR (0.1-5% positive rate), fraud detection, rare disease prediction
+- **Eliminates a_not_b operations** during tree building → 29% error reduction at all tree levels
+- **Best accuracy**: No negative class computation needed
 
 **Loading**: Sketches already intersected, **zero runtime operations needed** (direct lookup only).
 
 **Note**: Feature names must match between both files.
 
+### One-vs-All Mode Example
+
+**Type2Diabetes.csv** (positive class: patients with Type 2 Diabetes):
+```csv
+identifier,sketch_present,sketch_absent
+total,<base64_diabetes_patients>,<base64_diabetes_patients>
+age>65,<base64_diabetes_AND_age>65>,<base64_diabetes_AND_age<=65>
+bmi>30,<base64_diabetes_AND_obese>,<base64_diabetes_AND_not_obese>
+family_history,<base64_diabetes_AND_fh>,<base64_diabetes_AND_no_fh>
+```
+
+**all_patients.csv** (total population: all patients in system):
+```csv
+identifier,sketch_present,sketch_absent
+total,<base64_all_patients>,<base64_all_patients>
+age>65,<base64_all_AND_age>65>,<base64_all_AND_age<=65>
+bmi>30,<base64_all_AND_obese>,<base64_all_AND_not_obese>
+family_history,<base64_all_AND_fh>,<base64_all_AND_no_fh>
+```
+
+**Key Points**:
+- **Positive class**: Explicit condition (has Type2Diabetes)
+- **Negative class**: Computed at runtime: `negative = total.a_not_b(positive)`
+- **Accuracy trade-off**: a_not_b adds ~0.4% error but still better than alternatives
+- **Use cases**: Healthcare (rare diseases), CTR (clicked vs impressions), fraud detection
+
+**Config File for One-vs-All**:
+```yaml
+targets:
+  positive: "Type2Diabetes"
+  total: "all_patients"  # Use 'total' key instead of 'negative'
+```
+
+**Loading**: Loader detects `total` key and automatically computes negative class using a_not_b.
+
 ### Detailed Format by Row Type
 
 #### 1. Total/Population Sketch
 ```
-<total or empty>, <sketch_bytes>
+total, <sketch_present>, <sketch_absent>
 ```
 - **Purpose**: Represents all records for a target class
-- **Identifier options**: "total", "" (empty string), or "<total>"
-- **Example**: `,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
+- **Identifier**: Always "total" (lowercase)
+- **sketch_present**: Full population sketch for this class
+- **sketch_absent**: Must be identical to sketch_present
+- **Example**: `total,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
 
 #### 2. Feature Condition Sketch
 ```
-<feature_name>, <sketch_bytes>
+<feature_name>, <sketch_present>, <sketch_absent>
 ```
-- **Purpose**: Represents records where feature condition is TRUE
+- **Purpose**: Represents records where feature condition is TRUE or FALSE
 - **Format**: `dimension=value`, `dimension>value`, `dimension<value`, or simple `item_name`
+- **sketch_present**: Sketch where (class AND feature=TRUE)
+- **sketch_absent**: Sketch where (class AND feature=FALSE)
 - **Examples**:
-  - `age>30,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
-  - `income>50000,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
-  - `region=East,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
-  - `item_12345,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
-
-#### 3. Target Class Sketch
-```
-<target_name>, <sketch_bytes>
-```
-- **Purpose**: Identifies which records belong to this target class
-- **Must match config file** target specification
-- **Examples**:
-  - `target_yes,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
-  - `target_no,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
-  - `positive,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
-  - `negative,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...`
+  - `age>30,<base64_present>,<base64_absent>`
+  - `income>50000,<base64_present>,<base64_absent>`
+  - `region=East,<base64_present>,<base64_absent>`
+  - `item_12345,<base64_present>,<base64_absent>`
 
 ### Sketch Bytes Encoding
 
@@ -184,26 +203,24 @@ count = sketch.get_estimate()
 
 ### CSV Parsing Requirements
 
-1. **Header**: Optional. If present:
-   - **Mode 1**: `identifier,sketch`
-   - **Mode 2**: `identifier,sketch_present,sketch_absent`
+1. **Header**: Optional. If present, must be: `identifier,sketch_present,sketch_absent`
 2. **Delimiter**: Comma (`,`)
 3. **Quoting**: Optional for identifiers, required if identifier contains commas
 4. **Line endings**: Unix (`\n`), Windows (`\r\n`), or Mac (`\r`) - all supported
 5. **Encoding**: UTF-8
+6. **Format**: 3-column ONLY (2-column format no longer supported)
 
 ### Validation Rules
 
 The loader must validate:
-- ✅ Each row has exactly **3 columns** for Mode 2 (identifier, sketch_present, sketch_absent)
-- ✅ Each row has exactly **2 columns** for Mode 1 (identifier, sketch)
+- ✅ Each row has exactly **3 columns** (identifier, sketch_present, sketch_absent)
 - ✅ Sketch bytes can be decoded (base64 or hex)
 - ✅ Sketch bytes can be deserialized to ThetaSketch
-- ✅ Target sketches specified in config are present
-- ✅ Feature sketches are present for both target classes
-- ✅ Total sketch is present for each target class
-- ✅ For Mode 2: Both sketch_present and sketch_absent are provided for each feature
-- ✅ For Mode 2: Cardinality of sketch_present + sketch_absent ≈ total sketch (within error bounds)
+- ✅ 'total' row exists in each CSV file
+- ✅ Feature sketches are present for both CSV files (or positive + total for one-vs-all)
+- ✅ Both sketch_present and sketch_absent are provided for each feature
+- ✅ For 'total' row: sketch_present equals sketch_absent
+- ✅ Cardinality of sketch_present + sketch_absent ≈ total sketch (within error bounds)
 
 ---
 
@@ -383,16 +400,15 @@ Error: RSE × √1.4 ≈ 1.56% × 1.18 ≈ 1.8%
 
 ### Recommendation
 
-✅ **Always use Mode 2 with feature-absent sketches** for:
+✅ **Always use 3-column CSV format with feature-absent sketches** for:
 - Production ML systems where accuracy matters
 - Imbalanced datasets (CTR, fraud, rare disease, anomaly detection)
 - Deep trees (depth ≥ 3)
 - Stakeholder-facing analysis (need reliable tree visualizations)
 
-⚠️ **Consider Mode 1 (without feature-absent) only if:**
-- Extremely storage-constrained (<100 MB available)
-- Shallow trees (depth ≤ 2)
-- Exploratory analysis where approximate results are acceptable
+✅ **Choose classification mode based on your use case**:
+- **Dual-class mode**: When you have explicit positive and negative classes (best accuracy)
+- **One-vs-all mode**: When you have positive class + total population (healthcare, CTR)
 
 ---
 
@@ -419,10 +435,9 @@ sketch_data: SketchData = {
             <sketch_present>,                             # Feature=1 (True)
             <sketch_absent>                               # Feature=0 (False)
         ),
-        # Or for backward compatibility (triggers a_not_b fallback):
-        '<feature_name>': <single_sketch>                # Only feature=1 sketch
+        ...
     },
-    'negative': {
+    'negative': {  # OR 'total' for one-vs-all mode
         'total': <ThetaSketch>,                          # Required: population sketch
         '<feature_name>': (
             <sketch_present>,
@@ -432,6 +447,12 @@ sketch_data: SketchData = {
     }
 }
 ```
+
+**Notes**:
+- For **dual-class mode**: Structure has both 'positive' and 'negative' keys
+- For **one-vs-all mode**: Loader creates 'negative' from 'total' using a_not_b
+- All features MUST be tuples: (sketch_present, sketch_absent)
+- 'total' is always a single ThetaSketch (not a tuple)
 
 ### Example
 
@@ -478,23 +499,24 @@ sketch_data = load_sketches(
 ```python
 from theta_sketch_tree import load_sketches
 
-# Load from dual CSV files (recommended)
+# Dual-class mode (best accuracy)
 sketch_data = load_sketches(
-    positive_csv='target_yes.csv',
-    negative_csv='target_no.csv'
+    positive_csv='treatment.csv',
+    negative_csv='control.csv'
 )
 
-# Or load from single CSV (backward compatibility)
+# One-vs-all mode (healthcare, CTR)
 sketch_data = load_sketches(
-    csv_path='features.csv',
-    target_positive='target_yes',
-    target_negative='target_no'
+    positive_csv='Type2Diabetes.csv',
+    total_csv='all_patients.csv'
 )
 ```
 
-**Auto-detection**: The loader automatically detects whether CSV files have:
-- 2 columns: `identifier, sketch` (performs a_not_b for absent sketches)
-- 3 columns: `identifier, sketch_present, sketch_absent` (recommended)
+**Format**: Only 3-column CSV format is supported: `identifier, sketch_present, sketch_absent`
+
+**Mode detection**: Loader automatically detects:
+- If `negative_csv` provided → Dual-class mode
+- If `total_csv` provided → One-vs-all mode (computes negative using a_not_b)
 
 #### load_config()
 
@@ -559,9 +581,15 @@ clf.fit(
 # =============================================================================
 # Target Class Specification
 # =============================================================================
+# Option 1: Dual-Class Mode (best accuracy)
 targets:
-  positive: "target_yes"    # Name of positive class sketch in CSV
-  negative: "target_no"     # Name of negative class sketch in CSV
+  positive: "treatment"     # Positive class CSV filename (without .csv)
+  negative: "control"       # Negative class CSV filename (without .csv)
+
+# Option 2: One-vs-All Mode (healthcare, CTR)
+# targets:
+#   positive: "Type2Diabetes"  # Positive class CSV filename
+#   total: "all_patients"      # Total population CSV filename (negative = total - positive)
 
 # =============================================================================
 # Tree Hyperparameters
@@ -693,28 +721,47 @@ feature_mapping:
 # 4. Column indices are 0-based and refer to binary inference data columns
 ```
 
-### Minimal Config Example
+### Minimal Config Example - Dual-Class Mode
 
 ```yaml
 targets:
-  positive: "target_yes"
-  negative: "target_no"
+  positive: "treatment"
+  negative: "control"
 
 hyperparameters:
   criterion: "gini"
   max_depth: 10
 
 feature_mapping:
-  "age>30": 0        # Simple column index mapping
+  "age>30": 0
   "income>50k": 1
   "city=NY": 2
+```
+
+### Minimal Config Example - One-vs-All Mode
+
+```yaml
+targets:
+  positive: "Type2Diabetes"
+  total: "all_patients"
+
+hyperparameters:
+  criterion: "binomial"  # Recommended for rare events
+  max_depth: 5
+  class_weight: "balanced"
+
+feature_mapping:
+  "age>65": 0
+  "bmi>30": 1
+  "family_history": 2
 ```
 
 ### Config Validation Rules
 
 The parser must validate:
 - ✅ Required top-level keys: `targets`, `hyperparameters`, `feature_mapping`
-- ✅ `targets` has `positive` and `negative` keys
+- ✅ `targets` has `positive` key AND either `negative` OR `total` (mutually exclusive)
+- ✅ Cannot have both `negative` and `total` keys
 - ✅ `hyperparameters` values are valid types and ranges
 - ✅ `feature_mapping` values are non-negative integers (column indices)
 - ✅ Feature names are strings
@@ -727,8 +774,8 @@ For users who prefer JSON:
 ```json
 {
   "targets": {
-    "positive": "target_yes",
-    "negative": "target_no"
+    "positive": "treatment",
+    "negative": "control"
   },
   "hyperparameters": {
     "criterion": "gini",
@@ -740,6 +787,24 @@ For users who prefer JSON:
     "age>30": 0,
     "income>50k": 1,
     "city=NY": 2
+  }
+}
+```
+
+**One-vs-All Mode in JSON**:
+```json
+{
+  "targets": {
+    "positive": "clicked",
+    "total": "impressions"
+  },
+  "hyperparameters": {
+    "criterion": "binomial",
+    "class_weight": "balanced"
+  },
+  "feature_mapping": {
+    "mobile_device": 0,
+    "weekend": 1
   }
 }
 ```
@@ -926,30 +991,34 @@ To restore full functionality, use pickle format.
 
 ## 6. Examples
 
-### Complete End-to-End Example
+### Complete End-to-End Example (Dual-Class Mode)
 
-#### 1. CSV Sketch File (`sketches.csv`)
+#### 1. CSV Sketch Files
 
+**treatment.csv** (positive class):
 ```csv
-identifier,sketch
-,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-target_yes,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-age>30,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-income>50k,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-has_diabetes,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-target_no,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-age>30,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-income>50k,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
-has_diabetes,AgMDAAAazJMCAAAAAACAPwAAAAAAAAAA...
+identifier,sketch_present,sketch_absent
+total,<base64_treatment_total>,<base64_treatment_total>
+age>30,<base64_treat_age>30>,<base64_treat_age<=30>
+income>50k,<base64_treat_income>50k>,<base64_treat_income<=50k>
+has_diabetes,<base64_treat_diabetes_yes>,<base64_treat_diabetes_no>
+```
+
+**control.csv** (negative class):
+```csv
+identifier,sketch_present,sketch_absent
+total,<base64_control_total>,<base64_control_total>
+age>30,<base64_ctrl_age>30>,<base64_ctrl_age<=30>
+income>50k,<base64_ctrl_income>50k>,<base64_ctrl_income<=50k>
+has_diabetes,<base64_ctrl_diabetes_yes>,<base64_ctrl_diabetes_no>
 ```
 
 #### 2. Config File (`config.yaml`)
 
 ```yaml
 targets:
-  positive: "target_yes"
-  negative: "target_no"
+  positive: "treatment"
+  negative: "control"
 
 hyperparameters:
   criterion: "gini"
@@ -968,15 +1037,21 @@ feature_mapping:
 #### 3. Training
 
 ```python
-from theta_sketch_tree import ThetaSketchDecisionTreeClassifier
+from theta_sketch_tree import ThetaSketchDecisionTreeClassifier, load_sketches, load_config
 
-# Create classifier
-clf = ThetaSketchDecisionTreeClassifier()
+# Load data
+sketch_data = load_sketches(
+    positive_csv='treatment.csv',
+    negative_csv='control.csv'
+)
 
-# Train on sketches
+config = load_config('config.yaml')
+
+# Create and train classifier
+clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
 clf.fit(
-    csv_path='sketches.csv',
-    config_path='config.yaml'
+    sketch_data=sketch_data,
+    feature_mapping=config['feature_mapping']
 )
 
 print(f"Tree built: {clf.tree_.n_nodes} nodes, {clf.tree_.n_leaves} leaves")
@@ -1027,36 +1102,40 @@ predictions = clf_loaded.predict(X_test)
 
 ---
 
-### Medical Use Case Example
+### Medical Use Case Example (One-vs-All Mode)
 
-#### CSV Sketch File (`patient_outcomes.csv`)
+#### CSV Sketch Files
 
 Features for predicting hospital readmission:
 
+**readmitted.csv** (positive class: patients who were readmitted):
 ```csv
-identifier,sketch
-,<total_positive_sketch>
-readmitted_yes,<readmitted_yes_sketch>
-age>65,<age_65_positive_sketch>
-diabetes_diagnosis,<diabetes_positive_sketch>
-emergency_admission,<emergency_positive_sketch>
-length_of_stay>7,<los_7_positive_sketch>
-num_medications>5,<med_5_positive_sketch>
-,<total_negative_sketch>
-readmitted_no,<readmitted_no_sketch>
-age>65,<age_65_negative_sketch>
-diabetes_diagnosis,<diabetes_negative_sketch>
-emergency_admission,<emergency_negative_sketch>
-length_of_stay>7,<los_7_negative_sketch>
-num_medications>5,<med_5_negative_sketch>
+identifier,sketch_present,sketch_absent
+total,<base64_readmitted_total>,<base64_readmitted_total>
+age>65,<base64_readm_age>65>,<base64_readm_age<=65>
+diabetes_diagnosis,<base64_readm_diabetes>,<base64_readm_no_diabetes>
+emergency_admission,<base64_readm_emerg>,<base64_readm_not_emerg>
+length_of_stay>7,<base64_readm_los>7>,<base64_readm_los<=7>
+num_medications>5,<base64_readm_meds>5>,<base64_readm_meds<=5>
+```
+
+**all_discharges.csv** (total population: all discharged patients):
+```csv
+identifier,sketch_present,sketch_absent
+total,<base64_all_discharges>,<base64_all_discharges>
+age>65,<base64_all_age>65>,<base64_all_age<=65>
+diabetes_diagnosis,<base64_all_diabetes>,<base64_all_no_diabetes>
+emergency_admission,<base64_all_emerg>,<base64_all_not_emerg>
+length_of_stay>7,<base64_all_los>7>,<base64_all_los<=7>
+num_medications>5,<base64_all_meds>5>,<base64_all_meds<=5>
 ```
 
 #### Config File (`patient_config.yaml`)
 
 ```yaml
 targets:
-  positive: "readmitted_yes"
-  negative: "readmitted_no"
+  positive: "readmitted"      # Readmitted patients
+  total: "all_discharges"     # All discharged patients (negative = all - readmitted)
 
 hyperparameters:
   criterion: "binomial"      # Statistical significance testing
@@ -1079,6 +1158,8 @@ feature_mapping:
   "length_of_stay>7": 3     # Binary: length of stay > 7 days
   "num_medications>5": 4    # Binary: taking > 5 medications
 ```
+
+**Note**: One-vs-all mode is ideal for healthcare where the "negative" class is implicitly defined as "all patients without the condition".
 
 #### Inference Data
 
@@ -1227,11 +1308,11 @@ hyperparameters:
 - More predictive power
 - Still interpretable if needed
 
-### Complete CTR Example
+### Complete CTR Example (One-vs-All Mode)
 
 #### CSV Sketch Files
 
-**clicks.csv** (positive class: clicked=1):
+**clicked.csv** (positive class: impressions that were clicked):
 ```csv
 identifier,sketch_present,sketch_absent
 total,<base64_100M_clicks>,<base64_100M_clicks>
@@ -1243,30 +1324,31 @@ ad_category=gaming,<base64_8M_gaming_clicks>,<base64_92M_other_cat_clicks>
 ...
 ```
 
-**no_clicks.csv** (negative class: clicked=0):
+**impressions.csv** (total population: all impressions):
 ```csv
 identifier,sketch_present,sketch_absent
-total,<base64_9.9B_no_clicks>,<base64_9.9B_no_clicks>
-mobile_device,<base64_5.93B_mobile_no_clicks>,<base64_3.97B_desktop_no_clicks>
-weekend,<base64_1.485B_weekend_no_clicks>,<base64_8.415B_weekday_no_clicks>
-ad_position=top,<base64_1.95B_top_no_clicks>,<base64_7.95B_other_no_clicks>
-user_engaged,<base64_960M_engaged_no_clicks>,<base64_8.94B_not_engaged_no_clicks>
-ad_category=gaming,<base64_792M_gaming_no_clicks>,<base64_9.108B_other_cat_no_clicks>
+total,<base64_10B_impressions>,<base64_10B_impressions>
+mobile_device,<base64_6B_mobile_impressions>,<base64_4B_desktop_impressions>
+weekend,<base64_1.5B_weekend_impressions>,<base64_8.5B_weekday_impressions>
+ad_position=top,<base64_2B_top_impressions>,<base64_8B_other_impressions>
+user_engaged,<base64_1B_engaged_impressions>,<base64_9B_not_engaged_impressions>
+ad_category=gaming,<base64_800M_gaming_impressions>,<base64_9.2B_other_cat_impressions>
 ...
 ```
 
 **Key Features**:
 - Sketches built from 10 billion impressions
 - 100 million clicks (1% CTR)
+- **One-vs-all mode**: Negative class computed as impressions - clicked
 - Both feature_present and feature_absent stored
-- No runtime set operations needed
+- Ideal for CTR where explicit "not clicked" class doesn't exist
 
 #### Config File (`ctr_config.yaml`)
 
 ```yaml
 targets:
   positive: "clicked"
-  negative: "not_clicked"
+  total: "impressions"  # One-vs-all mode: negative = impressions - clicked
 
 hyperparameters:
   # Imbalanced-optimized settings
@@ -1366,16 +1448,17 @@ print(f"Show ad: {show_ad}")
 
 The same principles apply to:
 
-| Use Case | Positive Rate | Recommended Settings |
-|----------|---------------|----------------------|
-| **Fraud Detection** | 0.01-0.1% | k=8192, depth=5, binomial criterion, min_samples_split=5000 |
-| **Conversion Prediction** | 1-5% | k=4096, depth=5, binomial, min_samples_split=1000 |
-| **Churn Prediction** | 5-15% | k=4096, depth=6, entropy or gini, min_samples_split=500 |
-| **Rare Disease** | 0.001-0.01% | k=16384, depth=3, binomial, min_samples_split=10000 |
-| **Anomaly Detection** | <1% | k=8192, depth=4, binomial, min_samples_split=2000 |
+| Use Case | Positive Rate | Recommended Mode | Recommended Settings |
+|----------|---------------|------------------|----------------------|
+| **Fraud Detection** | 0.01-0.1% | One-vs-all | k=8192, depth=5, binomial, min_samples_split=5000 |
+| **Conversion Prediction** | 1-5% | One-vs-all | k=4096, depth=5, binomial, min_samples_split=1000 |
+| **Churn Prediction** | 5-15% | Dual-class or One-vs-all | k=4096, depth=6, entropy/gini, min_samples_split=500 |
+| **Rare Disease** | 0.001-0.01% | One-vs-all | k=16384, depth=3, binomial, min_samples_split=10000 |
+| **Anomaly Detection** | <1% | One-vs-all | k=8192, depth=4, binomial, min_samples_split=2000 |
 
 **Common Pattern**:
-- ✅ Always use Mode 2 with feature-absent sketches
+- ✅ Always use 3-column CSV format with feature-absent sketches
+- ✅ Use one-vs-all mode for rare events where negative class is implicit
 - ✅ Always use class_weight="balanced"
 - ✅ Use binomial criterion for statistical rigor
 - ✅ Increase sketch size (k) for very rare events
@@ -1384,7 +1467,8 @@ The same principles apply to:
 
 ### Summary: CTR Best Practices
 
-✅ **CSV Format**: Mode 2 with feature-absent sketches (3-column format)
+✅ **CSV Format**: 3-column format with feature-absent sketches (one-vs-all mode)
+✅ **Classification Mode**: One-vs-all (clicked vs impressions)
 ✅ **Sketch Size**: k=4096 (or k=8192 for critical applications)
 ✅ **Tree Depth**: max_depth=5 (3 for analysis, 5 for deployment)
 ✅ **Criterion**: binomial with min_pvalue=0.001
@@ -1405,20 +1489,24 @@ The same principles apply to:
 
 This specification defines:
 
-✅ **CSV Sketch Format**: Complete specification for sketch serialization
+✅ **CSV Sketch Format**: 3-column format (identifier, sketch_present, sketch_absent) - ONLY supported format
+✅ **Classification Modes**: Dual-class (best accuracy) and One-vs-all (healthcare, CTR)
 ✅ **Config File Format**: YAML/JSON configuration for targets, hyperparameters, and feature mapping
-✅ **Inference Format**: NumPy/Pandas format for raw tabular data
+✅ **Inference Format**: NumPy/Pandas format for binary tabular data
 ✅ **Model Persistence**: Pickle for full model save/load, JSON for interpretability
-✅ **Examples**: Complete end-to-end workflows for medical use cases
+✅ **Examples**: Complete end-to-end workflows for dual-class, healthcare, and CTR use cases
 
-**Key Points**:
+**Key Design Decisions**:
+- **No Mode 1**: Single CSV mode removed for simplicity
+- **No 2-column format**: Only 3-column (sketch_present, sketch_absent) supported
+- **Dual CSV only**: Always requires 2 CSV files (positive + negative OR positive + total)
+- **Feature-absent mandatory**: Provides 29% error reduction at all tree depths
 - Base64 encoding for sketch bytes (human-readable, CSV-safe)
 - YAML config for easy hyperparameter tuning
 - sklearn-compatible data formats (numpy/pandas)
-- Pickle for production deployment
-- JSON export for model interpretability
 
 **Validation**:
 - All formats include strict validation rules
 - Parsers must validate structure, types, and ranges
 - Clear error messages for invalid inputs
+- Config must specify either 'negative' OR 'total' (mutually exclusive)

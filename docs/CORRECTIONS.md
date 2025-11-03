@@ -463,8 +463,28 @@ probabilities = clf.predict_proba(X_test)
 1. ✅ **Confirm**: All inference data will be pre-computed binary features?
 2. ✅ **Confirm**: Feature names in CSV match feature names in inference data schema?
 3. ✅ **Confirm**: Missing values can be: `np.nan`, `None`, `pd.NA`, `""` (empty string)?
-4. ❓ **Question**: Should we support feature names with special characters? (e.g., `"age>30"`, `"city=New York"`)
-5. ❓ **Question**: For tree nodes, should `feature_idx` reference the column index directly, or map through `feature_mapping`?
+4. ✅ **Confirmed**: **YES**, we should support feature names with special characters (e.g., `"age>30"`, `"city=New York"`, `"income>=50k"`). These are standard in binary feature representations and should be fully supported in:
+   - CSV sketch identifiers
+   - Config file `feature_mapping` keys
+   - TreeNode `feature_name` attribute
+   - Feature importance output
+   - All visualization and export functions
+5. ✅ **Resolved**: **Option A - Direct Column Index**. `TreeNode.feature_idx` stores the direct column index in X (from `feature_mapping[feature_name]`), NOT an index into a feature list. This enables:
+   - **Fast inference**: O(1) array access `X[sample, feature_idx]` with no dict lookups
+   - **sklearn compatibility**: Matches sklearn's `tree_.feature` behavior
+   - **Simplicity**: No indirection layer needed during tree traversal
+
+   Implementation:
+   ```python
+   # During tree building:
+   feature_idx = feature_mapping[feature_name]  # e.g., {"age>30": 0} → 0
+   node.set_split(feature_idx=feature_idx, ...)
+
+   # During inference:
+   feature_value = X[sample, node.feature_idx]  # Direct access
+   ```
+
+   See updated documentation in `docs/03_algorithms.md` (line 247) and `docs/02_low_level_design.md` (lines 494-497).
 
 ---
 

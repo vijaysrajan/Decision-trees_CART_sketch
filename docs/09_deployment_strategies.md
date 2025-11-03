@@ -169,17 +169,22 @@ Root: mobile_device?
 
 ```python
 # Initial training with all features
-clf_full = ThetaSketchDecisionTreeClassifier()
-clf_full.fit(csv_path='sketches.csv', config_path='config.yaml')
+from theta_sketch_tree import load_sketches, load_config
+
+sketch_data = load_sketches(positive_csv='treatment.csv', negative_csv='control.csv')
+config = load_config('config.yaml')
+
+clf_full = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+clf_full.fit(sketch_data, config['feature_mapping'])
 
 # Get feature importance
 importances = clf_full.feature_importances_
 top_features = np.argsort(importances)[-20:]  # Top 20
 
 # Re-train with top features only
-config_filtered = update_feature_mapping(config, top_features)
-clf_analysis = ThetaSketchDecisionTreeClassifier()
-clf_analysis.fit(csv_path='sketches_filtered.csv', config_path='config_filtered.yaml')
+filtered_mapping = {k: v for k, v in config['feature_mapping'].items() if v in top_features}
+clf_analysis = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+clf_analysis.fit(sketch_data, filtered_mapping)
 ```
 
 #### 3. Strong Pruning (max_leaf_nodes=15)
@@ -413,10 +418,14 @@ feature_mapping:
 
 ```python
 import pickle
+from theta_sketch_tree import load_sketches, load_config
 
-# Train model
-clf = ThetaSketchDecisionTreeClassifier()
-clf.fit(csv_path='sketches.csv', config_path='config_production.yaml')
+# Load data and train model
+sketch_data = load_sketches(positive_csv='clicked.csv', total_csv='impressions.csv')
+config = load_config('config_production.yaml')
+
+clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+clf.fit(sketch_data, config['feature_mapping'])
 
 # Save model (pickle for speed)
 with open('ctr_model_v1.pkl', 'wb') as f:
@@ -607,7 +616,7 @@ clf_production.save_model('production_model.pkl')
 ```python
 # Train full production tree (depth 5)
 clf = ThetaSketchDecisionTreeClassifier()
-clf.fit(csv_path='sketches.csv', config_path='config_production.yaml')
+clf.fit(sketch_data, config['feature_mapping'])
 
 # Export only top 3 levels for stakeholders
 tree_json_shallow = clf.export_tree_json(max_depth=3)
@@ -635,7 +644,7 @@ predictions = clf.predict_proba(X_prod)
 ```python
 # Train complex tree
 clf = ThetaSketchDecisionTreeClassifier()
-clf.fit(csv_path='sketches.csv', config_path='config_production.yaml')  # depth=5
+clf.fit(sketch_data, config['feature_mapping'])  # depth=5
 
 # Extract top K most important paths
 important_paths = clf.extract_important_paths(top_k=10)

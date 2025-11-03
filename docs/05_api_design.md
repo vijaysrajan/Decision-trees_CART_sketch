@@ -85,28 +85,26 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     Examples
     --------
-    >>> from theta_sketch_tree import ThetaSketchDecisionTreeClassifier
+    >>> from theta_sketch_tree import ThetaSketchDecisionTreeClassifier, load_sketches, load_config
     >>> import numpy as np
     >>>
-    >>> # Training (Mode 1: Single CSV)
-    >>> clf = ThetaSketchDecisionTreeClassifier(
-    ...     criterion='gini',
-    ...     max_depth=5,
-    ...     verbose=1
+    >>> # Training (Dual-Class Mode - best accuracy)
+    >>> sketch_data = load_sketches(
+    ...     positive_csv='treatment.csv',
+    ...     negative_csv='control.csv'
     ... )
-    >>> clf.fit(csv_path='sketches.csv', config_path='config.yaml')
+    >>> config = load_config('config.yaml')
+    >>> clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+    >>> clf.fit(sketch_data=sketch_data, feature_mapping=config['feature_mapping'])
     >>>
-    >>> # Training (Mode 2: Dual CSV - RECOMMENDED)
-    >>> clf = ThetaSketchDecisionTreeClassifier(
-    ...     criterion='gini',
-    ...     max_depth=5,
-    ...     verbose=1
+    >>> # Training (One-vs-All Mode - healthcare, CTR)
+    >>> sketch_data = load_sketches(
+    ...     positive_csv='Type2Diabetes.csv',
+    ...     total_csv='all_patients.csv'
     ... )
-    >>> clf.fit(
-    ...     positive_csv='target_yes.csv',
-    ...     negative_csv='target_no.csv',
-    ...     config_path='config.yaml'
-    ... )
+    >>> config = load_config('config.yaml')
+    >>> clf = ThetaSketchDecisionTreeClassifier(**config['hyperparameters'])
+    >>> clf.fit(sketch_data=sketch_data, feature_mapping=config['feature_mapping'])
     >>>
     >>> # Inference (binary features: 0/1 values)
     >>> X_test = np.array([[1, 0, 1], [0, 1, 0]])  # Pre-computed binary features
@@ -629,8 +627,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         >>> path = clf.cost_complexity_pruning_path()
         >>> # Train models with different alphas
         >>> for alpha in path['ccp_alphas']:
-        ...     clf_pruned = ThetaSketchDecisionTreeClassifier(ccp_alpha=alpha)
-        ...     clf_pruned.fit(csv_path, config_path)
+        ...     clf_pruned = ThetaSketchDecisionTreeClassifier(ccp_alpha=alpha, **config['hyperparameters'])
+        ...     clf_pruned.fit(sketch_data=sketch_data, feature_mapping=config['feature_mapping'])
         ...     # Evaluate clf_pruned...
         """
         pass
@@ -640,16 +638,16 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
 ## Usage Examples
 
-### Basic Classification
+### Basic Classification (Dual-Class Mode)
 
 ```python
 from theta_sketch_tree import ThetaSketchDecisionTreeClassifier, load_sketches, load_config
 import numpy as np
 
-# Step 1: Load sketch data from CSV files
+# Step 1: Load sketch data from CSV files (dual-class mode)
 sketch_data = load_sketches(
-    positive_csv='target_yes.csv',
-    negative_csv='target_no.csv'
+    positive_csv='treatment.csv',
+    negative_csv='control.csv'
 )
 
 # Step 2: Load config
@@ -663,13 +661,6 @@ clf = ThetaSketchDecisionTreeClassifier(
 # Step 4: Fit model
 clf.fit(sketch_data, config['feature_mapping'])
 
-# OR - Use convenience method (all-in-one)
-clf = ThetaSketchDecisionTreeClassifier.fit_from_csv(
-    positive_csv='target_yes.csv',
-    negative_csv='target_no.csv',
-    config_path='config.yaml'
-)
-
 # Predict (binary features: 0/1 values, already transformed)
 X_test = np.array([
     [1, 0, 1, 1],  # age>30=1, city=NY=0, gender=M=1, income>50k=1
@@ -682,6 +673,46 @@ probabilities = clf.predict_proba(X_test)
 from sklearn.metrics import accuracy_score, roc_auc_score
 accuracy = accuracy_score(y_test, predictions)
 auc = roc_auc_score(y_test, probabilities[:, 1])
+```
+
+### Healthcare Use Case (One-vs-All Mode)
+
+```python
+from theta_sketch_tree import ThetaSketchDecisionTreeClassifier, load_sketches, load_config
+import numpy as np
+
+# Step 1: Load sketch data (one-vs-all mode for rare disease)
+sketch_data = load_sketches(
+    positive_csv='Type2Diabetes.csv',    # Patients with Type 2 Diabetes
+    total_csv='all_patients.csv'         # All patients (negative = all - positive)
+)
+
+# Step 2: Load config
+config = load_config('diabetes_config.yaml')
+# Config should have:
+#   targets:
+#     positive: "Type2Diabetes"
+#     total: "all_patients"
+
+# Step 3: Initialize with hyperparameters (recommended for one-vs-all)
+clf = ThetaSketchDecisionTreeClassifier(
+    criterion='binomial',        # Statistical significance for rare events
+    class_weight='balanced',     # Handle class imbalance
+    max_depth=5,
+    min_samples_split=50,
+    verbose=1
+)
+
+# Step 4: Fit model
+clf.fit(sketch_data, config['feature_mapping'])
+
+# Predict risk scores
+X_patients = np.array([
+    [1, 1, 1, 0, 1],  # High risk: age>65, obese, family history, etc.
+    [0, 0, 0, 1, 0]   # Low risk
+])
+risk_scores = clf.predict_proba(X_patients)[:, 1]  # Probability of diabetes
+print(f"Diabetes risk: {risk_scores}")  # [0.78, 0.12]
 ```
 
 ### sklearn Pipeline
