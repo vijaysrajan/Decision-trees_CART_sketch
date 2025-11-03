@@ -494,8 +494,8 @@ class TreeNode:
         Impurity value (Gini, entropy, etc.) at this node
     class_counts : NDArray[np.float64]
         Count of samples per class [n_class_0, n_class_1]
-    patent : TreeNode
-        Parent node of the existing node
+    parent : TreeNode
+        Parent node of the existing node (None for root node)
 
     Attributes (for internal nodes)
     -------------------------------

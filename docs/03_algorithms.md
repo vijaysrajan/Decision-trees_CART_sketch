@@ -230,6 +230,9 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, dept
     impurity = criterion.compute_impurity(class_counts)
 
     # Create node
+    # Note: parent is set to null initially
+    #   - For root node (depth=0): parent remains null
+    #   - For child nodes: parent is set later via parent.set_split(left_child, right_child)
     node = TreeNode(
         depth=depth,
         n_samples=n_total,
@@ -334,6 +337,10 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, dept
         left_child=left_child,
         right_child=right_child
     )
+    # Note: set_split() automatically sets parent references:
+    #   left_child.parent = node
+    #   right_child.parent = node
+    # This enables upward tree traversal for pruning and other operations
 
     RETURN node
 
