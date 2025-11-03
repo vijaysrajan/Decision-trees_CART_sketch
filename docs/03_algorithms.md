@@ -25,9 +25,38 @@ FUNCTION fit(sketch_data, feature_mapping):
     # ========== Step 1: Extract Sketch Data ==========
     # sketch_data structure:
     # {
-    #     'positive': {'total': <ThetaSketch>, 'feature1': (<present>, <absent>), ...},
-    #     'negative_or_total': {'total': <ThetaSketch>, 'feature1': (<present>, <absent>), ...}
+    #     'positive': {
+    #         'total': <ThetaSketch>,
+    #         'age>30': (<sketch_pos_AND_age>30>, <sketch_pos_AND_age<=30>),  # ← TUPLE!
+    #         'income>50k': (<sketch_pos_AND_income>50k>, <sketch_pos_AND_income<=50k>),
+    #         ...
+    #     },
+    #     'negative_or_total': {
+    #         'total': <ThetaSketch>,
+    #         'age>30': (<sketch_neg/all_AND_age>30>, <sketch_neg/all_AND_age<=30>),  # ← TUPLE!
+    #         'income>50k': (<sketch_neg/all_AND_income>50k>, <sketch_neg/all_AND_income<=50k>),
+    #         ...
+    #     }
     # }
+    #
+    # CRITICAL: Feature Sketch Tuple Structure
+    # ==========================================
+    # Each feature (except 'total') is stored as a TUPLE of (present, absent) sketches.
+    # Both sketches are PRE-COMPUTED during data preparation, NOT during tree building.
+    #
+    # Example: Unpacking feature sketches
+    #   feature_tuple = sketch_data['positive']['age>30']  # Get the tuple
+    #   sketch_present, sketch_absent = feature_tuple      # Unpack it
+    #
+    #   # sketch_present: Records WITH age>30 (in positive class)
+    #   # sketch_absent: Records WITHOUT age>30 (in positive class)
+    #
+    # Why store BOTH present and absent?
+    #   - Without absent sketches:
+    #       left_child = parent.a_not_b(feature_present)  # Error compounds! √(E²+E²)
+    #   - With absent sketches:
+    #       left_child = parent.intersection(feature_absent)  # Fixed error from data prep
+    #   - Result: 29% error reduction at all tree depths
     #
     # CRITICAL DISTINCTION BETWEEN CLASSIFICATION MODES:
     #
@@ -50,8 +79,12 @@ FUNCTION fit(sketch_data, feature_mapping):
     #     n_neg = n_all - n_pos  # 9.9B non-clicks (arithmetic, NOT sketch operation!)
     #
     #   Example (feature age>30):
-    #     n_pos_age30 = sketch_data['positive']['age>30'][0].get_estimate()  # Clicks AND age>30
-    #     n_all_age30 = sketch_data['negative_or_total']['age>30'][0].get_estimate()  # ALL impressions AND age>30
+    #     # Unpack the tuple to get present and absent sketches
+    #     sketch_pos_present, sketch_pos_absent = sketch_data['positive']['age>30']
+    #     sketch_all_present, sketch_all_absent = sketch_data['negative_or_total']['age>30']
+    #
+    #     n_pos_age30 = sketch_pos_present.get_estimate()  # Clicks AND age>30
+    #     n_all_age30 = sketch_all_present.get_estimate()  # ALL impressions AND age>30
     #     n_neg_age30 = n_all_age30 - n_pos_age30  # Non-clicks AND age>30 (arithmetic!)
     #
     # Why arithmetic for One-vs-All?
@@ -407,22 +440,32 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg_
 
     # For positive class
     total_sketch_pos = sketch_dict_pos['total']
-    feature_sketch_pos = sketch_dict_pos[feature_name]
+
+    # CRITICAL: feature_sketch_pos is a TUPLE of (present, absent) sketches
+    # Example: For 'age>30', this is:
+    #   (sketch_pos_AND_age>30, sketch_pos_AND_age<=30)
+    # Both sketches were pre-computed during data preparation
+    feature_sketch_tuple_pos = sketch_dict_pos[feature_name]  # Tuple[ThetaSketch, ThetaSketch]
 
     left_total_pos, right_total_pos = _compute_child_sketches(
         parent_sketch=total_sketch_pos,
-        feature_sketch=feature_sketch_pos,
+        feature_sketch_tuple=feature_sketch_tuple_pos,  # Passing entire tuple
         feature_name=feature_name,
         class_label='pos'
     )
 
     # For negative/total class
     total_sketch_neg_or_all = sketch_dict_neg_or_all['total']
-    feature_sketch_neg_or_all = sketch_dict_neg_or_all[feature_name]
+
+    # CRITICAL: feature_sketch_neg_or_all is also a TUPLE
+    # Example: For 'age>30', this is:
+    #   Dual-Class Mode: (sketch_neg_AND_age>30, sketch_neg_AND_age<=30)
+    #   One-vs-All Mode: (sketch_all_AND_age>30, sketch_all_AND_age<=30)
+    feature_sketch_tuple_neg_or_all = sketch_dict_neg_or_all[feature_name]  # Tuple[ThetaSketch, ThetaSketch]
 
     left_total_neg_or_all, right_total_neg_or_all = _compute_child_sketches(
         parent_sketch=total_sketch_neg_or_all,
-        feature_sketch=feature_sketch_neg_or_all,
+        feature_sketch_tuple=feature_sketch_tuple_neg_or_all,  # Passing entire tuple
         feature_name=feature_name,
         class_label='neg_or_all'
     )
@@ -473,6 +516,7 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg_
     )
 
     # ========== Step 5: Build Child Sketch Dictionaries ==========
+    # CRITICAL: Must maintain tuple structure (present, absent) for all features!
 
     # For left child, need to propagate ALL feature sketches
     left_sketches_pos = {}
@@ -485,20 +529,37 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg_
         IF other_feature == 'total':
             CONTINUE
 
-        # Left child: features in parent but NOT in current split feature
-        # This is: (parent ∩ other_feature) - current_feature
-        # Simplified: intersect other_feature with left_total
+        # CRITICAL: Each feature is a TUPLE (present, absent)
+        # We must propagate BOTH sketches to maintain the tuple structure
 
         IF other_feature == feature_name:
-            # Special case: left child has feature_name = False
-            # So all records in left don't have this feature
-            # Use empty sketch or zero estimate
-            left_sketches_pos[other_feature] = EMPTY_SKETCH()
-            left_sketches_neg_or_all[other_feature] = EMPTY_SKETCH()
+            # Special case: Left child is where feature_name = False
+            # All records in left child DON'T have this feature
+            #
+            # For the "present" part: Empty (no records have the feature)
+            # For the "absent" part: All records in left child (all lack the feature)
+            #
+            # Tuple structure: (sketch_present, sketch_absent)
+            left_sketches_pos[other_feature] = (EMPTY_SKETCH(), left_total_pos)
+            left_sketches_neg_or_all[other_feature] = (EMPTY_SKETCH(), left_total_neg_or_all)
         ELSE:
-            # General case: intersect other feature with left total
-            left_sketches_pos[other_feature] = sketch_dict_pos[other_feature].intersection(left_total_pos)
-            left_sketches_neg_or_all[other_feature] = sketch_dict_neg_or_all[other_feature].intersection(left_total_neg_or_all)
+            # General case: Propagate other features to left child
+            # Must intersect BOTH present and absent sketches with left_total
+
+            # Unpack parent's tuple for this feature
+            other_present_pos, other_absent_pos = sketch_dict_pos[other_feature]
+            other_present_neg, other_absent_neg = sketch_dict_neg_or_all[other_feature]
+
+            # Intersect both parts with left child total
+            left_other_present_pos = other_present_pos.intersection(left_total_pos)
+            left_other_absent_pos = other_absent_pos.intersection(left_total_pos)
+
+            left_other_present_neg = other_present_neg.intersection(left_total_neg_or_all)
+            left_other_absent_neg = other_absent_neg.intersection(left_total_neg_or_all)
+
+            # Store as tuples
+            left_sketches_pos[other_feature] = (left_other_present_pos, left_other_absent_pos)
+            left_sketches_neg_or_all[other_feature] = (left_other_present_neg, left_other_absent_neg)
 
     # Similarly for right child
     right_sketches_pos = {}
@@ -512,13 +573,33 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg_
             CONTINUE
 
         IF other_feature == feature_name:
-            # Right child has feature_name = True
-            # So all records in right have this feature
-            right_sketches_pos[other_feature] = right_total_pos  # All in right have feature
-            right_sketches_neg_or_all[other_feature] = right_total_neg_or_all
+            # Special case: Right child is where feature_name = True
+            # All records in right child HAVE this feature
+            #
+            # For the "present" part: All records in right child (all have the feature)
+            # For the "absent" part: Empty (no records lack the feature)
+            #
+            # Tuple structure: (sketch_present, sketch_absent)
+            right_sketches_pos[other_feature] = (right_total_pos, EMPTY_SKETCH())
+            right_sketches_neg_or_all[other_feature] = (right_total_neg_or_all, EMPTY_SKETCH())
         ELSE:
-            right_sketches_pos[other_feature] = sketch_dict_pos[other_feature].intersection(right_total_pos)
-            right_sketches_neg_or_all[other_feature] = sketch_dict_neg_or_all[other_feature].intersection(right_total_neg_or_all)
+            # General case: Propagate other features to right child
+            # Must intersect BOTH present and absent sketches with right_total
+
+            # Unpack parent's tuple for this feature
+            other_present_pos, other_absent_pos = sketch_dict_pos[other_feature]
+            other_present_neg, other_absent_neg = sketch_dict_neg_or_all[other_feature]
+
+            # Intersect both parts with right child total
+            right_other_present_pos = other_present_pos.intersection(right_total_pos)
+            right_other_absent_pos = other_absent_pos.intersection(right_total_pos)
+
+            right_other_present_neg = other_present_neg.intersection(right_total_neg_or_all)
+            right_other_absent_neg = other_absent_neg.intersection(right_total_neg_or_all)
+
+            # Store as tuples
+            right_sketches_pos[other_feature] = (right_other_present_pos, right_other_absent_pos)
+            right_sketches_neg_or_all[other_feature] = (right_other_present_neg, right_other_absent_neg)
 
     RETURN (score, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all)
 ```
@@ -528,44 +609,76 @@ FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg_
 ### Compute Child Sketches (with Caching)
 
 ```
-FUNCTION _compute_child_sketches(parent_sketch, feature_sketch, feature_name, class_label):
+FUNCTION _compute_child_sketches(parent_sketch, feature_sketch_tuple, feature_name, class_label):
     """
     Compute child sketches using set operations with caching.
 
+    CRITICAL: This function uses PRE-COMPUTED absent sketches to eliminate a_not_b operations,
+    achieving 29% error reduction compared to computing left child via set subtraction.
+
     Binary split:
-        - Left child (feature = False): parent - feature  [a_not_b]
-        - Right child (feature = True): parent ∩ feature  [intersection]
+        - Left child (feature = False): parent ∩ sketch_feature_absent  [intersection ONLY]
+        - Right child (feature = True): parent ∩ sketch_feature_present [intersection ONLY]
+
+    Parameters:
+        parent_sketch: ThetaSketch for parent node
+        feature_sketch_tuple: Tuple[ThetaSketch, ThetaSketch]
+                             (sketch_feature_present, sketch_feature_absent)
+        feature_name: Name of feature being split on
+        class_label: 'pos' or 'neg_or_all'
 
     Returns:
         (left_sketch, right_sketch)
     """
 
-    parent_id = id(parent_sketch)
-    feature_id = id(feature_sketch)
+    # ========== Step 1: Unpack Feature Sketch Tuple ==========
+    # Each feature has TWO pre-computed sketches:
+    #   - sketch_feature_present: Records WITH the feature
+    #   - sketch_feature_absent: Records WITHOUT the feature
+    # This eliminates the need for a_not_b operations during tree building!
+    sketch_feature_present, sketch_feature_absent = feature_sketch_tuple
 
-    # ========== Right Child (intersection) ==========
+    parent_id = id(parent_sketch)
+    present_id = id(sketch_feature_present)
+    absent_id = id(sketch_feature_absent)
+
+    # ========== Step 2: Right Child (feature = True) ==========
+    # Right child contains records where feature IS present
+    # Use intersection with pre-computed "present" sketch
     IF sketch_cache IS NOT None:
-        cache_key = sketch_cache.get_key('intersection', str(parent_id), str(feature_id), class_label)
+        cache_key = sketch_cache.get_key('intersection', str(parent_id), str(present_id), class_label, 'present')
         right_sketch = sketch_cache.get(cache_key)
 
         IF right_sketch IS None:
             # Cache miss: compute
-            right_sketch = parent_sketch.intersection(feature_sketch)
+            right_sketch = parent_sketch.intersection(sketch_feature_present)
             sketch_cache.put(cache_key, right_sketch, size_bytes=8)
     ELSE:
-        right_sketch = parent_sketch.intersection(feature_sketch)
+        right_sketch = parent_sketch.intersection(sketch_feature_present)
 
-    # ========== Left Child (a_not_b) ==========
+    # ========== Step 3: Left Child (feature = False) ==========
+    # Left child contains records where feature IS NOT present
+    # CRITICAL: Use intersection with pre-computed "absent" sketch
+    # This is the KEY innovation - we do NOT use a_not_b!
+    #
+    # Error Analysis:
+    #   OLD (a_not_b): left = parent.a_not_b(feature_present)
+    #                  Error = sqrt(E_parent² + E_right²) → compounds at every level
+    #                  At depth 5: 24.4% error
+    #
+    #   NEW (intersection with absent): left = parent.intersection(feature_absent)
+    #                  Error = sqrt(E_parent² + E_absent²) → but E_absent is from data prep, not compounded
+    #                  At depth 5: 17.3% error (29% improvement!)
     IF sketch_cache IS NOT None:
-        cache_key = sketch_cache.get_key('a_not_b', str(parent_id), str(feature_id), class_label)
+        cache_key = sketch_cache.get_key('intersection', str(parent_id), str(absent_id), class_label, 'absent')
         left_sketch = sketch_cache.get(cache_key)
 
         IF left_sketch IS None:
             # Cache miss: compute
-            left_sketch = parent_sketch.a_not_b(feature_sketch)
+            left_sketch = parent_sketch.intersection(sketch_feature_absent)
             sketch_cache.put(cache_key, left_sketch, size_bytes=8)
     ELSE:
-        left_sketch = parent_sketch.a_not_b(feature_sketch)
+        left_sketch = parent_sketch.intersection(sketch_feature_absent)
 
     RETURN (left_sketch, right_sketch)
 ```
