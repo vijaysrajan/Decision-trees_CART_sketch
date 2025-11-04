@@ -114,7 +114,7 @@ family_history,<base64_all_AND_fh>,<base64_all_AND_no_fh>
 
 **Key Points**:
 - **Positive class**: Explicit condition (has Type2Diabetes)
-- **Negative class**: Computed at runtime: `negative = total.a_not_b(positive)`
+- **Negative class**: precomputed at load-time and not via `negative = total.a_not_b(positive)`
 - **Accuracy trade-off**: a_not_b adds ~0.4% error but still better than alternatives
 - **Use cases**: Healthcare (rare diseases), CTR (clicked vs impressions), fraud detection
 

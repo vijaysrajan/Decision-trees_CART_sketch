@@ -176,7 +176,9 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         sample_weight: Optional[NDArray[np.float64]] = None
     ) -> 'ThetaSketchDecisionTreeClassifier':
         """
-        Build decision tree from theta sketch data.
+        Build decision tree from theta sketch data. All negative class feature sketches 
+        are materialized before fit() is called; subsequent tree building uses intersection only 
+        (no AnotB recurrence)
 
         Parameters
         ----------
@@ -221,6 +223,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             - Eliminates a_not_b operations within features → 29% error reduction at all depths
             - Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3)
             - Loaded via SketchLoader.load() from dual CSV files
+            - Once a feature is selected to be split on, the left split will use sketch for feature absent while the right split will use the feature present. The left or right could be swapped at a later point in time. The sketch with feature present for target=yes will be intersected with the yes sketch of the current tree node to be populated in the left child node's yes_accumulated whereas the sketch with feature present for target=no will be intersected with the no sketch of the current tree node to be populated in the right child's no_accumulated. For the right child node, the above statement is similar except that the feature present will be replaced with feature absent.
 
         feature_mapping : dict
             Maps feature names to column indices for inference.
@@ -496,6 +499,10 @@ class TreeNode:
         Count of samples per class [n_class_0, n_class_1]
     parent : TreeNode
         Parent node of the existing node (None for root node)
+    yes_accumulated: ThetaSketch
+        ThetaSketch intersection of all ancestors with yes outcome with current Node feature's yes outcome. Note the feature could be present or absent.
+    no_accumulated: ThetaSketch
+        ThetaSketch intersection of all ancestors with no (or all in case of one-vs-all) outcome with current Node feature's no outcome. Note the feature could be present or absent.
 
     Attributes (for internal nodes)
     -------------------------------
@@ -754,7 +761,7 @@ class SketchLoader:
         total_csv : str, optional
             Total population CSV file path (for one-vs-all mode)
             Mutually exclusive with negative_csv
-            Negative class will be computed as: total - positive
+            Negative class are materialized(is computed) as: total - positive
 
         Returns
         -------
@@ -784,7 +791,7 @@ class SketchLoader:
                     'age>65': (<sketch_diabetes_AND_age>65>, <sketch_diabetes_AND_age<=65>)
                 },
                 'negative': {
-                    'total': <ThetaSketch>,  # total.a_not_b(positive) - computed
+                    'total': <ThetaSketch>,  # in case of one-vs-all, the sketches are precomputed at load time. No need to use a_not_b.
                     'age>65': (<sketch_no_diabetes_AND_age>65>, <sketch_no_diabetes_AND_age<=65>)
                 }
             }
@@ -805,7 +812,7 @@ class SketchLoader:
         Notes
         -----
         - Only 3-column CSV format is supported: identifier, sketch_feature_present, sketch_feature_absent
-        - One-vs-all mode adds ~0.4% error from a_not_b computation
+        - One-vs-all mode adds ~0.4% error from a_not_b computation so a_not_b will not be used at all (not even at load time)
         - Dual-class mode provides best accuracy (no set operations)
         """
         pass
@@ -1156,14 +1163,14 @@ class SplitEvaluator:
         feature_sketch_tuple: Tuple[Any, Any]  # (sketch_present, sketch_absent)
     ) -> Tuple[Any, Any]:
         """
-        Compute child sketches using intersection operations ONLY.
+        CRITICAL INVARIANT: Compute child sketches using intersection operations ONLY. 
 
-        CRITICAL: Uses pre-computed absent sketches to eliminate a_not_b operations,
+        CRITICAL INVARIANT: Uses pre-computed absent sketches to eliminate a_not_b operations,
         achieving 29% error reduction compared to traditional set subtraction approach.
 
         For binary split on feature F (with pre-computed present/absent sketches):
         - Left child (F=False): parent.intersection(sketch_feature_absent)  ← No a_not_b!
-        - Right child (F=True): parent.intersection(sketch_feature_present)
+        - Right child (F=True): parent.intersection(sketch_feature_present) ← No a_not_b! either
 
         Parameters
         ----------
@@ -1829,7 +1836,6 @@ class SketchCache:
     - sketch.get_estimate()
     - sketch_a.intersection(sketch_b)
     - sketch_a.union(sketch_b)
-    - sketch_a.a_not_b(sketch_b)
     """
 
     def __init__(self, max_size_mb: int = 100) -> None:

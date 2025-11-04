@@ -182,7 +182,7 @@ positive.csv:                      negative.csv (Dual-Class) OR total.csv (One-v
 │                 ThetaSketch_not_clicked),           │            pos AND not_clicked)
 │     ...                                            │
 │   },                                               │
-│   'negative': {        # Key from config: 'target_no' OR computed from 'total'
+│   'negative': {        # Key from config: 'target_no' OR contains sketch for feature presence of absence without target specification in case of one-vs-all
 │     'total': ThetaSketch,                          │  ← Negative/Total class
 │     'age>30': (ThetaSketch_present,                │  ← Tuple: (neg/all AND age>30,
 │                ThetaSketch_absent),                 │            neg/all AND age<=30)
@@ -190,7 +190,7 @@ positive.csv:                      negative.csv (Dual-Class) OR total.csv (One-v
 │   }                                                │
 │ }                                                  │
 │ Note: Dual-Class uses 'negative' key directly from CSV    │
-│       One-vs-All computes 'negative' from 'total' via a_not_b │
+│       One-vs-All 'negative' contains sketch for feature presence of absence without target specification not via a_not_b │
 └────────────────┬───────────────────────────────────┘
                  ↓
         [Tree Building]
@@ -515,7 +515,6 @@ feature_mapping:
 - `sketch.get_estimate()`
 - `sketch_a.intersection(sketch_b)`
 - `sketch_a.union(sketch_b)`
-- `sketch_a.a_not_b(sketch_b)`
 
 **LRU Cache** with configurable size (default 100MB)
 
