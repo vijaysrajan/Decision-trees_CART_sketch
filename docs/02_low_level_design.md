@@ -699,13 +699,18 @@ class SketchLoader:
     """
     Load theta sketches from dual CSV files.
 
+    ⚠️ CRITICAL: This loader performs NO set operations (a_not_b, union, intersection, etc.)
+    All sketches in the CSV files are pre-computed directly from big data sources.
+    The loader simply deserializes and organizes these pre-computed sketches.
+
     CSV Format:
     -----------
     **3-Column Format (ONLY supported format)**:
         identifier, sketch_feature_present, sketch_feature_absent
 
         Stores BOTH feature=TRUE and feature=FALSE sketches per feature.
-        ✅ Eliminates a_not_b operations → 29% error reduction at all depths
+        ✅ ALL sketches pre-computed from raw big data
+        ✅ Eliminates a_not_b operations during tree building → 29% error reduction
         ✅ Critical for imbalanced datasets (CTR, fraud detection)
         ✅ Required for optimal accuracy on deep trees (depth ≥3)
 
@@ -716,14 +721,16 @@ class SketchLoader:
 
     Classification Modes:
     ---------------------
-    **Dual-Class Mode** (best accuracy):
-        Requires: positive_csv AND negative_csv
+    **Dual-Class Mode**:
+        Requires: positive_csv (filtered to positive class) AND negative_csv (filtered to negative class)
         Use case: Explicit positive and negative classes (treatment vs control)
+        Both CSVs: Sketches computed directly from big data, NO set operations
 
     **One-vs-All Mode** (healthcare, CTR):
-        Requires: positive_csv AND total_csv
+        Requires: positive_csv (filtered to positive class) AND total_csv (ENTIRE dataset, unfiltered)
         Use case: Positive class vs total population (Type2Diabetes vs all patients)
-        Note: Negative class computed as total - positive (adds ~0.4% error)
+        Both CSVs: Sketches computed directly from big data, NO set operations
+        Negative counts: Arithmetic subtraction at numeric level (n_neg = n_total - n_pos)
 
     See docs/04_data_formats.md for detailed format specification.
     """
@@ -791,8 +798,10 @@ class SketchLoader:
                     'age>65': (<sketch_diabetes_AND_age>65>, <sketch_diabetes_AND_age<=65>)
                 },
                 'negative': {
-                    'total': <ThetaSketch>,  # in case of one-vs-all, the sketches are precomputed at load time. No need to use a_not_b.
-                    'age>65': (<sketch_no_diabetes_AND_age>65>, <sketch_no_diabetes_AND_age<=65>)
+                    'total': <ThetaSketch>,  # One-vs-All: ENTIRE dataset (unfiltered), computed from big data
+                                             # Dual-Class: Only non-diabetes patients, computed from big data
+                                             # BOTH cases: NO a_not_b - all sketches from raw data!
+                    'age>65': (<sketch_all/no_diabetes_AND_age>65>, <sketch_all/no_diabetes_AND_age<=65>)
                 }
             }
 
@@ -812,8 +821,11 @@ class SketchLoader:
         Notes
         -----
         - Only 3-column CSV format is supported: identifier, sketch_feature_present, sketch_feature_absent
-        - One-vs-all mode adds ~0.4% error from a_not_b computation so a_not_b will not be used at all (not even at load time)
-        - Dual-class mode provides best accuracy (no set operations)
+        - **CRITICAL**: NO a_not_b or any set operations are used during loading for either mode
+        - All sketches are pre-computed directly from raw big data sources
+        - One-vs-All mode: 'total' CSV contains sketches of ENTIRE dataset (unfiltered)
+        - Dual-Class mode: Both 'positive' and 'negative' CSVs contain filtered class sketches
+        - Negative class counts in One-vs-All: Computed via arithmetic only (n_neg = n_total - n_pos)
         """
         pass
 

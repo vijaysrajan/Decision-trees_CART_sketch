@@ -3,6 +3,21 @@
 
 ---
 
+## ⚠️ CRITICAL: All Sketches Pre-Computed from Big Data
+
+**NO SET OPERATIONS DURING LOADING**: Every sketch in every CSV file is computed **directly from the original raw big data source**. The loader simply reads these pre-computed sketches - it does NOT perform any set operations (union, intersection, a_not_b, etc.) at load time.
+
+**For One-vs-All Mode**:
+- The `total.csv` file contains sketches of the **ENTIRE dataset (unfiltered)**, computed directly from big data
+- These are NOT computed via `total.a_not_b(positive)` or any other set operation
+- Negative class counts are computed via **arithmetic subtraction ONLY**: `n_neg = n_total - n_pos` (at the numeric level, not the sketch level)
+
+**For Dual-Class Mode**:
+- Both `positive.csv` and `negative.csv` contain sketches filtered to their respective classes, computed directly from big data
+- No set operations needed during loading or tree building
+
+---
+
 ## Table of Contents
 1. [CSV Sketch Format](#1-csv-sketch-format)
 2. [Sketch Data Structure (Python)](#2-sketch-data-structure-python)
@@ -19,21 +34,21 @@
 
 The classifier supports two classification modes using **dual CSV files** (two separate files):
 
-**Dual-Class Mode (Best Accuracy)**
+**Dual-Class Mode**
 - Two CSV files: `positive.csv` and `negative.csv`
 - Each represents a distinct class (e.g., treatment vs control, yes vs no)
-- **Best accuracy**: No set operations needed
+- Both files contain sketches computed directly from big data, filtered to their respective classes
 - **Use cases**: A/B testing, clinical trials, balanced binary classification
 
-**One-vs-All Mode (Healthcare, CTR)**
-- Two CSV files: `positive.csv` and `total.csv`
-- Positive class + entire population (negative computed as total - positive)
-- **Slightly lower accuracy**: Requires a_not_b computation for negative class
+**One-vs-All Mode**
+- Two CSV files: `positive.csv` (filtered to positive class) and `total.csv` (ENTIRE dataset, unfiltered)
+- Positive class sketches + entire population sketches (negative counts = arithmetic: total - positive)
+- **CRITICAL**: `total.csv` contains sketches of the FULL dataset computed from big data - NOT via a_not_b!
 - **Use cases**: Rare events, healthcare (Type2Diabetes vs all patients), CTR (clicked vs impressions)
 
 **Common Properties (Both Modes)**:
 - **3-column CSV format only**: `identifier, sketch_feature_present, sketch_feature_absent`
-- Sketches pre-computed in big data pipeline (already intersected)
+- **All sketches pre-computed in big data pipeline** - NO set operations at load time
 - **Stores BOTH feature_present AND feature_absent sketches** per feature
 - Eliminates a_not_b operations during tree building (29% error reduction)
 - **Critical for deep trees and imbalanced datasets**
@@ -113,19 +128,22 @@ family_history,<base64_all_AND_fh>,<base64_all_AND_no_fh>
 ```
 
 **Key Points**:
-- **Positive class**: Explicit condition (has Type2Diabetes)
-- **Negative class**: precomputed at load-time and not via `negative = total.a_not_b(positive)`
-- **Accuracy trade-off**: a_not_b adds ~0.4% error but still better than alternatives
+- **Positive class**: Explicit condition (has Type2Diabetes) - sketches computed from big data
+- **Total/All class**: ENTIRE dataset (unfiltered) - sketches computed from big data
+- **CRITICAL**: NO set operations (a_not_b, union, etc.) are used ANYWHERE during loading
+- **All sketches pre-computed from raw data**: Every sketch in the CSV files is computed directly from the original big data source, NOT derived from other sketches
+- **Arithmetic subtraction**: Negative counts computed ONLY at the numeric level: `n_neg = n_total - n_pos` (not at sketch level)
 - **Use cases**: Healthcare (rare diseases), CTR (clicked vs impressions), fraud detection
 
 **Config File for One-vs-All**:
 ```yaml
 targets:
-  positive: "Type2Diabetes"
-  total: "all_patients"  # Use 'total' key instead of 'negative'
+  positive: "Type2Diabetes"  # Points to CSV with sketches filtered to positive class
+  total: "all_patients"      # Points to CSV with sketches of ENTIRE dataset (unfiltered)
+                             # NOT computed via a_not_b - directly from big data!
 ```
 
-**Loading**: Loader detects `total` key and automatically computes negative class using a_not_b.
+**Loading**: Loader detects `total` key and loads sketches AS-IS from CSV files. No set operations are performed. The "total" CSV contains pre-computed sketches of the entire dataset.
 
 ### Detailed Format by Row Type
 
@@ -449,8 +467,9 @@ sketch_data: SketchData = {
 ```
 
 **Notes**:
-- For **dual-class mode**: Structure has both 'positive' and 'negative' keys
-- For **one-vs-all mode**: Loader creates 'negative' from 'total' using a_not_b
+- For **dual-class mode**: Structure has both 'positive' and 'negative' keys, each pointing to CSV files with pre-computed sketches from big data
+- For **one-vs-all mode**: Structure has 'positive' (filtered to positive class) and 'negative_or_total' (ENTIRE dataset, unfiltered) keys. BOTH are loaded directly from CSV files - NO set operations used
+- **CRITICAL**: The 'negative_or_total' sketches in One-vs-All mode represent the full dataset and are computed directly from raw data, NOT via a_not_b or any other set operation
 - All features MUST be tuples: (sketch_feature_present, sketch_feature_absent)
 - 'total' is always a single ThetaSketch (not a tuple)
 
@@ -541,8 +560,13 @@ sketch_data = load_sketches(
 **Format**: Only 3-column CSV format is supported: `identifier, sketch_feature_present, sketch_feature_absent`
 
 **Mode detection**: Loader automatically detects:
-- If `negative_csv` provided → Dual-class mode
-- If `total_csv` provided → One-vs-all mode (computes negative using a_not_b)
+- If `negative_csv` provided → Dual-class mode (loads separate negative class sketches)
+- If `total_csv` provided → One-vs-all mode (loads entire dataset sketches)
+
+**CRITICAL for One-vs-All mode**:
+- The `total_csv` file contains sketches of the ENTIRE dataset (unfiltered), computed directly from big data
+- NO a_not_b or any set operations are used during loading
+- Negative class counts are computed via arithmetic: `n_neg = n_total - n_pos` (numeric subtraction ONLY)
 
 #### load_config()
 

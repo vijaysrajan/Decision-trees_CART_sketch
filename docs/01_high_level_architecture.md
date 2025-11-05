@@ -3,6 +3,18 @@
 
 ---
 
+## ⚠️ CRITICAL: Sketch Pre-Computation from Big Data
+
+**All sketches are pre-computed directly from raw big data sources**. The training phase loads these pre-computed sketches from CSV files and uses ONLY intersection operations during tree building - NO a_not_b, union, or other set operations are used.
+
+**Key Points**:
+- CSV files contain sketches computed from the original big data pipeline
+- For One-vs-All mode: The `total.csv` contains sketches of the ENTIRE dataset (unfiltered), NOT computed via set operations
+- Loader performs NO set operations - it simply reads pre-computed sketches
+- Negative class counts: Arithmetic subtraction at numeric level (`n_neg = n_total - n_pos`), NOT at sketch level
+
+---
+
 ## 1. System Overview
 
 The **ThetaSketchDecisionTreeClassifier** is a specialized decision tree implementation that:
@@ -13,7 +25,7 @@ The **ThetaSketchDecisionTreeClassifier** is a specialized decision tree impleme
 
 ### Key Innovation
 Traditional decision trees train and infer on the same data format. This implementation decouples training and inference:
-- **Training**: Set-based operations on sketches (union, intersection, difference)
+- **Training**: Loads pre-computed sketches from big data, uses intersection operations ONLY during tree building
 - **Inference**: Row-wise evaluation on raw features with feature mapping
 
 ### Scope
@@ -182,15 +194,17 @@ positive.csv:                      negative.csv (Dual-Class) OR total.csv (One-v
 │                 ThetaSketch_not_clicked),           │            pos AND not_clicked)
 │     ...                                            │
 │   },                                               │
-│   'negative': {        # Key from config: 'target_no' OR contains sketch for feature presence of absence without target specification in case of one-vs-all
-│     'total': ThetaSketch,                          │  ← Negative/Total class
+│   'negative': {        # Dual-Class: Filtered to negative class (from big data)
+│                       # One-vs-All: ENTIRE dataset, unfiltered (from big data)
+│     'total': ThetaSketch,                          │  ← Negative class OR All data
 │     'age>30': (ThetaSketch_present,                │  ← Tuple: (neg/all AND age>30,
 │                ThetaSketch_absent),                 │            neg/all AND age<=30)
 │     ...                                            │
 │   }                                                │
 │ }                                                  │
-│ Note: Dual-Class uses 'negative' key directly from CSV    │
-│       One-vs-All 'negative' contains sketch for feature presence of absence without target specification not via a_not_b │
+│ CRITICAL: All sketches pre-computed from big data - NO a_not_b!    │
+│ Note: Dual-Class: 'negative' = filtered class from big data        │
+│       One-vs-All: 'negative' = ENTIRE dataset (unfiltered) from big data │
 └────────────────┬───────────────────────────────────┘
                  ↓
         [Tree Building]
