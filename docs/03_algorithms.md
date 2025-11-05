@@ -146,10 +146,16 @@ FUNCTION fit(sketch_data, feature_mapping):
         LOG f"Features: {len(feature_names)}"
         LOG f"Criterion: {self.criterion}"
 
+    # CRITICAL: build_tree() now takes parent_sketch parameters (not sketch_dict)
+    # - At root: parent_sketch comes from 'total' key in loaded sketch_data
+    # - sketch_dict (global features) is passed unchanged to all recursive calls
+    # - already_used starts as empty set at root
     root_node = tree_builder.build_tree(
-        sketch_dict_pos=sketches_pos,
-        sketch_dict_neg_or_all=sketches_neg_or_all,
+        parent_sketch_pos=sketches_pos['total'],        # Root positive class sketch
+        parent_sketch_neg=sketches_neg_or_all['total'], # Root negative/all class sketch
+        sketch_dict=sketch_data,                        # Global features (unchanged for all calls)
         feature_names=feature_names,
+        already_used=set(),                             # Empty set at root
         depth=0
     )
 
@@ -189,67 +195,105 @@ FUNCTION fit(sketch_data, feature_mapping):
 ### Tree Building (Recursive)
 
 ```
-FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, depth):
+FUNCTION build_tree(parent_sketch_pos, parent_sketch_neg, sketch_dict, feature_names, already_used, depth):
     """
-    Recursively build decision tree.
+    Recursively build decision tree using theta sketches.
+
+    CRITICAL - Sketch Architecture:
+    ================================
+    This function uses THREE types of sketch data:
+
+    1. parent_sketch_pos / parent_sketch_neg (PARAMETERS):
+       - ThetaSketch objects representing this node's population
+       - Accumulated intersection from root to this node
+       - At root (depth=0):
+         parent_sketch_pos = sketch_dict['positive']['total']
+       - At level 1 (depth=1):
+         Can use global feature sketch directly (intersection with 'total' is redundant)
+         Example: parent_sketch_pos = age_present_pos (from sketch_dict, no intersection needed)
+       - At level 2+ (depth≥2):
+         Accumulated intersections required (intersection is necessary)
+         Example path (root → age>30 → income>50k):
+         parent_sketch_pos = age_present_pos ∩ income_present_pos
+
+    2. sketch_dict (GLOBAL, UNCHANGED):
+       - Loaded ONCE from CSV, passed unchanged to ALL recursive calls
+       - Contains 'total' (used ONLY at root) + all feature tuples
+       - Structure:
+         {
+             'positive': {
+                 'total': <all positive records from big data>,
+                 'age>30': (present, absent),
+                 'income>50k': (present, absent),
+                 ...
+             },
+             'negative': {  # or 'all' for one-vs-all
+                 'total': <all negative/all records from big data>,
+                 'age>30': (present, absent),
+                 ...
+             }
+         }
+
+    3. child_sketch (COMPUTED):
+       - Computed during split evaluation: parent_sketch ∩ global_feature
+       - Becomes parent_sketch for recursive calls to children
+
+    Binary Feature Optimization:
+    -----------------------------
+    Since all features are binary (True/False) and this is binary classification,
+    each feature can be used AT MOST ONCE in any root-to-leaf path. Once a feature
+    is split on, all descendants are constant for that feature (no information gain).
+    - already_used: Set of features used in path from root to this node
+    - Before evaluating a feature, check if already_used.contains(feature_name)
+    - After selecting best feature, clone already_used, add feature, pass to children
 
     Parameters:
-        sketch_dict_pos: Dict of sketches for positive class
-        sketch_dict_neg_or_all: Dict of sketches for negative class (Dual-Class)
-                                OR entire dataset (One-vs-All)
-        feature_names: List of feature names to consider
-        depth: Current depth in tree
+        parent_sketch_pos: ThetaSketch
+            Positive class population at this node (accumulated intersection)
+        parent_sketch_neg: ThetaSketch
+            Negative/all class population at this node (accumulated intersection)
+        sketch_dict: Dict
+            Global feature sketches (loaded from CSV, never changes)
+        feature_names: List[str]
+            All feature names to consider for splitting
+        already_used: Set[str]
+            Features already used in path from root to this node
+        depth: int
+            Current depth in tree (root = 0)
 
     Returns:
         TreeNode: Root of (sub)tree
     """
 
-    # ========== Step 1: Calculate Node Statistics ==========
-    total_sketch_pos = sketch_dict_pos['total']
-    total_sketch_neg_or_all = sketch_dict_neg_or_all['total']
+    # ========== Step 1: Compute THIS NODE's Statistics ==========
+    # Use parent_sketch that was passed down (accumulated path intersection)
+    n_pos_parent = parent_sketch_pos.get_estimate()
+    n_neg_parent = parent_sketch_neg.get_estimate()
 
-    n_pos = total_sketch_pos.get_estimate()
+    n_total = n_pos_parent + n_neg_parent
+    parent_counts = np.array([n_neg_parent, n_pos_parent])
 
-    # CRITICAL: For One-vs-All mode, use arithmetic subtraction
-    # Dual-Class: total_sketch_neg_or_all is negative class → use get_estimate() directly
-    # One-vs-All: total_sketch_neg_or_all is ALL data → compute n_neg = n_all - n_pos
-    n_neg_or_all = total_sketch_neg_or_all.get_estimate()
+    # Compute this node's impurity
+    parent_impurity = criterion.compute_impurity(parent_counts)
 
-    # For One-vs-All mode, this will be: n_neg = n_all - n_pos (arithmetic)
-    # For Dual-Class mode, this will be: n_total = n_neg + n_pos (arithmetic)
-    # Implementation must detect mode and apply correct formula
-    n_neg = n_neg_or_all  # Dual-Class mode
-    # OR
-    n_neg = n_neg_or_all - n_pos  # One-vs-All mode (arithmetic subtraction!)
-
-    n_total = n_pos + n_neg
-
-    class_counts = np.array([n_neg, n_pos])
-
-    # Calculate impurity
-    impurity = criterion.compute_impurity(class_counts)
-
-    # Create node
-    # Note: parent is set to null initially
-    #   - For root node (depth=0): parent remains null
-    #   - For child nodes: parent is set later via parent.set_split(left_child, right_child)
+    # Create node object
     node = TreeNode(
         depth=depth,
         n_samples=n_total,
-        class_counts=class_counts,
-        impurity=impurity,
-        parent=null
+        class_counts=parent_counts,
+        impurity=parent_impurity,
+        parent=None  # Set later via set_split()
     )
 
     IF self.verbose >= 2:
-        LOG f"Depth {depth}: n_samples={n_total}, impurity={impurity:.4f}, class_counts={class_counts}"
+        LOG f"Depth {depth}: n_samples={n_total}, impurity={parent_impurity:.4f}, class_counts={parent_counts}"
 
     # ========== Step 2: Check Stopping Criteria ==========
     should_stop = _should_stop_splitting(
         n_samples=n_total,
         depth=depth,
-        impurity=impurity,
-        class_counts=class_counts
+        impurity=parent_impurity,
+        class_counts=parent_counts
     )
 
     IF should_stop:
@@ -259,35 +303,95 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, dept
         RETURN node
 
     # ========== Step 3: Find Best Split ==========
-    best_split = split_evaluator.find_best_split(
-        sketch_dict_pos=sketch_dict_pos,
-        sketch_dict_neg_or_all=sketch_dict_neg_or_all,
-        feature_names=feature_names,
-        parent_impurity=impurity
-    )
+    # Evaluate all candidate features to find best split
+    best_score = INFINITY
+    best_feature = None
+    best_left_sketch_pos = None
+    best_left_sketch_neg = None
+    best_right_sketch_pos = None
+    best_right_sketch_neg = None
 
-    IF best_split IS None:
-        # No valid split found
+    # Loop through all features to find best split
+    FOR feature_name IN feature_names:
+        # *** OPTIMIZATION: Skip features already used in path from root ***
+        # Binary features provide zero information gain after first split
+        IF feature_name IN already_used:
+            CONTINUE
+
+        # Step 3a: Get global feature sketches (from loaded CSV data)
+        IF feature_name NOT IN sketch_dict['positive'] OR \
+           feature_name NOT IN sketch_dict['negative']:
+            CONTINUE
+
+        feature_present_pos, feature_absent_pos = sketch_dict['positive'][feature_name]
+        feature_present_neg, feature_absent_neg = sketch_dict['negative'][feature_name]
+
+        # Step 3b: Compute child sketches by intersecting parent with global features
+        # NOTE: At level 1 (depth=1), parent_sketch is 'total' so intersection is redundant:
+        #   total ∩ feature_present = feature_present
+        # However, we perform intersection for code uniformity across all levels.
+        # At level 2+, intersection is necessary to combine multiple feature conditions.
+
+        # LEFT child (feature = False)
+        left_sketch_pos = parent_sketch_pos.intersection(feature_absent_pos)
+        left_sketch_neg = parent_sketch_neg.intersection(feature_absent_neg)
+
+        # RIGHT child (feature = True)
+        right_sketch_pos = parent_sketch_pos.intersection(feature_present_pos)
+        right_sketch_neg = parent_sketch_neg.intersection(feature_present_neg)
+
+        # Step 3c: Compute child statistics
+        n_pos_left = left_sketch_pos.get_estimate()
+        n_neg_left = left_sketch_neg.get_estimate()
+        n_pos_right = right_sketch_pos.get_estimate()
+        n_neg_right = right_sketch_neg.get_estimate()
+
+        left_counts = np.array([n_neg_left, n_pos_left])
+        right_counts = np.array([n_neg_right, n_pos_right])
+
+        # Check for invalid split (empty child)
+        IF np.sum(left_counts) == 0 OR np.sum(right_counts) == 0:
+            CONTINUE
+
+        # Step 3d: Evaluate split quality using criterion (gini, entropy, binomial, etc.)
+        score = criterion.evaluate_split(
+            parent_counts=parent_counts,
+            left_counts=left_counts,
+            right_counts=right_counts
+        )
+
+        IF self.verbose >= 3:
+            LOG f"  Feature '{feature_name}': score={score:.4f}, left={left_counts}, right={right_counts}"
+
+        # Step 3e: Check if this is best split so far
+        # (Criterion-dependent comparison: some use lower score, some use higher)
+        IF criterion.is_better(score, best_score):
+            best_score = score
+            best_feature = feature_name
+            best_left_sketch_pos = left_sketch_pos
+            best_left_sketch_neg = left_sketch_neg
+            best_right_sketch_pos = right_sketch_pos
+            best_right_sketch_neg = right_sketch_neg
+
+    # Check if no valid split found
+    IF best_feature IS None:
         node.make_leaf()
         IF self.verbose >= 2:
             LOG f"No valid split found at depth {depth}, creating leaf"
         RETURN node
 
-    feature_name, score, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all = best_split
+    IF self.verbose >= 2:
+        LOG f"Best split at depth {depth}: feature='{best_feature}', score={best_score:.4f}"
 
-    # Calculate impurity decrease (use arithmetic for One-vs-All)
-    n_left_pos = left_sketches_pos['total'].get_estimate()
-    n_left_neg_or_all = left_sketches_neg_or_all['total'].get_estimate()
+    # ========== Step 4: Check Pre-Pruning ==========
+    # Compute impurity decrease to decide if split is worth making
+    # This prevents splits that don't improve the tree enough
 
-    n_right_pos = right_sketches_pos['total'].get_estimate()
-    n_right_neg_or_all = right_sketches_neg_or_all['total'].get_estimate()
-
-    # CRITICAL: For One-vs-All, use arithmetic subtraction
-    n_left_neg = n_left_neg_or_all  # Dual-Class
-    # OR n_left_neg = n_left_neg_or_all - n_left_pos  # One-vs-All (arithmetic!)
-
-    n_right_neg = n_right_neg_or_all  # Dual-Class
-    # OR n_right_neg = n_right_neg_or_all - n_right_pos  # One-vs-All (arithmetic!)
+    # Compute child statistics from best split
+    n_left_pos = best_left_sketch_pos.get_estimate()
+    n_left_neg = best_left_sketch_neg.get_estimate()
+    n_right_pos = best_right_sketch_pos.get_estimate()
+    n_right_neg = best_right_sketch_neg.get_estimate()
 
     n_left = n_left_pos + n_left_neg
     n_right = n_right_pos + n_right_neg
@@ -295,45 +399,55 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, dept
     left_counts = np.array([n_left_neg, n_left_pos])
     right_counts = np.array([n_right_neg, n_right_pos])
 
+    # Compute child impurities
     left_impurity = criterion.compute_impurity(left_counts)
     right_impurity = criterion.compute_impurity(right_counts)
 
+    # Compute weighted impurity decrease
     weighted_child_impurity = (n_left / n_total) * left_impurity + (n_right / n_total) * right_impurity
-    impurity_decrease = impurity - weighted_child_impurity
+    impurity_decrease = parent_impurity - weighted_child_impurity
 
-    # ========== Step 4: Check Pre-Pruning ==========
-    IF pruner IS NOT None AND pruner.should_prune(node, best_split, impurity_decrease):
+    # Check if pruner says we should stop
+    IF pruner IS NOT None AND pruner.should_prune(node, best_feature, impurity_decrease):
         node.make_leaf()
         IF self.verbose >= 2:
             LOG f"Pre-pruning at depth {depth}: impurity_decrease={impurity_decrease:.4f} < threshold"
         RETURN node
 
-    # ========== Step 5: Create Split ==========
-    IF self.verbose >= 2:
-        LOG f"Split at depth {depth}: feature={feature_name}, impurity_decrease={impurity_decrease:.4f}"
+    # ========== Step 5: Update already_used Set ==========
+    # Clone the set and add the feature we just used
+    # Each child gets the same updated set (feature is used in both branches)
+    already_used_for_children = already_used.copy()
+    already_used_for_children.add(best_feature)
 
-    # Recursively build children
+    # ========== Step 6: Recurse with Best Feature's Sketches ==========
+    # LEFT child (feature = False)
     left_child = build_tree(
-        sketch_dict_pos=left_sketches_pos,
-        sketch_dict_neg_or_all=left_sketches_neg_or_all,
-        feature_names=feature_names,  # All features available at each node
-        depth=depth + 1
-    )
-
-    right_child = build_tree(
-        sketch_dict_pos=right_sketches_pos,
-        sketch_dict_neg_or_all=right_sketches_neg_or_all,
+        parent_sketch_pos=best_left_sketch_pos,
+        parent_sketch_neg=best_left_sketch_neg,
+        sketch_dict=sketch_dict,  # Same global dict
         feature_names=feature_names,
+        already_used=already_used_for_children,  # Updated set
         depth=depth + 1
     )
 
-    # Set split information
+    # RIGHT child (feature = True)
+    right_child = build_tree(
+        parent_sketch_pos=best_right_sketch_pos,
+        parent_sketch_neg=best_right_sketch_neg,
+        sketch_dict=sketch_dict,  # Same global dict
+        feature_names=feature_names,
+        already_used=already_used_for_children,  # Updated set
+        depth=depth + 1
+    )
+
+    # ========== Step 7: Set Split on This Node ==========
     # feature_idx is the DIRECT COLUMN INDEX in X (not index into feature_names)
     # This allows fast O(1) array access during inference: X[sample, feature_idx]
-    feature_idx = self._feature_mapping[feature_name]  # Get column index from mapping
+    feature_idx = self._feature_mapping[best_feature]  # Get column index from mapping
     node.set_split(
         feature_idx=feature_idx,
-        feature_name=feature_name,
+        feature_name=best_feature,
         left_child=left_child,
         right_child=right_child
     )
@@ -343,10 +457,18 @@ FUNCTION build_tree(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, dept
     # This enables upward tree traversal for pruning and other operations
 
     RETURN node
+```
 
+---
 
+```
 FUNCTION _should_stop_splitting(n_samples, depth, impurity, class_counts):
-    """Check if we should stop splitting at this node."""
+    """
+    Check if we should stop splitting at this node.
+
+    All parameters are computed from parent_sketch_pos and parent_sketch_neg
+    passed to build_tree(). This function evaluates stopping criteria only.
+    """
 
     # Pure node (impurity = 0)
     IF impurity == 0:
@@ -371,256 +493,25 @@ FUNCTION _should_stop_splitting(n_samples, depth, impurity, class_counts):
 
 ## 2. Split Evaluation
 
-### Find Best Split
+**NOTE**: Split evaluation logic is now integrated directly into `build_tree()` function (see Step 3).
+The separate `find_best_split()` function is no longer used.
 
-```
-FUNCTION find_best_split(sketch_dict_pos, sketch_dict_neg_or_all, feature_names, parent_impurity):
-    """
-    Evaluate all candidate features and select best split.
+### Compute Child Sketches (Optional Helper with Caching)
 
-    Returns:
-        (feature_name, score, left_sketches_pos, left_sketches_neg_or_all,
-         right_sketches_pos, right_sketches_neg_or_all) or None
-    """
-
-    # ========== Step 1: Select Features to Try ==========
-    features_to_try = _select_features_to_try(feature_names)
-
-    IF self.splitter == 'random':
-        # Shuffle features for random selection
-        SHUFFLE(features_to_try)
-
-    # ========== Step 2: Evaluate Each Feature ==========
-    best_score = INFINITY  # For impurity-based criteria (lower is better)
-    best_split = None
-
-    FOR feature_name IN features_to_try:
-        # Skip if feature not in sketch dict
-        IF feature_name NOT IN sketch_dict_pos OR feature_name NOT IN sketch_dict_neg_or_all:
-            CONTINUE
-
-        # Evaluate this feature
-        score, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all = \
-            _evaluate_feature_split(
-                feature_name=feature_name,
-                sketch_dict_pos=sketch_dict_pos,
-                sketch_dict_neg_or_all=sketch_dict_neg_or_all,
-                parent_impurity=parent_impurity
-            )
-
-        # Check for invalid split
-        IF score IS None OR score == INFINITY:
-            CONTINUE
-
-        # Update best split (criterion-dependent comparison)
-        IF criterion IS STATISTICAL (binomial, chi-square):
-            # Lower p-value is better (more significant)
-            IF score < self.min_pvalue AND score < best_score:
-                best_score = score
-                best_split = (feature_name, score, left_sketches_pos, left_sketches_neg_or_all,
-                             right_sketches_pos, right_sketches_neg_or_all)
-        ELSE:
-            # Lower impurity is better (or higher information gain, represented as negative)
-            IF score < best_score:
-                best_score = score
-                best_split = (feature_name, score, left_sketches_pos, left_sketches_neg_or_all,
-                             right_sketches_pos, right_sketches_neg_or_all)
-
-    RETURN best_split  # None if no valid split found
+**NOTE**: In the simplified `build_tree()` function (Step 3b), child sketch computation is done directly inline:
+```python
+left_sketch_pos = parent_sketch_pos.intersection(feature_absent_pos)
+right_sketch_pos = parent_sketch_pos.intersection(feature_present_pos)
 ```
 
----
-
-### Evaluate Single Feature Split
-
-```
-FUNCTION _evaluate_feature_split(feature_name, sketch_dict_pos, sketch_dict_neg_or_all, parent_impurity):
-    """
-    Evaluate split on a single feature.
-
-    Returns:
-        (score, left_sketches_pos, left_sketches_neg_or_all,
-         right_sketches_pos, right_sketches_neg_or_all)
-    """
-
-    # ========== Step 1: Compute Child Sketches ==========
-
-    # For positive class
-    total_sketch_pos = sketch_dict_pos['total']
-
-    # CRITICAL: feature_sketch_pos is a TUPLE of (present, absent) sketches
-    # Example: For 'age>30', this is:
-    #   (sketch_pos_AND_age>30, sketch_pos_AND_age<=30)
-    # Both sketches were pre-computed during data preparation
-    feature_sketch_tuple_pos = sketch_dict_pos[feature_name]  # Tuple[ThetaSketch, ThetaSketch]
-
-    left_total_pos, right_total_pos = _compute_child_sketches(
-        parent_sketch=total_sketch_pos,
-        feature_sketch_tuple=feature_sketch_tuple_pos,  # Passing entire tuple
-        feature_name=feature_name,
-        class_label='pos'
-    )
-
-    # For negative/total class
-    total_sketch_neg_or_all = sketch_dict_neg_or_all['total']
-
-    # CRITICAL: feature_sketch_neg_or_all is also a TUPLE
-    # Example: For 'age>30', this is:
-    #   Dual-Class Mode: (sketch_neg_AND_age>30, sketch_neg_AND_age<=30)
-    #   One-vs-All Mode: (sketch_all_AND_age>30, sketch_all_AND_age<=30)
-    feature_sketch_tuple_neg_or_all = sketch_dict_neg_or_all[feature_name]  # Tuple[ThetaSketch, ThetaSketch]
-
-    left_total_neg_or_all, right_total_neg_or_all = _compute_child_sketches(
-        parent_sketch=total_sketch_neg_or_all,
-        feature_sketch_tuple=feature_sketch_tuple_neg_or_all,  # Passing entire tuple
-        feature_name=feature_name,
-        class_label='neg_or_all'
-    )
-
-    # ========== Step 2: Get Cardinalities ==========
-    n_left_pos = left_total_pos.get_estimate()  # Cached if available
-    n_right_pos = right_total_pos.get_estimate()
-    n_left_neg_or_all = left_total_neg_or_all.get_estimate()
-    n_right_neg_or_all = right_total_neg_or_all.get_estimate()
-
-    # CRITICAL: Compute actual negative counts based on classification mode
-    # Dual-Class Mode: Use get_estimate() directly
-    #   n_left_neg = n_left_neg_or_all
-    #   n_right_neg = n_right_neg_or_all
-    #
-    # One-vs-All Mode: Use ARITHMETIC SUBTRACTION (avoids sketch error compounding)
-    #   n_left_neg = n_left_neg_or_all - n_left_pos
-    #   n_right_neg = n_right_neg_or_all - n_right_pos
-
-    n_left_neg = n_left_neg_or_all  # Dual-Class
-    # OR n_left_neg = n_left_neg_or_all - n_left_pos  # One-vs-All (arithmetic!)
-
-    n_right_neg = n_right_neg_or_all  # Dual-Class
-    # OR n_right_neg = n_right_neg_or_all - n_right_pos  # One-vs-All (arithmetic!)
-
-    # ========== Step 3: Build Class Counts ==========
-    parent_neg_or_all = total_sketch_neg_or_all.get_estimate()
-    parent_pos = total_sketch_pos.get_estimate()
-
-    # CRITICAL: Compute actual parent negative count
-    parent_neg = parent_neg_or_all  # Dual-Class
-    # OR parent_neg = parent_neg_or_all - parent_pos  # One-vs-All (arithmetic!)
-
-    parent_counts = np.array([parent_neg, parent_pos])
-    left_counts = np.array([n_left_neg, n_left_pos])
-    right_counts = np.array([n_right_neg, n_right_pos])
-
-    # Check for invalid splits (one child is empty)
-    IF SUM(left_counts) == 0 OR SUM(right_counts) == 0:
-        RETURN (INFINITY, None, None, None, None)
-
-    # ========== Step 4: Evaluate Split Using Criterion ==========
-    score = criterion.evaluate_split(
-        parent_counts=parent_counts,
-        left_counts=left_counts,
-        right_counts=right_counts,
-        parent_impurity=parent_impurity
-    )
-
-    # ========== Step 5: Build Child Sketch Dictionaries ==========
-    # CRITICAL: Must maintain tuple structure (present, absent) for all features!
-
-    # For left child, need to propagate ALL feature sketches
-    left_sketches_pos = {}
-    left_sketches_neg_or_all = {}
-
-    left_sketches_pos['total'] = left_total_pos
-    left_sketches_neg_or_all['total'] = left_total_neg_or_all
-
-    FOR other_feature IN sketch_dict_pos.keys():
-        IF other_feature == 'total':
-            CONTINUE
-
-        # CRITICAL: Each feature is a TUPLE (present, absent)
-        # We must propagate BOTH sketches to maintain the tuple structure
-
-        IF other_feature == feature_name:
-            # Special case: Left child is where feature_name = False
-            # All records in left child DON'T have this feature
-            #
-            # For the "present" part: Empty (no records have the feature)
-            # For the "absent" part: All records in left child (all lack the feature)
-            #
-            # Tuple structure: (sketch_present, sketch_absent)
-            left_sketches_pos[other_feature] = (EMPTY_SKETCH(), left_total_pos)
-            left_sketches_neg_or_all[other_feature] = (EMPTY_SKETCH(), left_total_neg_or_all)
-        ELSE:
-            # General case: Propagate other features to left child
-            # Must intersect BOTH present and absent sketches with left_total
-
-            # Unpack parent's tuple for this feature
-            other_present_pos, other_absent_pos = sketch_dict_pos[other_feature]
-            other_present_neg, other_absent_neg = sketch_dict_neg_or_all[other_feature]
-
-            # Intersect both parts with left child total
-            left_other_present_pos = other_present_pos.intersection(left_total_pos)
-            left_other_absent_pos = other_absent_pos.intersection(left_total_pos)
-
-            left_other_present_neg = other_present_neg.intersection(left_total_neg_or_all)
-            left_other_absent_neg = other_absent_neg.intersection(left_total_neg_or_all)
-
-            # Store as tuples
-            left_sketches_pos[other_feature] = (left_other_present_pos, left_other_absent_pos)
-            left_sketches_neg_or_all[other_feature] = (left_other_present_neg, left_other_absent_neg)
-
-    # Similarly for right child
-    right_sketches_pos = {}
-    right_sketches_neg_or_all = {}
-
-    right_sketches_pos['total'] = right_total_pos
-    right_sketches_neg_or_all['total'] = right_total_neg_or_all
-
-    FOR other_feature IN sketch_dict_pos.keys():
-        IF other_feature == 'total':
-            CONTINUE
-
-        IF other_feature == feature_name:
-            # Special case: Right child is where feature_name = True
-            # All records in right child HAVE this feature
-            #
-            # For the "present" part: All records in right child (all have the feature)
-            # For the "absent" part: Empty (no records lack the feature)
-            #
-            # Tuple structure: (sketch_present, sketch_absent)
-            right_sketches_pos[other_feature] = (right_total_pos, EMPTY_SKETCH())
-            right_sketches_neg_or_all[other_feature] = (right_total_neg_or_all, EMPTY_SKETCH())
-        ELSE:
-            # General case: Propagate other features to right child
-            # Must intersect BOTH present and absent sketches with right_total
-
-            # Unpack parent's tuple for this feature
-            other_present_pos, other_absent_pos = sketch_dict_pos[other_feature]
-            other_present_neg, other_absent_neg = sketch_dict_neg_or_all[other_feature]
-
-            # Intersect both parts with right child total
-            right_other_present_pos = other_present_pos.intersection(right_total_pos)
-            right_other_absent_pos = other_absent_pos.intersection(right_total_pos)
-
-            right_other_present_neg = other_present_neg.intersection(right_total_neg_or_all)
-            right_other_absent_neg = other_absent_neg.intersection(right_total_neg_or_all)
-
-            # Store as tuples
-            right_sketches_pos[other_feature] = (right_other_present_pos, right_other_absent_pos)
-            right_sketches_neg_or_all[other_feature] = (right_other_present_neg, right_other_absent_neg)
-
-    RETURN (score, left_sketches_pos, left_sketches_neg_or_all, right_sketches_pos, right_sketches_neg_or_all)
-```
-
----
-
-### Compute Child Sketches (with Caching)
+This helper function provides an **optional** caching layer for intersection operations if performance optimization is needed.
 
 ```
 FUNCTION _compute_child_sketches(parent_sketch, feature_sketch_tuple, feature_name, class_label):
     """
-    Compute child sketches using set operations with caching.
+    Optional helper to compute child sketches with caching support.
 
-    CRITICAL: This function uses PRE-COMPUTED absent sketches to eliminate a_not_b operations,
+    CRITICAL: Uses PRE-COMPUTED absent sketches to eliminate a_not_b operations,
     achieving 29% error reduction compared to computing left child via set subtraction.
 
     Binary split:
@@ -631,11 +522,11 @@ FUNCTION _compute_child_sketches(parent_sketch, feature_sketch_tuple, feature_na
         parent_sketch: ThetaSketch for parent node
         feature_sketch_tuple: Tuple[ThetaSketch, ThetaSketch]
                              (sketch_feature_present, sketch_feature_absent)
-        feature_name: Name of feature being split on
-        class_label: 'pos' or 'neg_or_all'
+        feature_name: Name of feature being split on (for cache key)
+        class_label: 'pos' or 'neg' (for cache key)
 
     Returns:
-        (left_sketch, right_sketch)
+        (left_sketch, right_sketch): Tuple of child sketches
     """
 
     # ========== Step 1: Unpack Feature Sketch Tuple ==========

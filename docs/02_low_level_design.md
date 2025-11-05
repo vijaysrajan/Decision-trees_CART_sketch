@@ -1022,29 +1022,52 @@ class TreeBuilder:
 
     def build_tree(
         self,
-        sketch_dict_pos: Dict[str, Any],
-        sketch_dict_neg_or_all: Dict[str, Any],
+        parent_sketch_pos: Any,
+        parent_sketch_neg: Any,
+        sketch_dict: Dict[str, Dict[str, Any]],
         feature_names: List[str],
+        already_used: Set[str],
         depth: int = 0
     ) -> TreeNode:
         """
-        Recursively build tree.
+        Recursively build decision tree using theta sketches.
 
         Parameters
         ----------
-        sketch_dict_pos : dict
-            Sketches for positive class at this node
-        sketch_dict_neg_or_all : dict
-            Sketches for negative class (Dual-Class) OR entire dataset (One-vs-All) at this node
+        parent_sketch_pos : ThetaSketch
+            Positive class population at this node (accumulated intersection from root)
+        parent_sketch_neg : ThetaSketch
+            Negative/all class population at this node (accumulated intersection from root)
+        sketch_dict : dict
+            Global feature sketches loaded from CSV (never changes, passed to all recursive calls)
+            Structure: {
+                'positive': {'total': sketch, 'feature1': (present, absent), ...},
+                'negative': {'total': sketch, 'feature1': (present, absent), ...}
+            }
         feature_names : list
-            List of feature names to consider for splitting
+            List of all feature names to consider for splitting
+        already_used : set
+            Set of features already used in path from root to this node
+            (binary features provide zero information gain after first split)
         depth : int
-            Current depth in tree
+            Current depth in tree (root = 0)
 
         Returns
         -------
         node : TreeNode
             Root of (sub)tree
+
+        Notes
+        -----
+        - Split evaluation logic is integrated directly into this method (Step 3)
+        - No separate find_best_split() function
+        - Binary feature optimization: features in already_used are skipped
+        - sketch_dict remains unchanged across all recursive calls
+        - Only parent_sketch_pos/neg and already_used change between levels
+
+        See Also
+        --------
+        docs/03_algorithms.md : Detailed algorithm specification
         """
         pass
 
@@ -1120,7 +1143,11 @@ class SplitEvaluator:
         parent_impurity: float
     ) -> Optional[Tuple[str, float, Dict, Dict, Dict, Dict]]:
         """
-        Find best feature to split on.
+        **DEPRECATED**: This method is no longer used.
+
+        Split evaluation logic is now integrated directly into TreeBuilder.build_tree()
+        (see docs/03_algorithms.md Step 3). This method existed in older architecture
+        where split finding was separated from tree building.
 
         Parameters
         ----------
@@ -1151,7 +1178,12 @@ class SplitEvaluator:
         parent_impurity: float
     ) -> Tuple[float, Dict, Dict, Dict, Dict]:
         """
-        Evaluate split on single feature.
+        **DEPRECATED**: This method is no longer used.
+
+        Feature split evaluation is now done directly inline in TreeBuilder.build_tree()
+        (see docs/03_algorithms.md Step 3a-3e). No feature propagation or nested
+        sketch_dict structures are created. Child sketches are computed directly via
+        intersection with global feature sketches.
 
         Returns
         -------

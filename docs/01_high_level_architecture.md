@@ -332,16 +332,21 @@ ThetaSketchDecisionTreeClassifier (Main API)
 
 3. User calls fit(sketch_data, feature_mapping):
    a. Validate sketch_data structure (has 'positive', 'negative', 'total')
-   b. TreeBuilder.build(sketch_data, hyperparams)
-      - SplitEvaluator.find_best_split(current_sketches, features)
-        * For each feature:
-          - Get sketch_feature_present and sketch_feature_absent from sketch_data
-          - CriterionCalculator.evaluate(split)
-          - SketchCache.get_or_compute()
-        * Return best split
-      - Create node with split
+   b. TreeBuilder.build_tree(parent_sketch_pos, parent_sketch_neg, sketch_dict, features, already_used, depth)
+      - Compute node statistics from parent_sketch
+      - Check stopping criteria
+      - Evaluate all features (integrated split finding):
+        * For each feature NOT in already_used:
+          - Get (sketch_feature_present, sketch_feature_absent) tuple from sketch_dict
+          - Compute child_sketch = parent_sketch.intersection(feature_sketch)
+          - Get child cardinalities from child_sketch.get_estimate()
+          - CriterionCalculator.evaluate(parent_counts, left_counts, right_counts)
+          - SketchCache.get_or_compute() [optional]
+        * Select best feature
+      - Create node with best split
       - Pruner.should_prune(node) → True/False
-      - Recurse on children if not pruned
+      - Clone already_used, add current feature
+      - Recurse on children: build_tree(child_sketch_pos, child_sketch_neg, sketch_dict, features, already_used_updated, depth+1)
    c. Return trained tree
    d. Compute feature_importances_
 
