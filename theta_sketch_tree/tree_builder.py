@@ -180,10 +180,12 @@ class TreeBuilder:
                 continue
 
             # Evaluate split quality using criterion
+            # Pass parent_impurity to avoid recomputation
             score = self.criterion.evaluate_split(
                 parent_counts=parent_counts,
                 left_counts=left_counts,
-                right_counts=right_counts
+                right_counts=right_counts,
+                parent_impurity=parent_impurity
             )
 
             if self.verbose >= 3:

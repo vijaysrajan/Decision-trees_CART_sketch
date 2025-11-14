@@ -5,12 +5,11 @@ This module contains the ThetaSketchDecisionTreeClassifier class,
 the main API for the theta sketch decision tree.
 """
 
-from typing import Dict, Optional, Union, Tuple, Any
+from typing import Dict, Optional, Union, Tuple, Any, List
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-# TODO: Implement ThetaSketchDecisionTreeClassifier
 # See docs/02_low_level_design.md for detailed specifications
 # See docs/05_api_design.md for API documentation
 
@@ -85,6 +84,9 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.min_samples_leaf = min_samples_leaf
         self.verbose = verbose
 
+        # Initialize fitted state
+        self._is_fitted = False
+
     def fit(
         self,
         sketch_data: Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]],
@@ -140,37 +142,11 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             raise ValueError("No features found in sketch_data (besides 'total')")
 
         # ========== Step 3: Initialize components ==========
-        # TODO: Implement proper Criterion classes (gini, entropy, etc.)
-        # For now, create a minimal stub
         from .tree_builder import TreeBuilder
+        from .criteria import get_criterion
 
-        # Minimal criterion stub (TODO: Replace with full implementation)
-        class MinimalCriterion:
-            def compute_impurity(self, class_counts):
-                """Gini impurity."""
-                n = np.sum(class_counts)
-                if n == 0:
-                    return 0.0
-                p = class_counts / n
-                return 1.0 - np.sum(p ** 2)
-
-            def evaluate_split(self, parent_counts, left_counts, right_counts):
-                """Weighted impurity decrease (lower is better)."""
-                n_parent = np.sum(parent_counts)
-                n_left = np.sum(left_counts)
-                n_right = np.sum(right_counts)
-
-                parent_impurity = self.compute_impurity(parent_counts)
-                left_impurity = self.compute_impurity(left_counts)
-                right_impurity = self.compute_impurity(right_counts)
-
-                weighted_child_impurity = (n_left / n_parent) * left_impurity + \
-                                         (n_right / n_parent) * right_impurity
-
-                # Return weighted child impurity (lower is better)
-                return weighted_child_impurity
-
-        criterion = MinimalCriterion()
+        # Create criterion instance based on self.criterion parameter
+        criterion = get_criterion(self.criterion)
 
         # TODO: Implement Pruner class
         pruner = None  # No pruning for now
@@ -216,11 +192,20 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self._feature_mapping = feature_mapping
         self._is_fitted = True
 
-        # TODO: Implement feature importances calculation
-        self._feature_importances = None
+        # Compute feature importances
+        from .feature_importance import compute_feature_importances
+        self._feature_importances = compute_feature_importances(
+            root=root_node,
+            feature_names=list(self.feature_names_in_)
+        )
 
         if self.verbose >= 1:
             print(f"Tree built successfully")
+            if self.verbose >= 2:
+                print("Feature importances:")
+                for i, feature_name in enumerate(self.feature_names_in_):
+                    importance = self._feature_importances[i]
+                    print(f"  {feature_name}: {importance:.4f}")
 
         return self
 
@@ -285,11 +270,153 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         return clf
 
     def predict(self, X: NDArray) -> NDArray:
-        """Predict class labels for binary feature data."""
-        raise NotImplementedError("To be implemented in Week 4")
+        """
+        Predict class labels for binary feature data.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Binary feature matrix (0/1 values).
+            Features must match the feature_mapping used during fit().
+
+        Returns
+        -------
+        y_pred : ndarray of shape (n_samples,)
+            Predicted class labels (0 or 1).
+
+        Examples
+        --------
+        >>> X_test = np.array([[1, 0, 1], [0, 1, 0]])  # age>30, income>50k, has_diabetes
+        >>> predictions = clf.predict(X_test)
+        >>> print(predictions)  # [1, 0]
+        """
+        if not hasattr(self, '_is_fitted') or not self._is_fitted:
+            raise ValueError("Classifier must be fitted before making predictions. Call fit() first.")
+
+        # Convert to numpy array and validate
+        X = np.asarray(X)
+        if X.ndim != 2:
+            raise ValueError(f"X must be 2D array, got shape {X.shape}")
+        if X.shape[1] != self.n_features_in_:
+            raise ValueError(f"X has {X.shape[1]} features, but classifier was fitted with {self.n_features_in_} features")
+
+        # Use TreeTraverser for prediction
+        from .tree_traverser import TreeTraverser
+        traverser = TreeTraverser(self.tree_, missing_value_strategy='majority')
+        return traverser.predict(X)
 
     def predict_proba(self, X: NDArray) -> NDArray:
-        """Predict class probabilities."""
-        raise NotImplementedError("To be implemented in Week 4")
+        """
+        Predict class probabilities for binary feature data.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Binary feature matrix (0/1 values).
+            Features must match the feature_mapping used during fit().
+
+        Returns
+        -------
+        y_proba : ndarray of shape (n_samples, n_classes)
+            Class probabilities. For binary classification:
+            - Column 0: P(class=0)
+            - Column 1: P(class=1)
+
+        Examples
+        --------
+        >>> X_test = np.array([[1, 0, 1], [0, 1, 0]])
+        >>> probabilities = clf.predict_proba(X_test)
+        >>> print(probabilities)  # [[0.2, 0.8], [0.9, 0.1]]
+        """
+        if not hasattr(self, '_is_fitted') or not self._is_fitted:
+            raise ValueError("Classifier must be fitted before making predictions. Call fit() first.")
+
+        # Convert to numpy array and validate
+        X = np.asarray(X)
+        if X.ndim != 2:
+            raise ValueError(f"X must be 2D array, got shape {X.shape}")
+        if X.shape[1] != self.n_features_in_:
+            raise ValueError(f"X has {X.shape[1]} features, but classifier was fitted with {self.n_features_in_} features")
+
+        # Use TreeTraverser for prediction
+        from .tree_traverser import TreeTraverser
+        traverser = TreeTraverser(self.tree_, missing_value_strategy='majority')
+        return traverser.predict_proba(X)
+
+    @property
+    def feature_importances_(self) -> NDArray:
+        """
+        Feature importances (sklearn-compatible property).
+
+        The importance of a feature is computed as the (normalized) total reduction
+        of impurity brought by that feature. Features that do not appear in the
+        tree have zero importance.
+
+        Returns
+        -------
+        feature_importances_ : ndarray of shape (n_features,)
+            Feature importances (normalized to sum to 1.0)
+
+        Examples
+        --------
+        >>> clf.fit(sketch_data, feature_mapping)
+        >>> importances = clf.feature_importances_
+        >>> print(importances)  # [0.7, 0.3]
+        """
+        if not self._is_fitted:
+            raise ValueError("Classifier must be fitted before accessing feature importances")
+
+        return self._feature_importances
+
+    def get_feature_importance_dict(self) -> Dict[str, float]:
+        """
+        Get feature importances as a dictionary mapping feature names to importance scores.
+
+        Returns
+        -------
+        dict
+            Mapping from feature names to importance scores
+
+        Examples
+        --------
+        >>> clf.fit(sketch_data, feature_mapping)
+        >>> importance_dict = clf.get_feature_importance_dict()
+        >>> print(importance_dict)
+        {'age>30': 0.7, 'income>50k': 0.3}
+        """
+        if not self._is_fitted:
+            raise ValueError("Classifier must be fitted before accessing feature importances")
+
+        from .feature_importance import FeatureImportanceCalculator
+        calculator = FeatureImportanceCalculator(list(self.feature_names_in_))
+        return calculator.get_feature_importance_dict(self._feature_importances)
+
+    def get_top_features(self, top_k: int = 5) -> List[tuple]:
+        """
+        Get the top k most important features.
+
+        Parameters
+        ----------
+        top_k : int, default=5
+            Number of top features to return
+
+        Returns
+        -------
+        list of tuple
+            List of (feature_name, importance) tuples sorted by importance
+
+        Examples
+        --------
+        >>> clf.fit(sketch_data, feature_mapping)
+        >>> top_features = clf.get_top_features(top_k=3)
+        >>> print(top_features)
+        [('age>30', 0.7), ('income>50k', 0.3)]
+        """
+        if not self._is_fitted:
+            raise ValueError("Classifier must be fitted before accessing feature importances")
+
+        from .feature_importance import FeatureImportanceCalculator
+        calculator = FeatureImportanceCalculator(list(self.feature_names_in_))
+        return calculator.get_top_features(self._feature_importances, top_k)
 
     # ... more methods to be implemented
