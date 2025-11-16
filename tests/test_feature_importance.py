@@ -385,3 +385,51 @@ class TestFeatureImportanceEdgeCases:
         importances = calc.compute_importances(root)
         assert np.all(importances >= 0)  # Should be non-negative
         assert_allclose(importances.sum(), 1.0)  # Should still sum to 1
+
+    def test_zero_child_samples_edge_case(self):
+        """Test edge case where both children have zero samples (line 127 coverage)."""
+        feature_names = ['feature_A']
+        calc = FeatureImportanceCalculator(feature_names)
+
+        # Create parent node with samples
+        root = TreeNode(
+            depth=0,
+            n_samples=100,
+            class_counts=np.array([50, 50]),
+            impurity=0.5
+        )
+
+        # Create children with zero samples (malformed tree - shouldn't happen in practice)
+        left_child = TreeNode(
+            depth=1,
+            n_samples=0,  # ← Zero samples
+            class_counts=np.array([0, 0]),
+            impurity=0.0
+        )
+        left_child.make_leaf()
+
+        right_child = TreeNode(
+            depth=1,
+            n_samples=0,  # ← Zero samples
+            class_counts=np.array([0, 0]),
+            impurity=0.0
+        )
+        right_child.make_leaf()
+
+        # Set split (this creates the malformed case)
+        root.set_split(
+            feature_idx=0,
+            feature_name='feature_A',
+            left_child=left_child,
+            right_child=right_child
+        )
+
+        # This should trigger line 127: weighted_child_impurity = parent_impurity
+        # because total_child_samples = 0 + 0 = 0
+        importances = calc.compute_importances(root)
+
+        # Should handle gracefully - when both children have zero samples,
+        # impurity_decrease = parent_impurity - parent_impurity = 0
+        # But normalized, this becomes 1.0 since it's the only feature
+        assert len(importances) == 1
+        assert importances[0] == 1.0  # Still gets normalized to 1.0 since it's the only feature
