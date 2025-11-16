@@ -30,6 +30,7 @@ class TreeBuilder:
         min_samples_leaf: int = 1,
         pruner: Optional[Any] = None,
         feature_mapping: Optional[Dict[str, int]] = None,
+        mode: str = "intersection",
         verbose: int = 0,
     ):
         """
@@ -49,6 +50,8 @@ class TreeBuilder:
             Pre-pruning implementation
         feature_mapping : dict, optional
             Maps feature names to column indices
+        mode : str, default="intersection"
+            Tree building algorithm: "intersection" or "ratio_based"
         verbose : int
             Verbosity level
         """
@@ -58,15 +61,22 @@ class TreeBuilder:
         self.min_samples_leaf = min_samples_leaf
         self.pruner = pruner
         self.feature_mapping = feature_mapping or {}
+        self.mode = mode
         self.verbose = verbose
+
+        # Validate mode parameter
+        if self.mode not in ["intersection", "ratio_based"]:
+            raise ValueError(f"Unknown mode: {self.mode}. Must be 'intersection' or 'ratio_based'")
 
     def build_tree(
         self,
-        parent_sketch_pos: Any,
-        parent_sketch_neg: Any,
-        sketch_dict: Dict[str, Dict[str, Any]],
-        feature_names: List[str],
-        already_used: Set[str],
+        parent_sketch_pos: Any = None,
+        parent_sketch_neg: Any = None,
+        parent_pos_count: float = None,
+        parent_neg_count: float = None,
+        sketch_dict: Dict[str, Dict[str, Any]] = None,
+        feature_names: List[str] = None,
+        already_used: Set[str] = None,
         depth: int = 0
     ) -> TreeNode:
         """
@@ -99,6 +109,30 @@ class TreeBuilder:
         node : TreeNode
             Root of (sub)tree
         """
+        # Delegate to appropriate algorithm based on mode
+        if self.mode == "ratio_based":
+            return self._build_tree_ratio_based(
+                parent_pos_count, parent_neg_count,
+                sketch_dict, feature_names, already_used, depth
+            )
+        elif self.mode == "intersection":
+            return self._build_tree_intersection(
+                parent_sketch_pos, parent_sketch_neg,
+                sketch_dict, feature_names, already_used, depth
+            )
+        else:
+            raise ValueError(f"Unknown mode: {self.mode}")
+
+    def _build_tree_intersection(
+        self,
+        parent_sketch_pos: Any,
+        parent_sketch_neg: Any,
+        sketch_dict: Dict[str, Dict[str, Any]],
+        feature_names: List[str],
+        already_used: Set[str],
+        depth: int = 0
+    ) -> TreeNode:
+        """Original intersection-based tree building algorithm."""
 
         # ========== Step 1: Compute THIS NODE's Statistics ==========
         n_pos_parent = parent_sketch_pos.get_estimate()
@@ -175,8 +209,13 @@ class TreeBuilder:
             left_counts = np.array([n_neg_left, n_pos_left])
             right_counts = np.array([n_neg_right, n_pos_right])
 
-            # Check for invalid split (empty child)
-            if np.sum(left_counts) == 0 or np.sum(right_counts) == 0:
+            # Check for invalid split (empty child or violates min_samples_leaf)
+            left_n_samples = np.sum(left_counts)
+            right_n_samples = np.sum(right_counts)
+
+            if (left_n_samples == 0 or right_n_samples == 0 or
+                left_n_samples < self.min_samples_leaf or
+                right_n_samples < self.min_samples_leaf):
                 continue
 
             # Evaluate split quality using criterion
@@ -304,3 +343,231 @@ class TreeBuilder:
             return True
 
         return False
+
+    def _build_tree_ratio_based(
+        self,
+        parent_pos_count: float,
+        parent_neg_count: float,
+        sketch_dict: Dict[str, Dict[str, Any]],
+        feature_names: List[str],
+        already_used: Set[str],
+        depth: int = 0
+    ) -> TreeNode:
+        """
+        Build decision tree using ratio-based split estimation.
+
+        This method uses direct feature ratio calculations instead of sketch
+        intersections, ensuring perfect sample conservation at each level.
+        """
+        n_samples = parent_pos_count + parent_neg_count
+        class_counts = np.array([parent_neg_count, parent_pos_count])  # [negative, positive]
+
+        if self.verbose >= 2:
+            print(f"Building node at depth {depth}: {n_samples:.1f} samples "
+                  f"({parent_neg_count:.1f} neg, {parent_pos_count:.1f} pos)")
+
+        # Create node with current statistics
+        parent_impurity = self.criterion.compute_impurity(class_counts)
+        node = TreeNode(
+            depth=depth,
+            n_samples=n_samples,
+            class_counts=class_counts,
+            impurity=parent_impurity
+        )
+
+        # Check stopping conditions
+        if self._should_stop_splitting_ratio(n_samples, class_counts, depth, parent_impurity):
+            node.make_leaf()
+            if self.verbose >= 2:
+                print(f"Created leaf at depth {depth}: prediction={node.prediction}")
+            return node
+
+        # Find best feature split using ratio-based estimation
+        best_feature, best_left_pos, best_left_neg, best_right_pos, best_right_neg = (
+            self._find_best_ratio_split(
+                parent_pos_count, parent_neg_count,
+                sketch_dict, feature_names, already_used,
+                class_counts, parent_impurity, depth
+            )
+        )
+
+        # Check if valid split found
+        if best_feature is None:
+            node.make_leaf()
+            if self.verbose >= 2:
+                print(f"No valid split found at depth {depth}, creating leaf")
+            return node
+
+        # Update used features set for children
+        already_used_for_children = already_used.copy()
+        already_used_for_children.add(best_feature)
+
+        # Build child nodes recursively using estimated counts
+        if self.verbose >= 3:
+            print(f"Splitting on '{best_feature}': "
+                  f"left({best_left_pos:.1f}+, {best_left_neg:.1f}-), "
+                  f"right({best_right_pos:.1f}+, {best_right_neg:.1f}-)")
+
+        left_child = self._build_tree_ratio_based(
+            parent_pos_count=best_left_pos,
+            parent_neg_count=best_left_neg,
+            sketch_dict=sketch_dict,
+            feature_names=feature_names,
+            already_used=already_used_for_children,
+            depth=depth + 1
+        )
+
+        right_child = self._build_tree_ratio_based(
+            parent_pos_count=best_right_pos,
+            parent_neg_count=best_right_neg,
+            sketch_dict=sketch_dict,
+            feature_names=feature_names,
+            already_used=already_used_for_children,
+            depth=depth + 1
+        )
+
+        # Set split on this node
+        feature_idx = self.feature_mapping.get(best_feature, -1)
+        node.set_split(
+            feature_idx=feature_idx,
+            feature_name=best_feature,
+            left_child=left_child,
+            right_child=right_child
+        )
+
+        return node
+
+    def _find_best_ratio_split(
+        self,
+        parent_pos: float,
+        parent_neg: float,
+        sketch_dict: Dict[str, Dict[str, Any]],
+        feature_names: List[str],
+        already_used: Set[str],
+        parent_counts: NDArray,
+        parent_impurity: float,
+        depth: int
+    ) -> tuple:
+        """Find best feature split using ratio-based estimation."""
+        best_score = float('inf')
+        best_feature = None
+        best_left_pos = best_left_neg = best_right_pos = best_right_neg = 0
+
+        if self.verbose >= 3:
+            print(f"Evaluating {len(feature_names)} features at depth {depth}")
+
+        for feature_name in feature_names:
+            # Skip already used features
+            if feature_name in already_used:
+                continue
+
+            # Get global feature sketches
+            if (feature_name not in sketch_dict['positive'] or
+                feature_name not in sketch_dict['negative']):
+                continue
+
+            feature_present_pos, feature_absent_pos = sketch_dict['positive'][feature_name]
+            feature_present_neg, feature_absent_neg = sketch_dict['negative'][feature_name]
+
+            # Get feature sketch estimates
+            pos_present = feature_present_pos.get_estimate()
+            pos_absent = feature_absent_pos.get_estimate()
+            neg_present = feature_present_neg.get_estimate()
+            neg_absent = feature_absent_neg.get_estimate()
+
+            # Use ratio-based split estimation
+            left_pos, left_neg, right_pos, right_neg = self._ratio_based_split(
+                parent_pos, parent_neg,
+                pos_present, neg_present,
+                pos_absent, neg_absent
+            )
+
+            # Check min_samples_leaf constraint
+            left_n_samples = left_pos + left_neg
+            right_n_samples = right_pos + right_neg
+
+            if (left_n_samples < self.min_samples_leaf or
+                right_n_samples < self.min_samples_leaf or
+                left_n_samples == 0 or right_n_samples == 0):
+                continue
+
+            # Evaluate split quality
+            left_counts = np.array([left_neg, left_pos])
+            right_counts = np.array([right_neg, right_pos])
+
+            score = self.criterion.evaluate_split(
+                parent_counts=parent_counts,
+                left_counts=left_counts,
+                right_counts=right_counts,
+                parent_impurity=parent_impurity
+            )
+
+            if self.verbose >= 3:
+                print(f"  Feature '{feature_name}': score={score:.4f}, "
+                      f"left={left_counts}, right={right_counts}")
+
+            # Check if this is the best split so far
+            if score < best_score:
+                best_score = score
+                best_feature = feature_name
+                best_left_pos = left_pos
+                best_left_neg = left_neg
+                best_right_pos = right_pos
+                best_right_neg = right_neg
+
+        return (best_feature, best_left_pos, best_left_neg, best_right_pos, best_right_neg)
+
+    @staticmethod
+    def _ratio_based_split(
+        parent_pos: float, parent_neg: float,
+        feature_present_pos: float, feature_present_neg: float,
+        feature_absent_pos: float, feature_absent_neg: float
+    ) -> tuple:
+        """Compute split estimates using direct ratio estimation from feature sketches."""
+        # Total feature sketch estimates
+        total_feature_present = feature_present_pos + feature_present_neg
+        total_feature_absent = feature_absent_pos + feature_absent_neg
+        total_feature_estimate = total_feature_present + total_feature_absent
+
+        # Avoid division by zero
+        if total_feature_estimate == 0:
+            return (0, 0, 0, 0)
+
+        # Compute ratios from feature sketches
+        ratio_absent = total_feature_absent / total_feature_estimate
+        ratio_present = total_feature_present / total_feature_estimate
+
+        # Estimate child populations using ratios
+        left_pos = parent_pos * ratio_absent
+        left_neg = parent_neg * ratio_absent
+        right_pos = parent_pos * ratio_present
+        right_neg = parent_neg * ratio_present
+
+        return (left_pos, left_neg, right_pos, right_neg)
+
+    def _should_stop_splitting_ratio(
+        self,
+        n_samples: float,
+        class_counts: NDArray,
+        depth: int,
+        impurity: float
+    ) -> bool:
+        """Check if node splitting should stop (for ratio-based mode)."""
+        # Pure node (impurity = 0)
+        if impurity == 0:
+            return True
+
+        # Max depth reached
+        if self.max_depth is not None and depth >= self.max_depth:
+            return True
+
+        # Insufficient samples to split
+        if n_samples < self.min_samples_split:
+            return True
+
+        # Only one class present
+        if np.sum(class_counts > 0) <= 1:
+            return True
+
+        return False
+

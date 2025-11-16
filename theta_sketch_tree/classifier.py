@@ -74,7 +74,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         max_depth=None,
         min_samples_split=2,
         min_samples_leaf=1,
-        # ... more parameters
+        tree_builder="intersection",  # New parameter: "intersection" or "ratio_based"
         verbose=0,
     ):
         # Store parameters
@@ -82,6 +82,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
+        self.tree_builder = tree_builder
         self.verbose = verbose
 
         # Initialize fitted state
@@ -142,7 +143,6 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             raise ValueError("No features found in sketch_data (besides 'total')")
 
         # ========== Step 3: Initialize components ==========
-        from .tree_builder import TreeBuilder
         from .criteria import get_criterion
 
         # Create criterion instance based on self.criterion parameter
@@ -151,7 +151,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         # TODO: Implement Pruner class
         pruner = None  # No pruning for now
 
-        # ========== Step 4: Build tree using corrected algorithm ==========
+        # ========== Step 4: Build tree using selected algorithm ==========
+        from .tree_builder import TreeBuilder
         tree_builder = TreeBuilder(
             criterion=criterion,
             max_depth=self.max_depth,
@@ -159,6 +160,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             min_samples_leaf=self.min_samples_leaf,
             pruner=pruner,
             feature_mapping=feature_mapping,
+            mode=self.tree_builder,  # Pass tree_builder mode to TreeBuilder
             verbose=self.verbose
         )
 
@@ -167,18 +169,33 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             print(f"Features: {len(feature_names)}")
             print(f"Criterion: {self.criterion}")
 
-        # CRITICAL: Call build_tree with corrected signature
-        # - parent_sketch from 'total' key (at root)
-        # - sketch_dict passed unchanged
-        # - already_used starts as empty set
-        root_node = tree_builder.build_tree(
-            parent_sketch_pos=sketch_data['positive']['total'],
-            parent_sketch_neg=sketch_data['negative']['total'],
-            sketch_dict=sketch_data,  # Global features (unchanged for all recursive calls)
-            feature_names=feature_names,
-            already_used=set(),  # Empty set at root
-            depth=0
-        )
+        # Build tree using unified TreeBuilder interface
+        if self.verbose >= 1:
+            print(f"Building with {self.tree_builder} approach")
+
+        if self.tree_builder == "ratio_based":
+            # Ratio-based approach uses count estimates
+            pos_total_count = sketch_data['positive']['total'].get_estimate()
+            neg_total_count = sketch_data['negative']['total'].get_estimate()
+
+            root_node = tree_builder.build_tree(
+                parent_pos_count=pos_total_count,
+                parent_neg_count=neg_total_count,
+                sketch_dict=sketch_data,
+                feature_names=feature_names,
+                already_used=set(),
+                depth=0
+            )
+        else:
+            # Intersection-based approach uses sketch objects
+            root_node = tree_builder.build_tree(
+                parent_sketch_pos=sketch_data['positive']['total'],
+                parent_sketch_neg=sketch_data['negative']['total'],
+                sketch_dict=sketch_data,
+                feature_names=feature_names,
+                already_used=set(),
+                depth=0
+            )
 
         # ========== Step 5: Set sklearn attributes ==========
         self.classes_ = np.array([0, 1])
