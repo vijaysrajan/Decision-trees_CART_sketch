@@ -1,174 +1,79 @@
 """
-Mushroom Dataset Theta Sketch Generator and Integration Test.
+Binary Classification Dataset Theta Sketch Generator and Integration Test.
 
-Creates realistic theta sketches from UCI Mushroom dataset for poisonous classification.
-Uses lg_k=17 (sketch size 2^17 = 131,072) with proper sketch structure.
+Creates theta sketches from binary classification datasets for decision tree training.
+Designed to work with any CSV dataset with a 'class' column containing two values.
 """
 
 import numpy as np
 import pandas as pd
 import pytest
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
 # Global configuration parameters
-DEFAULT_LG_K = 16           # Log-base-2 of nominal entries (at least 131,072 entries for high precision)
-DEFAULT_MIN_SAMPLES_SPLIT = 6   # Minimum samples required to split a node
-DEFAULT_MIN_SAMPLES_LEAF = 3    # Minimum samples required in a leaf node
+DEFAULT_LG_K = 16           # Log-base-2 of nominal entries (65,536 entries)
+DEFAULT_MIN_SAMPLES_SPLIT = 2   # Minimum samples required to split a node
+DEFAULT_MIN_SAMPLES_LEAF = 1   # Minimum samples required in a leaf node
+DEFAULT_MAX_DEPTH = 5     # Maximum tree depth (None for unlimited depth)
+DEFAULT_CRITERION = "gini"  # Split criterion: 'gini', 'entropy', 'gain_ratio', 'binomial', 'binomial_chi'
 DEFAULT_TREE_BUILDER = "intersection"  # Tree builder mode: "intersection" or "ratio_based"
                                       # - "intersection": Original algorithm with sketch intersections (may have sample conservation issues)
                                       # - "ratio_based": New algorithm using global ratios (guarantees sample conservation)
+DEFAULT_VERBOSE = 0         # Verbosity level: 0=silent, 1=basic info, 2=detailed debug
 
 from theta_sketch_tree.classifier import ThetaSketchDecisionTreeClassifier
-
 
 try:
     from datasketches import update_theta_sketch, theta_intersection, theta_union
     DATASKETCHES_AVAILABLE = True
 except ImportError:
     DATASKETCHES_AVAILABLE = False
-    print("Warning: datasketches library not available, using mock implementation")
+    raise ImportError("Apache DataSketches library required. Install with: pip install datasketches")
 
 
-class RealThetaSketch:
+class ThetaSketchWrapper:
     """
-    Proper Theta Sketch implementation using Apache DataSketches library.
-
-    Uses high-precision theta sketches (lg_k=17) for better accuracy while
-    maintaining probabilistic properties for large-scale data processing.
+    Wrapper for Apache DataSketches that adds intersection method for tree builder compatibility.
     """
 
-    def __init__(self, lg_k: int = DEFAULT_LG_K):
-        """
-        Initialize with log-base-2 of nominal entries.
+    def __init__(self, sketch):
+        self._sketch = sketch
 
-        Parameters
-        ----------
-        lg_k : int
-            Log-base-2 of nominal entries (k = 2^lg_k)
-            Default from DEFAULT_LG_K=17 gives 131,072 nominal entries for high precision
-        """
-        if not DATASKETCHES_AVAILABLE:
-            raise ImportError("datasketches library required for RealThetaSketch")
+    def get_estimate(self):
+        """Return estimated cardinality."""
+        return self._sketch.get_estimate()
 
-        self.lg_k = lg_k
-        self.sketch = update_theta_sketch(lg_k)
+    def update(self, item):
+        """Add item to sketch."""
+        return self._sketch.update(item)
 
-    def add(self, item: str) -> None:
-        """Add an item to the theta sketch."""
-        self.sketch.update(item)
-
-    def get_estimate(self) -> float:
-        """Get cardinality estimate from theta sketch."""
-        return max(0.0, self.sketch.get_estimate())
-
-    def intersection(self, other: 'RealThetaSketch') -> 'RealThetaSketch':
-        """Proper theta sketch intersection using DataSketches library."""
-        if DATASKETCHES_AVAILABLE:
-            # Use real theta sketch intersection
-            intersector = theta_intersection()
-            intersector.update(self.sketch)
-            intersector.update(other.sketch)
-            intersection_sketch = intersector.get_result()
-
-            result = RealThetaSketch(self.lg_k)
-            result.sketch = intersection_sketch
-            return result
+    def intersection(self, other):
+        """Compute intersection with another sketch using Apache DataSketches API."""
+        if isinstance(other, ThetaSketchWrapper):
+            other_sketch = other._sketch
         else:
-            # Fallback for when DataSketches is not available
-            result = RealThetaSketch(self.lg_k)
-            # This is still an approximation, but better than the arbitrary 0.75
-            intersection_est = min(self.get_estimate(), other.get_estimate()) * 0.8
-            for i in range(int(intersection_est)):
-                result.sketch.update(f"intersection_{hash((id(self), id(other)))}_{i}")
-            return result
+            other_sketch = other
+
+        intersector = theta_intersection()
+        intersector.update(self._sketch)
+        intersector.update(other_sketch)
+        result = intersector.get_result()
+
+        return ThetaSketchWrapper(result)
+
+    def __getattr__(self, name):
+        """Delegate other methods to the underlying sketch."""
+        return getattr(self._sketch, name)
 
 
-    def union(self, other: 'RealThetaSketch') -> 'RealThetaSketch':
-        """Compute union using proper theta sketch operations."""
-        # Use Apache DataSketches union operation
-        union_sketch = theta_union(self.lg_k)
-        union_sketch.update(self.sketch)
-        union_sketch.update(other.sketch)
-        union_result = union_sketch.get_result()
-
-        # Create new sketch with union estimate
-        result = RealThetaSketch(self.lg_k)
-        union_est = union_result.get_estimate()
-
-        # Add synthetic items to approximate the union
-        for i in range(int(union_est)):
-            result.sketch.update(f"union_{hash((id(self), id(other)))}_{i}")
-
-        return result
-
-    def get_theta(self) -> float:
-        """Get the current theta value."""
-        return self.sketch.get_theta()
-
-    def is_estimation_mode(self) -> bool:
-        """Check if sketch is in estimation mode."""
-        return self.sketch.is_estimation_mode()
-
-
-# Use real Theta Sketches if available, fallback to mock for testing
-ThetaSketch = RealThetaSketch if DATASKETCHES_AVAILABLE else None
-
-if not DATASKETCHES_AVAILABLE:
-    # Fallback mock implementation with higher precision simulation
-    class MockThetaSketch:
-        def __init__(self, lg_k: int = DEFAULT_LG_K):
-            self.lg_k = lg_k
-            self.items = set()
-            # Simulate theta sketch precision with hash sampling
-            self.max_items = 2 ** lg_k  # Nominal capacity
-            self.theta = 1.0
-
-        def add(self, item: str):
-            # Simulate theta sketch behavior with hash-based sampling
-            item_hash = hash(item) % (2**32)  # 32-bit hash simulation
-            if len(self.items) < self.max_items:
-                self.items.add(item_hash)
-            else:
-                # Simulate theta adjustment when sketch is full
-                self.theta = min(self.theta, item_hash / (2**32))
-                if item_hash / (2**32) < self.theta:
-                    self.items.add(item_hash)
-                    # Remove items above new theta
-                    self.items = {h for h in self.items if h / (2**32) < self.theta}
-
-        def get_estimate(self) -> float:
-            if self.theta == 1.0:
-                return max(0.0, float(len(self.items)))
-            else:
-                return max(0.0, float(len(self.items)) / self.theta)
-
-        def intersection(self, other):
-            result = MockThetaSketch(self.lg_k)
-            # Simulate intersection with common theta
-            common_theta = max(self.theta, other.theta)
-            intersection_items = self.items.intersection(other.items)
-            result.items = intersection_items
-            result.theta = common_theta
-            return result
-
-        def union(self, other):
-            result = MockThetaSketch(self.lg_k)
-            # Simulate union with common theta
-            common_theta = max(self.theta, other.theta)
-            union_items = self.items.union(other.items)
-            result.items = union_items
-            result.theta = common_theta
-            return result
-
-    ThetaSketch = MockThetaSketch
-
-
-def load_mushroom_dataset() -> pd.DataFrame:
+def load_dataset() -> pd.DataFrame:
     """
-    Load UCI Mushroom dataset from file.
+    Load binary classification dataset from file.
 
-    Always reads from a file - no synthetic data generation.
+    Searches for common dataset file formats and automatically handles
+    different column naming conventions. Works with any CSV that has
+    a binary target variable.
     """
     import os
 
@@ -176,7 +81,7 @@ def load_mushroom_dataset() -> pd.DataFrame:
     root_dir = os.path.dirname(tests_dir)  # Parent directory (project root)
 
     # Check for mushroom dataset files in order of preference
-    filenames = ['mushrooms.csv', 'mushroom.csv', 'agaricus-lepiota.data', 'agaricus-lepiota.csv']
+    filenames = ['agaricus-lepiota.csv', 'mushrooms.csv', 'mushroom.csv', 'agaricus-lepiota.data']
     search_paths = [
         os.path.join(tests_dir, 'resources'),  # tests/resources/
         tests_dir,                             # tests/
@@ -237,50 +142,55 @@ def load_mushroom_dataset() -> pd.DataFrame:
     )
 
 
-def create_mushroom_sketches(df: pd.DataFrame, lg_k: int = DEFAULT_LG_K) -> Dict[str, Dict[str, Any]]:
+def create_binary_classification_sketches(df: pd.DataFrame, lg_k: int = DEFAULT_LG_K) -> Dict[str, Dict[str, Any]]:
     """
-    Create real theta sketches from mushroom dataset using Apache DataSketches.
+    Create theta sketches from any binary classification dataset using Apache DataSketches.
 
     Parameters
     ----------
     df : DataFrame
-        Mushroom dataset with 'class' column
+        Dataset with 'class' column containing exactly two unique values
     lg_k : int, default=DEFAULT_LG_K
-        Log-base-2 of nominal entries (k = 2^lg_k). Default from DEFAULT_LG_K for 131,072 nominal entries.
+        Log-base-2 of nominal entries (k = 2^lg_k)
 
     Returns
     -------
     sketch_data : dict
         Format: {'positive': {...}, 'negative': {...}}
-        Each contains 'total' and feature sketches using real Theta Sketches
+        Each contains 'total' and feature sketches using Apache DataSketches
     """
-    sketch_type = "Real Apache DataSketches" if DATASKETCHES_AVAILABLE else "Mock (for testing)"
-    print(f"Creating theta sketches with lg_k={lg_k} (size={2**lg_k}) using {sketch_type}")
+    print(f"Creating theta sketches with lg_k={lg_k} (size={2**lg_k}) using Apache DataSketches")
 
-    # Separate by class
-    poisonous_df = df[df['class'] == 'poisonous'].copy()
-    edible_df = df[df['class'] == 'edible'].copy()
+    # Identify the two class values
+    class_values = sorted(df['class'].unique())
+    if len(class_values) != 2:
+        raise ValueError(f"Expected exactly 2 class values, found {len(class_values)}: {class_values}")
+
+    # Assign first (alphabetically) to negative, second to positive
+    negative_class, positive_class = class_values
+    positive_df = df[df['class'] == positive_class].copy()
+    negative_df = df[df['class'] == negative_class].copy()
 
     print(f"Total dataset: {len(df)} samples")
-    print(f"Poisonous samples: {len(poisonous_df)} ({len(poisonous_df)/len(df)*100:.1f}%)")
-    print(f"Edible samples: {len(edible_df)} ({len(edible_df)/len(df)*100:.1f}%)")
+    print(f"Positive class '{positive_class}': {len(positive_df)} samples ({len(positive_df)/len(df)*100:.1f}%)")
+    print(f"Negative class '{negative_class}': {len(negative_df)} samples ({len(negative_df)/len(df)*100:.1f}%)")
 
     sketch_data = {
-        'positive': {},  # poisonous
-        'negative': {}   # edible
+        'positive': {},  # positive_class
+        'negative': {}   # negative_class
     }
 
-    # Create total sketches for each class using real Theta Sketches
-    pos_total = ThetaSketch(lg_k)
-    neg_total = ThetaSketch(lg_k)
+    # Create total sketches for each class using Apache DataSketches with wrapper
+    pos_total = ThetaSketchWrapper(update_theta_sketch(lg_k))
+    neg_total = ThetaSketchWrapper(update_theta_sketch(lg_k))
 
     print("Adding all samples to total sketches...")
     # Add ALL samples to total sketches (using row index as unique ID)
-    for idx in poisonous_df.index:
-        pos_total.add(f"sample_{idx}")
+    for idx in positive_df.index:
+        pos_total.update(f"sample_{idx}")
 
-    for idx in edible_df.index:
-        neg_total.add(f"sample_{idx}")
+    for idx in negative_df.index:
+        neg_total.update(f"sample_{idx}")
 
     sketch_data['positive']['total'] = pos_total
     sketch_data['negative']['total'] = neg_total
@@ -300,26 +210,26 @@ def create_mushroom_sketches(df: pd.DataFrame, lg_k: int = DEFAULT_LG_K) -> Dict
             feature_name = f"{feature}={value}"
 
             # POSITIVE class sketches
-            pos_present = ThetaSketch(lg_k)  # Has this feature value
-            pos_absent = ThetaSketch(lg_k)   # Doesn't have this feature value
+            pos_present = ThetaSketchWrapper(update_theta_sketch(lg_k))  # Has this feature value
+            pos_absent = ThetaSketchWrapper(update_theta_sketch(lg_k))   # Doesn't have this feature value
 
-            for idx, row in poisonous_df.iterrows():
+            for idx, row in positive_df.iterrows():
                 sample_id = f"sample_{idx}"
                 if row[feature] == value:
-                    pos_present.add(sample_id)
+                    pos_present.update(sample_id)
                 else:
-                    pos_absent.add(sample_id)
+                    pos_absent.update(sample_id)
 
             # NEGATIVE class sketches
-            neg_present = ThetaSketch(lg_k)
-            neg_absent = ThetaSketch(lg_k)
+            neg_present = ThetaSketchWrapper(update_theta_sketch(lg_k))
+            neg_absent = ThetaSketchWrapper(update_theta_sketch(lg_k))
 
-            for idx, row in edible_df.iterrows():
+            for idx, row in negative_df.iterrows():
                 sample_id = f"sample_{idx}"
                 if row[feature] == value:
-                    neg_present.add(sample_id)
+                    neg_present.update(sample_id)
                 else:
-                    neg_absent.add(sample_id)
+                    neg_absent.update(sample_id)
 
             # Store as tuples (present, absent)
             sketch_data['positive'][feature_name] = (pos_present, pos_absent)
@@ -329,20 +239,31 @@ def create_mushroom_sketches(df: pd.DataFrame, lg_k: int = DEFAULT_LG_K) -> Dict
     n_features = len([k for k in sketch_data['positive'].keys() if k != 'total'])
     print(f"Created {n_features} binary features from {len(feature_columns)} original features")
 
-    # Validate sketch estimates - THIS EXPLAINS THE SAMPLE COUNT DISCREPANCY
+    # Validate sketch estimates
     pos_estimate = pos_total.get_estimate()
     neg_estimate = neg_total.get_estimate()
     print(f"Sketch estimates vs actual counts:")
-    print(f"  Positive (poisonous): {pos_estimate:.0f} estimate, {len(poisonous_df)} actual")
-    print(f"  Negative (edible): {neg_estimate:.0f} estimate, {len(edible_df)} actual")
+    print(f"  Positive ('{positive_class}'): {pos_estimate:.0f} estimate, {len(positive_df)} actual")
+    print(f"  Negative ('{negative_class}'): {neg_estimate:.0f} estimate, {len(negative_df)} actual")
     print(f"Note: Sketch estimates may differ from actual due to Theta Sketch approximation")
 
     return sketch_data
 
 
-def create_mushroom_feature_mapping(sketch_data: Dict[str, Dict[str, Any]]) -> Dict[str, int]:
+# Backward compatibility aliases for existing code
+def load_mushroom_dataset() -> pd.DataFrame:
+    """Backward compatibility wrapper for load_dataset."""
+    return load_dataset()
+
+
+def create_mushroom_sketches(df: pd.DataFrame, lg_k: int = DEFAULT_LG_K) -> Dict[str, Dict[str, Any]]:
+    """Backward compatibility wrapper for create_binary_classification_sketches."""
+    return create_binary_classification_sketches(df, lg_k)
+
+
+def create_binary_classification_feature_mapping(sketch_data: Dict[str, Dict[str, Any]]) -> Dict[str, int]:
     """
-    Create feature mapping for mushroom features.
+    Create feature mapping for binary classification features.
 
     Maps feature names to column indices for prediction matrix.
     """
@@ -351,6 +272,11 @@ def create_mushroom_feature_mapping(sketch_data: Dict[str, Dict[str, Any]]) -> D
 
     print(f"Created feature mapping for {len(feature_mapping)} features")
     return feature_mapping
+
+
+def create_mushroom_feature_mapping(sketch_data: Dict[str, Dict[str, Any]]) -> Dict[str, int]:
+    """Backward compatibility wrapper for create_binary_classification_feature_mapping."""
+    return create_binary_classification_feature_mapping(sketch_data)
 
 
 def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
@@ -407,7 +333,7 @@ def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
     return tree_dict
 
 
-def print_tree_json(tree_root, max_depth: int = 5):
+def print_tree_json(tree_root, max_depth: int = 7):
     """Print tree in JSON format with nice formatting."""
     tree_json = tree_to_json(tree_root, max_depth)
     print("\n=== Decision Tree Structure (JSON) ===")
@@ -479,11 +405,11 @@ class TestMushroomIntegration:
         """Test that decision tree can fit on mushroom sketches."""
         # Create classifier
         clf = ThetaSketchDecisionTreeClassifier(
-            criterion='gini',
-            max_depth=10,  # Shallow tree for testing
+            criterion=DEFAULT_CRITERION,
+            max_depth=DEFAULT_MAX_DEPTH,
             min_samples_split=DEFAULT_MIN_SAMPLES_SPLIT,
             tree_builder=DEFAULT_TREE_BUILDER,
-            verbose=1
+            verbose=1  # Override default for testing output
         )
 
         # Should fit without errors
@@ -510,10 +436,11 @@ class TestMushroomIntegration:
         """Test prediction on mushroom data."""
         # Fit classifier
         clf = ThetaSketchDecisionTreeClassifier(
-            criterion='entropy',
-            max_depth=10,
+            criterion='entropy',  # Test with entropy instead of default
+            max_depth=DEFAULT_MAX_DEPTH,
             min_samples_split=DEFAULT_MIN_SAMPLES_SPLIT,
-            tree_builder=DEFAULT_TREE_BUILDER
+            tree_builder=DEFAULT_TREE_BUILDER,
+            verbose=DEFAULT_VERBOSE
         )
         clf.fit(mushroom_sketches, mushroom_feature_mapping)
 
@@ -554,9 +481,9 @@ class TestMushroomIntegration:
         for criterion in criteria:
             clf = ThetaSketchDecisionTreeClassifier(
                 criterion=criterion,
-                max_depth=10,
+                max_depth=DEFAULT_MAX_DEPTH,
                 tree_builder=DEFAULT_TREE_BUILDER,
-                verbose=0
+                verbose=DEFAULT_VERBOSE
             )
 
             # Should fit and predict without errors
@@ -571,12 +498,12 @@ class TestMushroomIntegration:
     def test_mushroom_tree_structure(self, mushroom_sketches, mushroom_feature_mapping):
         """Test tree structure and print in JSON format with global min_samples parameters."""
         clf = ThetaSketchDecisionTreeClassifier(
-            criterion='gini',
-            max_depth=10,  # Allow deeper tree
+            criterion=DEFAULT_CRITERION,
+            max_depth=DEFAULT_MAX_DEPTH,
             min_samples_split=DEFAULT_MIN_SAMPLES_SPLIT,
             min_samples_leaf=DEFAULT_MIN_SAMPLES_LEAF,
             tree_builder=DEFAULT_TREE_BUILDER,
-            verbose=1
+            verbose=1  # Override default for testing output
         )
 
         clf.fit(mushroom_sketches, mushroom_feature_mapping)
@@ -615,10 +542,10 @@ if __name__ == "__main__":
 
     # Test classifier
     clf = ThetaSketchDecisionTreeClassifier(
-        criterion='gini',
-        max_depth=10,
+        criterion=DEFAULT_CRITERION,
+        max_depth=DEFAULT_MAX_DEPTH,
         tree_builder=DEFAULT_TREE_BUILDER,
-        verbose=1
+        verbose=1  # Override default for demo output
     )
     clf.fit(sketch_data, feature_mapping)
 
