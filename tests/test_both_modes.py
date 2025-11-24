@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tests.test_mushroom_sketches import (
+from tests.test_binary_classification_sketches import (
     load_mushroom_dataset, create_mushroom_sketches, create_mushroom_feature_mapping,
     DEFAULT_LG_K, DEFAULT_MIN_SAMPLES_SPLIT, DEFAULT_MIN_SAMPLES_LEAF, DEFAULT_MAX_DEPTH,
     DEFAULT_CRITERION, DEFAULT_VERBOSE

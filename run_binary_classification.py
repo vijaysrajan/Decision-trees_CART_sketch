@@ -12,7 +12,7 @@ Example:
 import sys
 import pandas as pd
 import argparse
-from tests.test_mushroom_sketches import (
+from tests.test_binary_classification_sketches import (
     create_binary_classification_sketches,
     create_binary_classification_feature_mapping,
     tree_to_json,
