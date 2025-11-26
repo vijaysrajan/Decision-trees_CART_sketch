@@ -9,6 +9,10 @@ from typing import Dict, Optional, Union, Tuple, Any, List
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
+import pickle
+import json
+import os
+from pathlib import Path
 
 # See docs/02_low_level_design.md for detailed specifications
 # See docs/05_api_design.md for API documentation
@@ -435,5 +439,271 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         from .feature_importance import FeatureImportanceCalculator
         calculator = FeatureImportanceCalculator(list(self.feature_names_in_))
         return calculator.get_top_features(self._feature_importances, top_k)
+
+    def save_model(self, filepath: str, include_sketches: bool = False) -> None:
+        """
+        Save the trained model to disk.
+
+        Parameters
+        ----------
+        filepath : str
+            Path to save the model (will add .pkl extension if not present)
+        include_sketches : bool, default=False
+            Whether to include the original sketch data (can be large)
+            If False, only saves the trained tree structure and metadata
+
+        Examples
+        --------
+        >>> clf.fit(sketch_data, feature_mapping)
+        >>> clf.save_model('my_model.pkl')
+        >>> # Later...
+        >>> clf_loaded = ThetaSketchDecisionTreeClassifier.load_model('my_model.pkl')
+        """
+        if not self._is_fitted:
+            raise ValueError("Cannot save unfitted classifier. Call fit() first.")
+
+        # Ensure .pkl extension
+        filepath = str(Path(filepath).with_suffix('.pkl'))
+
+        # Prepare model data for serialization
+        model_data = {
+            'version': '1.0',
+            'hyperparameters': {
+                'criterion': self.criterion,
+                'max_depth': self.max_depth,
+                'min_samples_split': self.min_samples_split,
+                'min_samples_leaf': self.min_samples_leaf,
+                'tree_builder': self.tree_builder,
+                'verbose': self.verbose
+            },
+            'fitted_attributes': {
+                'classes_': self.classes_,
+                'n_classes_': self.n_classes_,
+                'n_features_in_': self.n_features_in_,
+                'feature_names_in_': self.feature_names_in_,
+                'feature_importances': self._feature_importances
+            },
+            'tree_structure': self._serialize_tree(self.tree_),
+            'feature_mapping': self._feature_mapping,
+            'is_fitted': self._is_fitted
+        }
+
+        # Optionally include sketch data (can be very large)
+        if include_sketches:
+            print("⚠️  Sketch serialization not yet implemented (DataSketches objects cannot be pickled)")
+            print("   Model will be saved without sketch data (prediction-only mode)")
+            # TODO: Implement sketch serialization using DataSketches serialize/deserialize methods
+            # model_data['sketch_data'] = self._serialize_sketches(self._sketch_dict)
+
+        # Save to file
+        try:
+            with open(filepath, 'wb') as f:
+                pickle.dump(model_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            print(f"Model saved successfully to: {filepath}")
+
+            # Print file size info
+            file_size = os.path.getsize(filepath) / (1024 * 1024)  # MB
+            print(f"File size: {file_size:.2f} MB")
+
+        except Exception as e:
+            raise IOError(f"Failed to save model to {filepath}: {e}")
+
+    @classmethod
+    def load_model(cls, filepath: str) -> "ThetaSketchDecisionTreeClassifier":
+        """
+        Load a trained model from disk.
+
+        Parameters
+        ----------
+        filepath : str
+            Path to the saved model file
+
+        Returns
+        -------
+        classifier : ThetaSketchDecisionTreeClassifier
+            Loaded and fitted classifier ready for predictions
+
+        Examples
+        --------
+        >>> clf = ThetaSketchDecisionTreeClassifier.load_model('my_model.pkl')
+        >>> predictions = clf.predict(X_test)
+        """
+        # Ensure .pkl extension
+        filepath = str(Path(filepath).with_suffix('.pkl'))
+
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Model file not found: {filepath}")
+
+        try:
+            with open(filepath, 'rb') as f:
+                model_data = pickle.load(f)
+
+            # Validate model data
+            if not isinstance(model_data, dict) or 'version' not in model_data:
+                raise ValueError("Invalid model file format")
+
+            print(f"Loading model version {model_data['version']} from: {filepath}")
+
+            # Create new classifier instance with saved hyperparameters
+            clf = cls(**model_data['hyperparameters'])
+
+            # Restore fitted attributes
+            fitted_attrs = model_data['fitted_attributes']
+            clf.classes_ = fitted_attrs['classes_']
+            clf.n_classes_ = fitted_attrs['n_classes_']
+            clf.n_features_in_ = fitted_attrs['n_features_in_']
+            clf.feature_names_in_ = fitted_attrs['feature_names_in_']
+            clf._feature_importances = fitted_attrs['feature_importances']
+
+            # Restore tree structure
+            clf.tree_ = cls._deserialize_tree(model_data['tree_structure'])
+
+            # Restore other internal state
+            clf._feature_mapping = model_data['feature_mapping']
+            clf._is_fitted = model_data['is_fitted']
+
+            # Restore sketch data if available
+            if 'sketch_data' in model_data:
+                clf._sketch_dict = model_data['sketch_data']
+                print("✅ Sketch data loaded (model can be retrained)")
+            else:
+                clf._sketch_dict = None
+                print("⚠️  Sketch data not available (model is prediction-only)")
+
+            print("✅ Model loaded successfully")
+            return clf
+
+        except Exception as e:
+            raise IOError(f"Failed to load model from {filepath}: {e}")
+
+    def _serialize_tree(self, node) -> Dict:
+        """Serialize tree structure to dictionary."""
+        if node is None:
+            return None
+
+        tree_dict = {
+            'n_samples': node.n_samples,
+            'is_leaf': node.is_leaf,
+            'depth': getattr(node, 'depth', 0),
+            'class_counts': node.class_counts.tolist() if hasattr(node, 'class_counts') else None,
+            'impurity': getattr(node, 'impurity', None),
+        }
+
+        if node.is_leaf:
+            tree_dict.update({
+                'prediction': node.prediction,
+                'probabilities': getattr(node, 'probabilities', None)
+            })
+        else:
+            tree_dict.update({
+                'feature_name': node.feature_name,
+                'feature_idx': node.feature_idx,
+                'left': self._serialize_tree(node.left),
+                'right': self._serialize_tree(node.right)
+            })
+
+        return tree_dict
+
+    @classmethod
+    def _deserialize_tree(cls, tree_dict, depth: int = 0) -> Any:
+        """Deserialize tree structure from dictionary."""
+        if tree_dict is None:
+            return None
+
+        from .tree_structure import TreeNode
+
+        # Create node with required parameters
+        class_counts = np.array(tree_dict['class_counts']) if tree_dict['class_counts'] is not None else np.array([0.0, 0.0])
+        impurity = tree_dict['impurity'] if tree_dict['impurity'] is not None else 0.0
+        node_depth = tree_dict.get('depth', depth)  # Use stored depth if available
+
+        node = TreeNode(
+            depth=node_depth,
+            n_samples=tree_dict['n_samples'],
+            class_counts=class_counts,
+            impurity=impurity
+        )
+
+        node.is_leaf = tree_dict['is_leaf']
+
+        if node.is_leaf:
+            node.prediction = tree_dict['prediction']
+            if tree_dict['probabilities'] is not None:
+                node.probabilities = tree_dict['probabilities']
+        else:
+            node.feature_name = tree_dict['feature_name']
+            node.feature_idx = tree_dict['feature_idx']
+            node.left = cls._deserialize_tree(tree_dict['left'], depth + 1)
+            node.right = cls._deserialize_tree(tree_dict['right'], depth + 1)
+
+            # Set parent references
+            if node.left:
+                node.left.parent = node
+            if node.right:
+                node.right.parent = node
+
+        return node
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """
+        Get comprehensive information about the fitted model.
+
+        Returns
+        -------
+        info : dict
+            Dictionary containing model metadata and statistics
+
+        Examples
+        --------
+        >>> info = clf.get_model_info()
+        >>> print(f"Model has {info['n_features']} features and depth {info['tree_depth']}")
+        """
+        if not self._is_fitted:
+            raise ValueError("Model must be fitted before getting info")
+
+        info = {
+            'hyperparameters': {
+                'criterion': self.criterion,
+                'max_depth': self.max_depth,
+                'min_samples_split': self.min_samples_split,
+                'min_samples_leaf': self.min_samples_leaf,
+                'tree_builder': self.tree_builder
+            },
+            'n_features': self.n_features_in_,
+            'n_classes': self.n_classes_,
+            'feature_names': list(self.feature_names_in_),
+            'tree_depth': getattr(self.tree_, 'depth', self._calculate_tree_depth()),
+            'tree_nodes': self._count_tree_nodes(),
+            'tree_leaves': self._count_tree_leaves(),
+            'has_sketch_data': self._sketch_dict is not None,
+        }
+
+        return info
+
+    def _calculate_tree_depth(self) -> int:
+        """Calculate tree depth recursively."""
+        def _depth(node):
+            if node is None or node.is_leaf:
+                return 0
+            return 1 + max(_depth(node.left), _depth(node.right))
+        return _depth(self.tree_)
+
+    def _count_tree_nodes(self) -> int:
+        """Count total nodes in tree."""
+        def _count(node):
+            if node is None:
+                return 0
+            return 1 + _count(node.left) + _count(node.right)
+        return _count(self.tree_)
+
+    def _count_tree_leaves(self) -> int:
+        """Count leaf nodes in tree."""
+        def _count_leaves(node):
+            if node is None:
+                return 0
+            if node.is_leaf:
+                return 1
+            return _count_leaves(node.left) + _count_leaves(node.right)
+        return _count_leaves(self.tree_)
 
     # ... more methods to be implemented

@@ -12,6 +12,7 @@ Example:
 import sys
 import pandas as pd
 import argparse
+import numpy as np
 from tests.test_binary_classification_sketches import (
     create_binary_classification_sketches,
     create_binary_classification_feature_mapping,
@@ -36,8 +37,68 @@ def main():
     parser.add_argument('--tree_builder', default=DEFAULT_TREE_BUILDER, choices=['intersection', 'ratio_based'], help=f'Tree builder mode (default: {DEFAULT_TREE_BUILDER})')
     parser.add_argument('--verbose', type=int, default=DEFAULT_VERBOSE, choices=[0, 1, 2], help=f'Verbosity level: 0=silent, 1=basic, 2=detailed (default: {DEFAULT_VERBOSE})')
     parser.add_argument('--sample_size', type=int, help='Subsample size for large datasets')
+    parser.add_argument('--save_model', type=str, help='Path to save the trained model (.pkl extension will be added)')
+    parser.add_argument('--load_model', type=str, help='Path to load a pre-trained model for prediction only')
+    parser.add_argument('--model_info', type=str, help='Path to model file to display information about')
 
     args = parser.parse_args()
+
+    # Handle model info request
+    if args.model_info:
+        try:
+            clf = ThetaSketchDecisionTreeClassifier.load_model(args.model_info)
+            info = clf.get_model_info()
+
+            print(f"📋 Model Information for: {args.model_info}")
+            print("=" * 60)
+            print(f"Hyperparameters:")
+            for key, value in info['hyperparameters'].items():
+                print(f"  {key}: {value}")
+            print(f"\nTree Statistics:")
+            print(f"  Features: {info['n_features']}")
+            print(f"  Classes: {info['n_classes']}")
+            print(f"  Tree depth: {info['tree_depth']}")
+            print(f"  Tree nodes: {info['tree_nodes']}")
+            print(f"  Tree leaves: {info['tree_leaves']}")
+            print(f"  Has sketch data: {info['has_sketch_data']}")
+            print(f"\nFeatures: {info['feature_names'][:10]}{'...' if len(info['feature_names']) > 10 else ''}")
+
+            return 0
+        except Exception as e:
+            print(f"❌ Error loading model info: {e}")
+            return 1
+
+    # Handle model loading for prediction only
+    if args.load_model:
+        try:
+            clf = ThetaSketchDecisionTreeClassifier.load_model(args.load_model)
+            print("🔮 Model loaded successfully! You can now use it for predictions.")
+
+            # Generate sample predictions if dataset provided
+            if args.csv_file and args.class_column:
+                print(f"\n📊 Generating sample predictions on: {args.csv_file}")
+                df = pd.read_csv(args.csv_file)
+                if args.class_column in df.columns:
+                    df = df.drop(columns=[args.class_column])  # Remove target for prediction
+
+                # Take sample for prediction demo
+                sample_size = min(10, len(df))
+                X_sample = df.sample(n=sample_size, random_state=42).values
+
+                if X_sample.shape[1] == clf.n_features_in_:
+                    predictions = clf.predict(X_sample)
+                    probabilities = clf.predict_proba(X_sample)
+
+                    print(f"Sample predictions:")
+                    for i, (pred, prob) in enumerate(zip(predictions, probabilities)):
+                        print(f"  Sample {i+1}: Class {pred} (confidence: {max(prob):.3f})")
+                else:
+                    print(f"⚠️  Feature mismatch: dataset has {X_sample.shape[1]} features, model expects {clf.n_features_in_}")
+
+            return 0
+        except Exception as e:
+            print(f"❌ Error loading model: {e}")
+            return 1
 
     print(f"Loading dataset: {args.csv_file}")
     try:
@@ -102,6 +163,26 @@ def main():
         print("\nTop 10 important features:")
         for feature, importance in clf.get_top_features(10):
             print(f"  {feature}: {importance:.4f}")
+
+        # Save model if requested
+        if args.save_model:
+            print(f"\n💾 Saving model to: {args.save_model}")
+            try:
+                # Ask user if they want to include sketch data (can be large)
+                include_sketches = False
+                if args.verbose > 0:
+                    print("Note: Sketch data can be large. Including it allows model retraining.")
+                    # For automated scripts, don't include sketches by default
+
+                clf.save_model(args.save_model, include_sketches=include_sketches)
+
+                # Show model info
+                info = clf.get_model_info()
+                print(f"✅ Model saved with {info['tree_nodes']} nodes and depth {info['tree_depth']}")
+
+            except Exception as e:
+                print(f"❌ Error saving model: {e}")
+                return 1
 
         return 0
 
