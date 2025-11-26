@@ -305,29 +305,29 @@ def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
         }
 
     tree_dict = {
-        "depth": current_depth,
-        "n_samples": node.n_samples,
-        "class_counts": node.class_counts.tolist() if hasattr(node, 'class_counts') else None,
-        "impurity": round(node.impurity, 4) if hasattr(node, 'impurity') else None,
-        "is_leaf": node.is_leaf
+        "depth": int(current_depth),
+        "n_samples": float(node.n_samples) if hasattr(node, 'n_samples') else None,
+        "class_counts": node.class_counts.tolist() if hasattr(node, 'class_counts') and node.class_counts is not None else None,
+        "impurity": float(round(node.impurity, 4)) if hasattr(node, 'impurity') and node.impurity is not None else None,
+        "is_leaf": bool(node.is_leaf)
     }
 
     if node.is_leaf:
         tree_dict.update({
             "type": "leaf",
-            "prediction": node.prediction,
-            "probabilities": [round(p, 4) for p in node.probabilities] if hasattr(node, 'probabilities') else None
+            "prediction": int(node.prediction) if hasattr(node, 'prediction') and node.prediction is not None else None,
+            "probabilities": [float(round(p, 4)) for p in node.probabilities] if hasattr(node, 'probabilities') and node.probabilities is not None else None
         })
     else:
         tree_dict.update({
             "type": "split",
-            "feature_name": node.feature_name,
-            "feature_idx": node.feature_idx,
-            "split_condition": f"{node.feature_name} == 1",
-            "left_condition": f"{node.feature_name} == 1 (TRUE)",
-            "right_condition": f"{node.feature_name} == 0 (FALSE/NOT)",
-            "left": tree_to_json(node.left, max_depth, current_depth + 1),
-            "right": tree_to_json(node.right, max_depth, current_depth + 1)
+            "feature_name": str(node.feature_name) if hasattr(node, 'feature_name') and node.feature_name is not None else None,
+            "feature_idx": int(node.feature_idx) if hasattr(node, 'feature_idx') and node.feature_idx is not None else None,
+            "split_condition": f"{node.feature_name} == 1" if hasattr(node, 'feature_name') and node.feature_name else "Unknown",
+            "left_condition": f"{node.feature_name} == 1 (TRUE)" if hasattr(node, 'feature_name') and node.feature_name else "TRUE",
+            "right_condition": f"{node.feature_name} == 0 (FALSE/NOT)" if hasattr(node, 'feature_name') and node.feature_name else "FALSE",
+            "left": tree_to_json(node.left, max_depth, current_depth + 1) if node.left else None,
+            "right": tree_to_json(node.right, max_depth, current_depth + 1) if node.right else None
         })
 
     return tree_dict

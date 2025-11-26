@@ -41,6 +41,11 @@ def main():
     parser.add_argument('--load_model', type=str, help='Path to load a pre-trained model for prediction only')
     parser.add_argument('--model_info', type=str, help='Path to model file to display information about')
 
+    # Pruning parameters
+    parser.add_argument('--pruning', default='none', choices=['none', 'validation', 'cost_complexity', 'reduced_error', 'min_impurity'], help='Pruning method (default: none)')
+    parser.add_argument('--min_impurity_decrease', type=float, default=0.0, help='Minimum impurity decrease for pruning (default: 0.0)')
+    parser.add_argument('--validation_fraction', type=float, default=0.2, help='Fraction of data for validation-based pruning (default: 0.2)')
+
     args = parser.parse_args()
 
     # Handle model info request
@@ -140,11 +145,14 @@ def main():
         print("Creating feature mapping...")
         mapping = create_binary_classification_feature_mapping(sketches)
 
-        print(f"Training decision tree (criterion={args.criterion}, max_depth={args.max_depth}, tree_builder={args.tree_builder})...")
+        print(f"Training decision tree (criterion={args.criterion}, max_depth={args.max_depth}, tree_builder={args.tree_builder}, pruning={args.pruning})...")
         clf = ThetaSketchDecisionTreeClassifier(
             criterion=args.criterion,
             max_depth=args.max_depth,
             tree_builder=args.tree_builder,
+            pruning=args.pruning,
+            min_impurity_decrease=args.min_impurity_decrease,
+            validation_fraction=args.validation_fraction,
             verbose=args.verbose
         )
         clf.fit(sketches, mapping)

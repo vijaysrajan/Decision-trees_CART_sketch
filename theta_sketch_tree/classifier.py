@@ -10,7 +10,6 @@ import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
 import pickle
-import json
 import os
 from pathlib import Path
 
@@ -35,6 +34,14 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Minimum samples to split internal node
     min_samples_leaf : int, default=1
         Minimum samples in leaf node
+    pruning : str, default='none'
+        Pruning method: 'none', 'validation', 'cost_complexity', 'reduced_error', 'min_impurity'
+    min_impurity_decrease : float, default=0.0
+        Minimum impurity decrease required to keep a split (for min_impurity pruning)
+    validation_fraction : float, default=0.2
+        Fraction of training data to use for validation-based pruning
+    random_state : int, default=None
+        Random seed for reproducible results
     # ... (see full API in docs/05_api_design.md)
 
     Attributes
@@ -79,7 +86,11 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         min_samples_split=2,
         min_samples_leaf=1,
         tree_builder="intersection",  # New parameter: "intersection" or "ratio_based"
+        pruning="none",  # Pruning method: "none", "validation", "cost_complexity", "reduced_error", "min_impurity"
+        min_impurity_decrease=0.0,  # Minimum impurity decrease for pruning
+        validation_fraction=0.2,  # Fraction of data for validation-based pruning
         verbose=0,
+        random_state=None,
     ):
         # Store parameters
         self.criterion = criterion
@@ -87,7 +98,11 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.tree_builder = tree_builder
+        self.pruning = pruning
+        self.min_impurity_decrease = min_impurity_decrease
+        self.validation_fraction = validation_fraction
         self.verbose = verbose
+        self.random_state = random_state
 
         # Initialize fitted state
         self._is_fitted = False
@@ -97,6 +112,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         sketch_data: Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]],
         feature_mapping: Dict[str, int],
         sample_weight: Optional[NDArray] = None,
+        X_val: Optional[NDArray] = None,
+        y_val: Optional[NDArray] = None,
     ):
         """
         Build decision tree from theta sketch data.
@@ -201,7 +218,34 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
                 depth=0
             )
 
-        # ========== Step 5: Set sklearn attributes ==========
+        # ========== Step 5: Apply pruning if enabled ==========
+        if self.pruning != "none":
+            if self.verbose >= 1:
+                print(f"Applying {self.pruning} pruning...")
+
+            from .pruning import TreePruner
+            pruner = TreePruner(
+                method=self.pruning,
+                min_samples_leaf=self.min_samples_leaf,
+                min_impurity_decrease=self.min_impurity_decrease,
+                validation_fraction=self.validation_fraction,
+                random_state=self.random_state
+            )
+
+            # Apply pruning
+            root_node = pruner.prune_tree(
+                tree_root=root_node,
+                X_val=X_val,
+                y_val=y_val,
+                feature_mapping=feature_mapping
+            )
+
+            if self.verbose >= 1:
+                summary = pruner.get_pruning_summary()
+                print(f"Pruning complete: {summary['nodes_removed']} nodes removed")
+                print(f"Compression ratio: {summary['compression_ratio']:.3f}")
+
+        # ========== Step 6: Set sklearn attributes ==========
         self.classes_ = np.array([0, 1])
         self.n_classes_ = 2
         self.n_features_in_ = len(feature_names)
@@ -474,7 +518,11 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
                 'min_samples_split': self.min_samples_split,
                 'min_samples_leaf': self.min_samples_leaf,
                 'tree_builder': self.tree_builder,
-                'verbose': self.verbose
+                'pruning': self.pruning,
+                'min_impurity_decrease': self.min_impurity_decrease,
+                'validation_fraction': self.validation_fraction,
+                'verbose': self.verbose,
+                'random_state': self.random_state
             },
             'fitted_attributes': {
                 'classes_': self.classes_,
@@ -667,7 +715,10 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
                 'max_depth': self.max_depth,
                 'min_samples_split': self.min_samples_split,
                 'min_samples_leaf': self.min_samples_leaf,
-                'tree_builder': self.tree_builder
+                'tree_builder': self.tree_builder,
+                'pruning': self.pruning,
+                'min_impurity_decrease': self.min_impurity_decrease,
+                'validation_fraction': self.validation_fraction
             },
             'n_features': self.n_features_in_,
             'n_classes': self.n_classes_,
