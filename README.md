@@ -10,7 +10,9 @@ A production-ready CART Decision Tree Classifier that trains on theta sketches b
 
 - ✅ **Sketch-based Training**: Trains on theta sketches for memory-efficient learning
 - ✅ **Standard Inference**: Makes predictions on regular binary data (sklearn-compatible)
+- ✅ **Advanced Pruning**: 4 pruning methods for overfitting prevention and generalization
 - ✅ **Multiple Split Criteria**: Gini, Entropy, Gain Ratio, Binomial, Chi-Square implementations
+- ✅ **Model Persistence**: Save/load trained models with full hyperparameter preservation
 - ✅ **Missing Value Support**: Comprehensive missing value handling strategies
 - ✅ **Feature Importance**: Built-in weighted impurity decrease calculation
 - ✅ **High Performance**: >400K predictions/second, linear scaling with features
@@ -93,6 +95,57 @@ importances = clf.feature_importances_
 top_features = clf.get_top_features(top_k=5)
 print(f"Top features: {top_features}")
 ```
+
+## 🌳 Advanced Pruning Methods
+
+Prevent overfitting and improve generalization with built-in pruning methods:
+
+### Command Line Usage
+```bash
+# Cost-complexity pruning (recommended)
+./venv/bin/python run_binary_classification.py data.csv target \
+  --pruning cost_complexity --lg_k 14 --max_depth 8
+
+# Validation-based pruning
+./venv/bin/python run_binary_classification.py data.csv target \
+  --pruning validation --validation_fraction 0.25
+
+# Conservative minimum impurity pruning
+./venv/bin/python run_binary_classification.py data.csv target \
+  --pruning min_impurity --min_impurity_decrease 0.01
+```
+
+### Python API Usage
+```python
+# Enable pruning in classifier
+clf = ThetaSketchDecisionTreeClassifier(
+    criterion='gini',
+    max_depth=10,
+    pruning='cost_complexity',     # Enable pruning
+    min_impurity_decrease=0.01,    # Pruning threshold
+    validation_fraction=0.2        # Validation data fraction
+)
+```
+
+### Pruning Methods Available
+- **`cost_complexity`**: Balanced overfitting prevention (recommended)
+- **`validation`**: Accuracy-driven pruning with validation data
+- **`reduced_error`**: Conservative accuracy-preserving pruning
+- **`min_impurity`**: Remove splits with minimal benefit
+- **`none`**: No pruning (baseline)
+
+### 📊 Example Results (Mushroom Dataset)
+| Method | Nodes | Reduction | Best For |
+|--------|-------|-----------|----------|
+| None | 17 | - | Baseline |
+| Cost-complexity | 9 | 47% | **General use** ⭐ |
+| Validation | 17 | 0% | High accuracy |
+| Min impurity | 15 | 12% | Conservative |
+
+**📚 Complete Pruning Documentation:**
+- [Pruning Guide](PRUNING_GUIDE.md) - Comprehensive usage guide
+- [Examples](EXAMPLES.md) - Real-world examples and code
+- [Quick Reference](PRUNING_QUICK_REF.md) - Command cheat sheet
 
 ## Performance Benchmarks
 
