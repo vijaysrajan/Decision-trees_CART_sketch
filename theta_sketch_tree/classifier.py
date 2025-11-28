@@ -12,6 +12,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 import pickle
 import os
 from pathlib import Path
+import pandas as pd
 
 # See docs/02_low_level_design.md for detailed specifications
 # See docs/05_api_design.md for API documentation
@@ -40,6 +41,10 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Minimum impurity decrease required to keep a split (for min_impurity pruning)
     validation_fraction : float, default=0.2
         Fraction of training data to use for validation-based pruning
+    enable_cache : bool, default=True
+        Enable caching for validation data conversions (improves performance)
+    cache_dir : str, optional
+        Directory for validation conversion cache. If None, uses default location.
     random_state : int, default=None
         Random seed for reproducible results
     # ... (see full API in docs/05_api_design.md)
@@ -89,6 +94,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         pruning="none",  # Pruning method: "none", "validation", "cost_complexity", "reduced_error", "min_impurity"
         min_impurity_decrease=0.0,  # Minimum impurity decrease for pruning
         validation_fraction=0.2,  # Fraction of data for validation-based pruning
+        enable_cache=True,  # Enable validation data conversion caching
+        cache_dir=None,  # Cache directory for validation conversions
         verbose=0,
         random_state=None,
     ):
@@ -101,8 +108,13 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.pruning = pruning
         self.min_impurity_decrease = min_impurity_decrease
         self.validation_fraction = validation_fraction
+        self.enable_cache = enable_cache
+        self.cache_dir = cache_dir
         self.verbose = verbose
         self.random_state = random_state
+
+        # Initialize validation converter
+        self._validation_converter = None
 
         # Initialize fitted state
         self._is_fitted = False
@@ -483,6 +495,89 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         from .feature_importance import FeatureImportanceCalculator
         calculator = FeatureImportanceCalculator(list(self.feature_names_in_))
         return calculator.get_top_features(self._feature_importances, top_k)
+
+    def convert_validation_data_optimized(self,
+                                        df: pd.DataFrame,
+                                        target_col: str) -> Tuple[NDArray, NDArray]:
+        """
+        Convert pandas DataFrame to binary feature matrix for validation using optimized converter.
+
+        This method uses caching and vectorized operations to significantly speed up
+        validation data conversion for pruning operations.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Input DataFrame with mixed data types
+        target_col : str
+            Name of the target column
+
+        Returns
+        -------
+        X_val : ndarray
+            Binary feature matrix for validation
+        y_val : ndarray
+            Target labels for validation
+
+        Examples
+        --------
+        >>> df = pd.read_csv('validation_data.csv')
+        >>> X_val, y_val = clf.convert_validation_data_optimized(df, 'target')
+        >>> clf.fit(sketch_data, feature_mapping, X_val=X_val, y_val=y_val)
+        """
+        if not self._is_fitted:
+            raise ValueError("Classifier must be fitted before converting validation data")
+
+        # Initialize validation converter if needed
+        if self._validation_converter is None:
+            from .validation_optimizer import ValidationDataConverter
+            self._validation_converter = ValidationDataConverter(
+                cache_dir=self.cache_dir,
+                enable_cache=self.enable_cache
+            )
+
+        # Convert using optimized converter
+        X_val, y_val = self._validation_converter.convert_optimized(
+            df,
+            dict(self._feature_mapping),
+            target_col
+        )
+
+        if self.verbose > 0:
+            stats = self._validation_converter.get_stats()
+            print(f"Validation conversion: {stats['conversion_rate']:.0f} samples/sec, "
+                  f"cache hit rate: {stats['cache_hit_rate']:.1f}%")
+
+        return X_val, y_val
+
+    def get_validation_conversion_stats(self) -> Dict[str, Any]:
+        """
+        Get statistics about validation data conversion performance.
+
+        Returns
+        -------
+        stats : dict
+            Conversion performance statistics including cache hit rates,
+            average conversion time, and samples per second.
+        """
+        if self._validation_converter is None:
+            return {'message': 'No validation conversions performed yet'}
+
+        return self._validation_converter.get_stats()
+
+    def clear_validation_cache(self) -> int:
+        """
+        Clear the validation data conversion cache.
+
+        Returns
+        -------
+        removed_count : int
+            Number of cache files removed
+        """
+        if self._validation_converter is None:
+            return 0
+
+        return self._validation_converter.clear_cache()
 
     def save_model(self, filepath: str, include_sketches: bool = False) -> None:
         """

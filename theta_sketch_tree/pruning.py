@@ -11,6 +11,12 @@ from numpy.typing import NDArray
 import copy
 from .tree_structure import TreeNode
 
+try:
+    from tqdm import tqdm
+    HAS_TQDM = True
+except ImportError:
+    HAS_TQDM = False
+
 
 class TreePruner:
     """
@@ -98,6 +104,16 @@ class TreePruner:
         # Create a copy to avoid modifying the original
         pruned_tree = self._deep_copy_tree(tree_root)
 
+        # Initialize progress tracking
+        if HAS_TQDM and self.method in ['validation', 'cost_complexity']:
+            if self.method == 'validation':
+                print(f"Starting {self.method} pruning with {len(X_val) if X_val is not None else 'no'} validation samples...")
+            else:
+                print(f"Starting {self.method} pruning...")
+            progress_bar = True
+        else:
+            progress_bar = False
+
         if self.method == "validation" and X_val is not None and y_val is not None:
             pruned_tree = self._validation_based_pruning(pruned_tree, X_val, y_val, feature_mapping)
         elif self.method == "cost_complexity":
@@ -144,7 +160,13 @@ class TreePruner:
             # Find candidates for pruning (internal nodes with only leaf children)
             candidates = self._find_pruning_candidates(tree_root)
 
-            for candidate in candidates:
+            # Progress bar for validation pruning
+            if HAS_TQDM and candidates:
+                candidate_iter = tqdm(candidates, desc=f"Validation pruning (iter {iterations})", unit="candidates", leave=False)
+            else:
+                candidate_iter = candidates
+
+            for candidate in candidate_iter:
                 # Try pruning this subtree
                 candidate_backup = self._backup_node(candidate)
 
@@ -159,10 +181,15 @@ class TreePruner:
                 if new_accuracy >= initial_accuracy - 0.01:  # Allow small decrease
                     improved = True
                     initial_accuracy = new_accuracy
-                    print(f"  Pruned subtree at depth {candidate.depth}, accuracy: {new_accuracy:.4f}")
+                    if HAS_TQDM:
+                        candidate_iter.set_postfix({"accuracy": f"{new_accuracy:.4f}", "pruned": "yes"})
+                    else:
+                        print(f"  Pruned subtree at depth {candidate.depth}, accuracy: {new_accuracy:.4f}")
                 else:
                     # Restore the subtree
                     self._restore_node(candidate, candidate_backup)
+                    if HAS_TQDM:
+                        candidate_iter.set_postfix({"accuracy": f"{new_accuracy:.4f}", "pruned": "no"})
 
         return tree_root
 
@@ -179,7 +206,13 @@ class TreePruner:
         tree_sequence = [self._deep_copy_tree(tree_root)]
 
         current_tree = self._deep_copy_tree(tree_root)
+        total_internal_nodes = self._count_internal_nodes(current_tree)
 
+        # Initialize progress bar for cost-complexity pruning
+        if HAS_TQDM:
+            pbar = tqdm(total=total_internal_nodes, desc="Cost-complexity pruning", unit="nodes")
+
+        pruned_count = 0
         while self._count_internal_nodes(current_tree) > 0:
             # Find the subtree with smallest cost-complexity
             best_alpha = float('inf')
@@ -203,8 +236,16 @@ class TreePruner:
                 alpha_sequence.append(best_alpha)
                 self._convert_to_leaf(best_node)
                 tree_sequence.append(self._deep_copy_tree(current_tree))
+                pruned_count += 1
+                if HAS_TQDM:
+                    pbar.update(1)
+                    pbar.set_postfix({"alpha": f"{best_alpha:.4f}", "trees": len(tree_sequence)})
             else:
                 break
+
+        if HAS_TQDM:
+            pbar.close()
+            print(f"Pruned {pruned_count} internal nodes, generated {len(tree_sequence)} candidate trees")
 
         # For now, return the tree with moderate pruning (middle of sequence)
         if len(tree_sequence) > 1:
