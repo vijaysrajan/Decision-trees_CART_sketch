@@ -571,3 +571,32 @@ class TreeBuilder:
 
         return False
 
+    @staticmethod
+    def calculate_tree_depth(root: TreeNode) -> int:
+        """Calculate tree depth recursively."""
+        def _depth(node):
+            if node is None or node.is_leaf:
+                return 0
+            return 1 + max(_depth(node.left), _depth(node.right))
+        return _depth(root)
+
+    @staticmethod
+    def count_tree_nodes(root: TreeNode) -> int:
+        """Count total nodes in tree."""
+        def _count(node):
+            if node is None:
+                return 0
+            return 1 + _count(node.left) + _count(node.right)
+        return _count(root)
+
+    @staticmethod
+    def count_tree_leaves(root: TreeNode) -> int:
+        """Count leaf nodes in tree."""
+        def _count_leaves(node):
+            if node is None:
+                return 0
+            if node.is_leaf:
+                return 1
+            return _count_leaves(node.left) + _count_leaves(node.right)
+        return _count_leaves(root)
+

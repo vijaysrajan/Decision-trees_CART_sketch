@@ -17,9 +17,10 @@ __version__ = "0.1.0-dev"
 __author__ = "Vijay Sankar Rajan"
 __license__ = "MIT"
 
-# Main imports (will be uncommented as modules are implemented)
-# from .classifier import ThetaSketchDecisionTreeClassifier
-# from .tree_structure import Tree, TreeNode
+# Main imports
+from .classifier import ThetaSketchDecisionTreeClassifier
+from .tree_structure import Tree, TreeNode
+from .model_persistence import ModelPersistence
 
 from .sketch_loader import SketchLoader
 from .config_parser import ConfigParser
@@ -130,9 +131,10 @@ def load_config(config_path: str) -> Dict[str, Any]:
 
 
 __all__ = [
-    # 'ThetaSketchDecisionTreeClassifier',
-    # 'Tree',
-    # 'TreeNode',
+    "ThetaSketchDecisionTreeClassifier",
+    "Tree",
+    "TreeNode",
+    "ModelPersistence",
     "load_sketches",
     "load_config",
     "SketchLoader",
