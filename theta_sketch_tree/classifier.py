@@ -189,24 +189,25 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             if self.verbose >= 1:
                 print(f"Applying {self.pruning} pruning...")
 
-            from .pruning import TreePruner
-            pruner = TreePruner(
-                method=self.pruning,
-                min_samples_leaf=self.min_samples_leaf,
-                min_impurity_decrease=self.min_impurity_decrease,
-                validation_fraction=self.validation_fraction,
-                random_state=self.random_state
-            )
+            from .pruning import prune_tree, get_pruning_summary
+            from .tree_builder import TreeBuilder
 
-            root_node = pruner.prune_tree(
+            # Count nodes before pruning
+            nodes_before = TreeBuilder.count_tree_nodes(root_node)
+
+            # Apply pruning
+            root_node = prune_tree(
                 tree_root=root_node,
+                method=self.pruning,
+                min_impurity_decrease=self.min_impurity_decrease,
                 X_val=X_val,
                 y_val=y_val,
                 feature_mapping=feature_mapping
             )
 
             if self.verbose >= 1:
-                summary = pruner.get_pruning_summary()
+                nodes_after = TreeBuilder.count_tree_nodes(root_node)
+                summary = get_pruning_summary(self.pruning, nodes_before, nodes_after)
                 print(f"Pruning complete: {summary['nodes_removed']} nodes removed")
                 print(f"Compression ratio: {summary['compression_ratio']:.3f}")
 
