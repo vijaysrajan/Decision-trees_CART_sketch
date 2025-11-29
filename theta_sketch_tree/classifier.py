@@ -14,10 +14,11 @@ from typing import Dict, Optional, Union, Tuple, Any, List
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
-import pandas as pd
 
 from .tree_structure import TreeNode
 from .model_persistence import ModelPersistence
+from .feature_importance import compute_feature_importances
+from .tree_traverser import TreeTraverser
 
 
 class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
@@ -206,7 +207,9 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self._is_fitted = True
 
         # Compute feature importances
-        self._feature_importances = self._compute_feature_importances()
+        self._feature_importances = compute_feature_importances(
+            self.tree_, self.feature_names_in_, self.n_features_in_
+        )
 
         if self.verbose >= 1:
             print("Tree built successfully")
@@ -236,15 +239,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             raise ValueError("Classifier must be fitted before making predictions. Call fit() first.")
         X = self._validate_input(X)
 
-        if len(X) == 0:
-            return np.array([], dtype=np.int64)
-
-        predictions = np.array([
-            self._predict_single(sample)
-            for sample in X
-        ], dtype=np.int64)
-
-        return predictions
+        traverser = TreeTraverser(self.tree_)
+        return traverser.predict(X)
 
     def predict_proba(self, X: NDArray) -> NDArray:
         """
@@ -266,15 +262,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             raise ValueError("Classifier must be fitted before making predictions. Call fit() first.")
         X = self._validate_input(X)
 
-        if len(X) == 0:
-            return np.array([], dtype=np.float64).reshape(0, 2)
-
-        probabilities = np.array([
-            self._predict_proba_single(sample)
-            for sample in X
-        ], dtype=np.float64)
-
-        return probabilities
+        traverser = TreeTraverser(self.tree_)
+        return traverser.predict_proba(X)
 
     @property
     def feature_importances_(self) -> NDArray:
@@ -345,28 +334,10 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         """
         Convenience method: load sketches from CSV and fit model in one call.
         """
-        from theta_sketch_tree import load_sketches, load_config
-
-        # Load data
-        if csv_path:
-            config = load_config(config_path)
-            sketch_data = load_sketches(
-                csv_path=csv_path,
-                target_positive=config["targets"]["positive"],
-                target_negative=config["targets"]["negative"],
-            )
-        else:
-            sketch_data = load_sketches(positive_csv, negative_csv)
-
-        config = load_config(config_path)
-
-        # Initialize with hyperparameters
-        clf = cls(**config["hyperparameters"])
-
-        # Fit model
-        clf.fit(sketch_data, config["feature_mapping"])
-
-        return clf
+        from .classifier_utils import ClassifierUtils
+        return ClassifierUtils.fit_from_csv(
+            positive_csv, negative_csv, config_path, csv_path, cls
+        )
 
     def save_model(self, filepath: str, include_sketches: bool = False) -> None:
         """Save the trained model to disk."""
@@ -408,118 +379,3 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             raise ValueError(f"X has {X.shape[1]} features, but classifier was fitted with {self.n_features_in_} features")
         return X
 
-    def _predict_single(self, sample: NDArray) -> int:
-        """Predict class label for a single sample."""
-        node = self._traverse_to_leaf(sample, self.tree_)
-        return node.prediction
-
-    def _predict_proba_single(self, sample: NDArray) -> NDArray[np.float64]:
-        """Predict class probabilities for a single sample."""
-        node = self._traverse_to_leaf(sample, self.tree_)
-        return node.probabilities
-
-    def _traverse_to_leaf(self, sample: NDArray, node: TreeNode) -> TreeNode:
-        """
-        Traverse tree to a leaf node using majority strategy for missing values.
-        """
-        # Base case: reached a leaf
-        if node.is_leaf:
-            return node
-
-        # Get feature value for this node's split
-        feature_value = sample[node.feature_idx]
-
-        # Handle missing value with majority strategy
-        if pd.isna(feature_value) or (isinstance(feature_value, float) and np.isnan(feature_value)):
-            # Follow direction with more training samples
-            left_samples = node.left.n_samples
-            right_samples = node.right.n_samples
-
-            if left_samples >= right_samples:
-                return self._traverse_to_leaf(sample, node.left)
-            else:
-                return self._traverse_to_leaf(sample, node.right)
-
-        # Standard traversal: False (0) -> left, True (1) -> right
-        if feature_value:  # True or 1
-            return self._traverse_to_leaf(sample, node.right)
-        else:  # False or 0
-            return self._traverse_to_leaf(sample, node.left)
-
-    def _compute_feature_importances(self) -> NDArray:
-        """
-        Compute feature importances from the fitted tree.
-        """
-        # Initialize importance array
-        importances = np.zeros(self.n_features_in_)
-
-        # Get total samples at root for normalization
-        total_samples = self.tree_.n_samples
-
-        # Recursively compute importances
-        self._compute_node_importance(self.tree_, total_samples, importances)
-
-        # Normalize to sum to 1.0
-        total_importance = np.sum(importances)
-        if total_importance > 0:
-            importances = importances / total_importance
-        else:
-            # If no splits (single node tree), all features have equal importance
-            importances = np.ones(self.n_features_in_) / self.n_features_in_
-
-        return importances
-
-    def _compute_node_importance(self, node: TreeNode, total_samples: float, importances: NDArray) -> None:
-        """
-        Recursively compute importance contribution from this node and its subtree.
-        """
-        # Base case: leaf node contributes no feature importance
-        if node.is_leaf:
-            return
-
-        # Get feature index for this split
-        feature_name = node.feature_name
-        feature_names_list = list(self.feature_names_in_)
-
-        if feature_name not in feature_names_list:
-            # Skip unknown features (shouldn't happen in practice)
-            return
-
-        feature_idx = feature_names_list.index(feature_name)
-
-        # Compute weighted impurity decrease for this split
-        parent_impurity = node.impurity
-        parent_samples = node.n_samples
-
-        left_samples = node.left.n_samples
-        right_samples = node.right.n_samples
-
-        left_impurity = node.left.impurity
-        right_impurity = node.right.impurity
-
-        # Weighted average of child impurities
-        total_child_samples = left_samples + right_samples
-        if total_child_samples > 0:
-            weighted_child_impurity = (
-                (left_samples / total_child_samples) * left_impurity +
-                (right_samples / total_child_samples) * right_impurity
-            )
-        else:
-            weighted_child_impurity = parent_impurity  # No improvement
-
-        # Compute impurity decrease
-        impurity_decrease = parent_impurity - weighted_child_impurity
-
-        # Weight by number of samples reaching this node
-        sample_weight = parent_samples / total_samples
-        weighted_importance = sample_weight * impurity_decrease
-
-        # Feature importances should always be non-negative
-        weighted_importance = max(0.0, weighted_importance)
-
-        # Add to feature's total importance
-        importances[feature_idx] += weighted_importance
-
-        # Recurse on children
-        self._compute_node_importance(node.left, total_samples, importances)
-        self._compute_node_importance(node.right, total_samples, importances)
