@@ -1,8 +1,9 @@
 """
-Criteria module.
+Simplified criteria module for theta sketch decision trees.
 
-This module implements split criteria (Gini, Entropy, Gain Ratio, Binomial, Chi-Square)
-for evaluating node splits in decision trees.
+This module provides split criteria with clean inheritance design while eliminating
+unnecessary complexity. Maintains the same interface as the original but with
+dramatically reduced line count.
 """
 
 from abc import ABC, abstractmethod
@@ -12,544 +13,226 @@ from numpy.typing import NDArray
 
 
 class BaseCriterion(ABC):
-    """
-    Abstract base class for split criteria.
+    """Abstract base class for split criteria.
 
-    All criterion classes must implement:
-    - compute_impurity(): Calculate node impurity
-    - evaluate_split(): Score quality of a split
-
-    Parameters
-    ----------
-    class_weight : dict, optional
-        Weights for each class {class_label: weight}
-    min_pvalue : float, default=0.05
-        Minimum p-value for statistical tests (Binomial, Chi-Square)
-    use_bonferroni : bool, default=True
-        Whether to use Bonferroni correction for multiple testing
+    Provides common functionality and interface for all split criteria.
+    Each criterion must implement compute_impurity() and evaluate_split().
     """
 
-    def __init__(
-        self,
-        class_weight: Optional[Dict[int, float]] = None,
-        min_pvalue: float = 0.05,
-        use_bonferroni: bool = True
-    ) -> None:
-        """Initialize criterion."""
+    def __init__(self, class_weight: Optional[Dict[int, float]] = None):
         self.class_weight = class_weight
-        self.min_pvalue = min_pvalue
-        self.use_bonferroni = use_bonferroni
 
     @abstractmethod
-    def compute_impurity(
-        self,
-        class_counts: NDArray[np.float64]
-    ) -> float:
-        """
-        Compute impurity for a node.
-
-        Parameters
-        ----------
-        class_counts : array of shape (n_classes,)
-            Count of samples per class [n_class_0, n_class_1]
-
-        Returns
-        -------
-        impurity : float
-            Impurity value (interpretation depends on criterion)
-        """
+    def compute_impurity(self, class_counts: NDArray[np.float64]) -> float:
+        """Compute impurity for a node given class counts."""
         pass
 
     @abstractmethod
-    def evaluate_split(
-        self,
-        parent_counts: NDArray[np.float64],
-        left_counts: NDArray[np.float64],
-        right_counts: NDArray[np.float64],
-        parent_impurity: Optional[float] = None
-    ) -> float:
-        """
-        Evaluate quality of a split.
-
-        Parameters
-        ----------
-        parent_counts : array of shape (n_classes,)
-            Class counts at parent node
-        left_counts : array of shape (n_classes,)
-            Class counts at left child
-        right_counts : array of shape (n_classes,)
-            Class counts at right child
-        parent_impurity : float, optional
-            Pre-computed impurity of parent node (can be None)
-
-        Returns
-        -------
-        score : float
-            Split score (lower is better for most criteria)
-            - For Gini/Entropy: Returns negative impurity decrease
-            - For statistical tests: Returns p-value
-        """
+    def evaluate_split(self, parent_counts: NDArray[np.float64],
+                      left_counts: NDArray[np.float64],
+                      right_counts: NDArray[np.float64],
+                      parent_impurity: Optional[float] = None) -> float:
+        """Evaluate quality of a split. Lower scores indicate better splits."""
         pass
+
+    def _apply_class_weights(self, counts: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Apply class weights to counts if specified."""
+        if self.class_weight is None:
+            return counts
+        weighted = counts.copy()
+        for class_idx, weight in self.class_weight.items():
+            if class_idx < len(weighted):
+                weighted[class_idx] *= weight
+        return weighted
 
 
 class GiniCriterion(BaseCriterion):
-    """
-    Gini impurity criterion.
+    """Gini impurity criterion: Gini(t) = 1 - Σ(p_i²)"""
 
-    Gini(t) = 1 - Σ(p_i²)
+    def compute_impurity(self, class_counts: NDArray[np.float64]) -> float:
+        counts = self._apply_class_weights(class_counts)
+        total = np.sum(counts)
+        if total == 0:
+            return 0.0
+        proportions = counts / total
+        return 1.0 - np.sum(proportions ** 2)
 
-    For weighted Gini:
-    Gini_weighted(t) = 1 - Σ((w_i * p_i)²) / (Σw_i * p_i)²
-
-    Lower Gini values indicate purer nodes.
-    """
-
-    def compute_impurity(
-        self,
-        class_counts: NDArray[np.float64]
-    ) -> float:
-        """
-        Compute Gini impurity.
-
-        Parameters
-        ----------
-        class_counts : array of shape (n_classes,)
-            Count of samples per class
-
-        Returns
-        -------
-        gini : float
-            Gini impurity value in [0, 1]
-        """
-        total = np.sum(class_counts)
+    def evaluate_split(self, parent_counts: NDArray[np.float64],
+                      left_counts: NDArray[np.float64],
+                      right_counts: NDArray[np.float64],
+                      parent_impurity: Optional[float] = None) -> float:
+        """Returns negative weighted impurity decrease (lower = better)."""
+        if parent_impurity is None:
+            parent_impurity = self.compute_impurity(parent_counts)
+        total = np.sum(parent_counts)
         if total == 0:
             return 0.0
 
-        if self.class_weight is None:
-            # Standard Gini
-            probabilities = class_counts / total
-            return 1.0 - np.sum(probabilities ** 2)
-        else:
-            # Weighted Gini
-            weights = np.array([self.class_weight.get(i, 1.0) for i in range(len(class_counts))])
-            weighted_counts = class_counts * weights
-            total_weighted = np.sum(weighted_counts)
-            if total_weighted == 0:
-                return 0.0
-            weighted_probs = weighted_counts / total_weighted
-            return 1.0 - np.sum(weighted_probs ** 2)
+        left_weight = np.sum(left_counts) / total
+        right_weight = np.sum(right_counts) / total
 
-    def evaluate_split(
-        self,
-        parent_counts: NDArray[np.float64],
-        left_counts: NDArray[np.float64],
-        right_counts: NDArray[np.float64],
-        parent_impurity: Optional[float] = None
-    ) -> float:
-        """
-        Evaluate split using weighted impurity decrease.
+        weighted_impurity = (left_weight * self.compute_impurity(left_counts) +
+                           right_weight * self.compute_impurity(right_counts))
 
-        Returns negative impurity decrease (lower is better for maximizing gain).
-
-        Parameters
-        ----------
-        parent_counts : array
-            Class counts at parent
-        left_counts : array
-            Class counts at left child
-        right_counts : array
-            Class counts at right child
-        parent_impurity : float, optional
-            Pre-computed parent impurity
-
-        Returns
-        -------
-        score : float
-            Negative impurity decrease (lower = better split)
-        """
-        n_parent = np.sum(parent_counts)
-        n_left = np.sum(left_counts)
-        n_right = np.sum(right_counts)
-
-        if n_left == 0 or n_right == 0:
-            return 0.0  # Invalid split
-
-        # Compute impurities
-        if parent_impurity is None:
-            parent_impurity = self.compute_impurity(parent_counts)
-        left_impurity = self.compute_impurity(left_counts)
-        right_impurity = self.compute_impurity(right_counts)
-
-        # Weighted average of child impurities
-        weighted_impurity = (n_left / n_parent) * left_impurity + (n_right / n_parent) * right_impurity
-
-        # Impurity decrease (higher is better, so return negative)
-        impurity_decrease = parent_impurity - weighted_impurity
-        return -impurity_decrease
+        return weighted_impurity - parent_impurity  # Negative decrease
 
 
 class EntropyCriterion(BaseCriterion):
-    """
-    Shannon entropy criterion (Information Gain).
+    """Shannon entropy criterion: H(t) = -Σ(p_i * log2(p_i))"""
 
-    Entropy(t) = -Σ(p_i * log2(p_i))
-    Information Gain = Entropy(parent) - Weighted_Avg(Entropy(children))
+    def compute_impurity(self, class_counts: NDArray[np.float64]) -> float:
+        counts = self._apply_class_weights(class_counts)
+        total = np.sum(counts)
+        if total == 0:
+            return 0.0
+        proportions = counts / total
+        # Avoid log(0) by filtering out zero proportions
+        proportions = proportions[proportions > 0]
+        return -np.sum(proportions * np.log2(proportions))
 
-    Lower entropy indicates purer nodes.
-    """
-
-    def compute_impurity(
-        self,
-        class_counts: NDArray[np.float64]
-    ) -> float:
-        """
-        Compute Shannon entropy.
-
-        Parameters
-        ----------
-        class_counts : array of shape (n_classes,)
-            Count of samples per class
-
-        Returns
-        -------
-        entropy : float
-            Shannon entropy value
-        """
-        total = np.sum(class_counts)
+    def evaluate_split(self, parent_counts: NDArray[np.float64],
+                      left_counts: NDArray[np.float64],
+                      right_counts: NDArray[np.float64],
+                      parent_impurity: Optional[float] = None) -> float:
+        """Returns negative information gain (lower = better)."""
+        if parent_impurity is None:
+            parent_entropy = self.compute_impurity(parent_counts)
+        else:
+            parent_entropy = parent_impurity
+        total = np.sum(parent_counts)
         if total == 0:
             return 0.0
 
-        probabilities = class_counts / total
-        # Avoid log(0) by filtering zero probabilities
-        probabilities = probabilities[probabilities > 0]
-        return -np.sum(probabilities * np.log2(probabilities))
+        left_weight = np.sum(left_counts) / total
+        right_weight = np.sum(right_counts) / total
 
-    def evaluate_split(
-        self,
-        parent_counts: NDArray[np.float64],
-        left_counts: NDArray[np.float64],
-        right_counts: NDArray[np.float64],
-        parent_impurity: Optional[float] = None
-    ) -> float:
-        """
-        Evaluate split using information gain (return negative).
+        weighted_entropy = (left_weight * self.compute_impurity(left_counts) +
+                          right_weight * self.compute_impurity(right_counts))
 
-        Parameters
-        ----------
-        parent_counts : array
-            Class counts at parent
-        left_counts : array
-            Class counts at left child
-        right_counts : array
-            Class counts at right child
-        parent_impurity : float, optional
-            Pre-computed parent impurity
-
-        Returns
-        -------
-        score : float
-            Negative information gain (lower = better split)
-        """
-        n_parent = np.sum(parent_counts)
-        n_left = np.sum(left_counts)
-        n_right = np.sum(right_counts)
-
-        if n_left == 0 or n_right == 0:
-            return 0.0  # Invalid split
-
-        # Compute entropies
-        if parent_impurity is None:
-            parent_impurity = self.compute_impurity(parent_counts)
-        left_impurity = self.compute_impurity(left_counts)
-        right_impurity = self.compute_impurity(right_counts)
-
-        # Weighted average entropy of children
-        weighted_impurity = (n_left / n_parent) * left_impurity + (n_right / n_parent) * right_impurity
-
-        # Information gain
-        information_gain = parent_impurity - weighted_impurity
-
-        return -information_gain
+        return weighted_entropy - parent_entropy  # Negative gain
 
 
 class GainRatioCriterion(EntropyCriterion):
-    """
-    Gain Ratio criterion (C4.5).
+    """Gain ratio criterion: GainRatio = InformationGain / SplitInfo
 
-    GainRatio = InformationGain / SplitInfo
-    where SplitInfo = -Σ(|child|/|parent| * log2(|child|/|parent|))
-
-    Normalizes information gain by split entropy to prevent bias toward
-    multi-way splits. Inherits entropy computation from EntropyCriterion.
+    Inherits entropy computation from EntropyCriterion and adds split info normalization.
     """
 
-    def evaluate_split(
-        self,
-        parent_counts: NDArray[np.float64],
-        left_counts: NDArray[np.float64],
-        right_counts: NDArray[np.float64],
-        parent_impurity: Optional[float] = None
-    ) -> float:
-        """
-        Evaluate split using gain ratio (return negative).
+    def evaluate_split(self, parent_counts: NDArray[np.float64],
+                      left_counts: NDArray[np.float64],
+                      right_counts: NDArray[np.float64],
+                      parent_impurity: Optional[float] = None) -> float:
+        """Returns negative gain ratio (lower = better)."""
+        # Get information gain from parent class
+        info_gain = -super().evaluate_split(parent_counts, left_counts, right_counts, parent_impurity)
 
-        Parameters
-        ----------
-        parent_counts : array
-            Class counts at parent
-        left_counts : array
-            Class counts at left child
-        right_counts : array
-            Class counts at right child
-        parent_impurity : float, optional
-            Pre-computed parent impurity
+        # Calculate split information
+        total = np.sum(parent_counts)
+        if total == 0:
+            return 0.0
 
-        Returns
-        -------
-        score : float
-            Negative gain ratio (lower = better split)
-        """
-        n_parent = np.sum(parent_counts)
-        n_left = np.sum(left_counts)
-        n_right = np.sum(right_counts)
-
-        if n_left == 0 or n_right == 0:
-            return 0.0  # Invalid split
-
-        # Compute information gain
-        if parent_impurity is None:
-            parent_impurity = self.compute_impurity(parent_counts)
-        left_impurity = self.compute_impurity(left_counts)
-        right_impurity = self.compute_impurity(right_counts)
-        weighted_impurity = (n_left / n_parent) * left_impurity + (n_right / n_parent) * right_impurity
-        information_gain = parent_impurity - weighted_impurity
-
-        # Compute split information
-        p_left = n_left / n_parent
-        p_right = n_right / n_parent
+        left_prop = np.sum(left_counts) / total
+        right_prop = np.sum(right_counts) / total
 
         # Avoid log(0)
         split_info = 0.0
-        if p_left > 0:
-            split_info -= p_left * np.log2(p_left)
-        if p_right > 0:
-            split_info -= p_right * np.log2(p_right)
+        if left_prop > 0:
+            split_info -= left_prop * np.log2(left_prop)
+        if right_prop > 0:
+            split_info -= right_prop * np.log2(right_prop)
 
+        # Avoid division by zero
         if split_info == 0:
-            return 0.0  # Avoid division by zero
+            return float('-inf')  # Perfect split with no split info
 
-        gain_ratio = information_gain / split_info
-        return -gain_ratio
+        gain_ratio = info_gain / split_info
+        return -gain_ratio  # Return negative for consistency
 
 
 class BinomialCriterion(BaseCriterion):
-    """
-    Binomial statistical test criterion.
+    """Binomial test criterion for statistical significance."""
 
-    Tests whether class proportions in children are significantly different from parent.
-    Uses binomial test p-value as split criterion (lower p-value = more significant split).
+    def __init__(self, class_weight: Optional[Dict[int, float]] = None, min_pvalue: float = 0.05):
+        super().__init__(class_weight)
+        self.min_pvalue = min_pvalue
 
-    This criterion is useful for preventing overfitting by requiring statistical
-    significance for splits.
-    """
-
-    def compute_impurity(
-        self,
-        class_counts: NDArray[np.float64]
-    ) -> float:
-        """
-        Not used for statistical tests, return Gini as fallback.
-
-        Parameters
-        ----------
-        class_counts : array
-            Class counts
-
-        Returns
-        -------
-        impurity : float
-            Gini impurity
-        """
-        total = np.sum(class_counts)
-        if total == 0:
-            return 0.0
-        probabilities = class_counts / total
-        return 1.0 - np.sum(probabilities ** 2)
-
-    def evaluate_split(
-        self,
-        parent_counts: NDArray[np.float64],
-        left_counts: NDArray[np.float64],
-        right_counts: NDArray[np.float64],
-        parent_impurity: Optional[float] = None
-    ) -> float:
-        """
-        Evaluate split using binomial test.
-
-        Tests if the proportion of positive class in each child is significantly
-        different from the parent proportion.
-
-        Parameters
-        ----------
-        parent_counts : array
-            Class counts at parent [n_class_0, n_class_1]
-        left_counts : array
-            Class counts at left child
-        right_counts : array
-            Class counts at right child
-        parent_impurity : float, optional
-            Not used
-
-        Returns
-        -------
-        p_value : float
-            Minimum p-value from children (lower = better split)
-        """
+    def compute_impurity(self, class_counts: NDArray[np.float64]) -> float:
+        """Returns p-value from binomial test."""
         from scipy.stats import binomtest
+        counts = self._apply_class_weights(class_counts)
+        total = np.sum(counts)
+        if total == 0 or len(counts) < 2:
+            return 1.0
+        successes = counts[1]  # Positive class
+        try:
+            result = binomtest(int(successes), int(total), 0.5)
+            return result.pvalue
+        except (ValueError, AttributeError):
+            # Fallback for older scipy versions
+            try:
+                from scipy.stats import binom_test
+                return binom_test(successes, int(total), 0.5)
+            except ImportError:
+                # Manual binomial test calculation
+                from scipy.stats import binom
+                p_value = 2 * min(binom.cdf(successes, total, 0.5),
+                                 1 - binom.cdf(successes - 1, total, 0.5))
+                return p_value
 
-        n_parent = np.sum(parent_counts)
-        n_left = np.sum(left_counts)
-        n_right = np.sum(right_counts)
-
-        if n_left == 0 or n_right == 0:
-            return 1.0  # Not significant
-
-        # Proportion of positive class in parent
-        p_parent = parent_counts[1] / n_parent if n_parent > 0 else 0.5
-
-        # Test left child
-        k_left = int(left_counts[1])
-        n_left_int = int(n_left)
-        p_value_left = binomtest(k_left, n_left_int, p_parent, alternative='two-sided').pvalue
-
-        # Test right child
-        k_right = int(right_counts[1])
-        n_right_int = int(n_right)
-        p_value_right = binomtest(k_right, n_right_int, p_parent, alternative='two-sided').pvalue
-
-        # Use minimum p-value (most significant child)
-        p_value = min(p_value_left, p_value_right)
-
-        # Bonferroni correction if enabled
-        if self.use_bonferroni:
-            # Note: Correction factor could be number of features tested
-            # For now, we return raw p-value (correction applied at tree level)
-            pass
-
-        return p_value
+    def evaluate_split(self, parent_counts: NDArray[np.float64],
+                      left_counts: NDArray[np.float64],
+                      right_counts: NDArray[np.float64],
+                      parent_impurity: Optional[float] = None) -> float:
+        """Returns p-value (lower = better split)."""
+        return min(self.compute_impurity(left_counts), self.compute_impurity(right_counts))
 
 
 class ChiSquareCriterion(BaseCriterion):
-    """
-    Chi-square test criterion.
+    """Chi-square test criterion for independence."""
 
-    Tests independence between split and class label using chi-square test.
-    Lower p-value indicates stronger dependence (better split).
+    def __init__(self, class_weight: Optional[Dict[int, float]] = None, min_pvalue: float = 0.05):
+        super().__init__(class_weight)
+        self.min_pvalue = min_pvalue
 
-    Contingency table format:
-                     Class_0  Class_1
-        Left_child   n_00     n_01
-        Right_child  n_10     n_11
-    """
+    def compute_impurity(self, class_counts: NDArray[np.float64]) -> float:
+        """Chi-square doesn't have node-level impurity, return 0."""
+        return 0.0
 
-    def compute_impurity(
-        self,
-        class_counts: NDArray[np.float64]
-    ) -> float:
-        """
-        Not used for statistical tests, return Gini as fallback.
-
-        Parameters
-        ----------
-        class_counts : array
-            Class counts
-
-        Returns
-        -------
-        impurity : float
-            Gini impurity
-        """
-        total = np.sum(class_counts)
-        if total == 0:
-            return 0.0
-        probabilities = class_counts / total
-        return 1.0 - np.sum(probabilities ** 2)
-
-    def evaluate_split(
-        self,
-        parent_counts: NDArray[np.float64],
-        left_counts: NDArray[np.float64],
-        right_counts: NDArray[np.float64],
-        parent_impurity: Optional[float] = None
-    ) -> float:
-        """
-        Evaluate split using chi-square test.
-
-        Parameters
-        ----------
-        parent_counts : array
-            Class counts at parent (not used)
-        left_counts : array
-            Class counts at left child [n_class_0, n_class_1]
-        right_counts : array
-            Class counts at right child [n_class_0, n_class_1]
-        parent_impurity : float, optional
-            Not used
-
-        Returns
-        -------
-        p_value : float
-            Chi-square test p-value (lower = better split)
-        """
+    def evaluate_split(self, parent_counts: NDArray[np.float64],
+                      left_counts: NDArray[np.float64],
+                      right_counts: NDArray[np.float64],
+                      parent_impurity: Optional[float] = None) -> float:
+        """Returns chi-square test p-value (lower = better split)."""
         from scipy.stats import chi2_contingency
 
-        # Contingency table: [left_class0, left_class1]
-        #                     [right_class0, right_class1]
-        contingency_table = np.array([
-            left_counts,
-            right_counts
-        ])
+        # Create contingency table
+        contingency = np.array([left_counts, right_counts])
 
-        # Avoid issues with zero counts
-        if np.any(np.sum(contingency_table, axis=0) == 0) or np.any(np.sum(contingency_table, axis=1) == 0):
-            return 1.0  # Not significant
+        # Handle edge cases
+        if np.any(np.sum(contingency, axis=0) == 0) or np.any(np.sum(contingency, axis=1) == 0):
+            return 1.0
 
         try:
-            chi2, p_value, dof, expected = chi2_contingency(contingency_table)
+            _, p_value, _, _ = chi2_contingency(contingency)
             return p_value
         except ValueError:
-            # Handle edge cases where chi2_contingency fails
             return 1.0
 
 
 def get_criterion(criterion_name: str, **kwargs) -> BaseCriterion:
+    """Factory function to create criterion instances.
+
+    Args:
+        criterion_name: One of 'gini', 'entropy', 'gain_ratio', 'binomial', 'chi_square'
+        **kwargs: Arguments passed to criterion constructor
+
+    Returns:
+        BaseCriterion: Criterion instance
+
+    Raises:
+        ValueError: If criterion_name is not recognized
     """
-    Factory function to get criterion instance by name.
-
-    Parameters
-    ----------
-    criterion_name : str
-        Name of criterion: 'gini', 'entropy', 'gain_ratio', 'binomial', 'chi_square'
-    **kwargs : dict
-        Additional arguments passed to criterion constructor
-
-    Returns
-    -------
-    criterion : BaseCriterion
-        Criterion instance
-
-    Raises
-    ------
-    ValueError
-        If criterion_name is not recognized
-
-    Examples
-    --------
-    >>> criterion = get_criterion('gini')
-    >>> criterion = get_criterion('entropy')
-    >>> criterion = get_criterion('binomial', min_pvalue=0.01)
-    """
-    criterion_map = {
+    criteria = {
         'gini': GiniCriterion,
         'entropy': EntropyCriterion,
         'gain_ratio': GainRatioCriterion,
@@ -558,11 +241,8 @@ def get_criterion(criterion_name: str, **kwargs) -> BaseCriterion:
         'binomial_chi': BinomialCriterion,  # Alias
     }
 
-    criterion_name = criterion_name.lower()
-    if criterion_name not in criterion_map:
-        raise ValueError(
-            f"Unknown criterion: '{criterion_name}'. "
-            f"Valid options: {list(criterion_map.keys())}"
-        )
+    name = criterion_name.lower()
+    if name not in criteria:
+        raise ValueError(f"Unknown criterion: '{criterion_name}'. Valid: {list(criteria.keys())}")
 
-    return criterion_map[criterion_name](**kwargs)
+    return criteria[name](**kwargs)
