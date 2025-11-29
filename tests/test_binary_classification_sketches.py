@@ -17,9 +17,7 @@ DEFAULT_MIN_SAMPLES_SPLIT = 2   # Minimum samples required to split a node
 DEFAULT_MIN_SAMPLES_LEAF = 1   # Minimum samples required in a leaf node
 DEFAULT_MAX_DEPTH = 5     # Maximum tree depth (None for unlimited depth)
 DEFAULT_CRITERION = "gini"  # Split criterion: 'gini', 'entropy', 'gain_ratio', 'binomial', 'binomial_chi'
-DEFAULT_TREE_BUILDER = "intersection"  # Tree builder mode: "intersection" or "ratio_based"
-                                      # - "intersection": Original algorithm with sketch intersections (may have sample conservation issues)
-                                      # - "ratio_based": New algorithm using global ratios (guarantees sample conservation)
+DEFAULT_TREE_BUILDER = "intersection"  # Tree builder mode: "intersection" (sketch-based algorithm)
 DEFAULT_VERBOSE = 0         # Verbosity level: 0=silent, 1=basic info, 2=detailed debug
 
 from theta_sketch_tree.classifier import ThetaSketchDecisionTreeClassifier
@@ -408,7 +406,6 @@ class TestMushroomIntegration:
             criterion=DEFAULT_CRITERION,
             max_depth=DEFAULT_MAX_DEPTH,
             min_samples_split=DEFAULT_MIN_SAMPLES_SPLIT,
-            tree_builder=DEFAULT_TREE_BUILDER,
             verbose=1  # Override default for testing output
         )
 
@@ -439,7 +436,6 @@ class TestMushroomIntegration:
             criterion='entropy',  # Test with entropy instead of default
             max_depth=DEFAULT_MAX_DEPTH,
             min_samples_split=DEFAULT_MIN_SAMPLES_SPLIT,
-            tree_builder=DEFAULT_TREE_BUILDER,
             verbose=DEFAULT_VERBOSE
         )
         clf.fit(mushroom_sketches, mushroom_feature_mapping)
@@ -482,8 +478,7 @@ class TestMushroomIntegration:
             clf = ThetaSketchDecisionTreeClassifier(
                 criterion=criterion,
                 max_depth=DEFAULT_MAX_DEPTH,
-                tree_builder=DEFAULT_TREE_BUILDER,
-                verbose=DEFAULT_VERBOSE
+                    verbose=DEFAULT_VERBOSE
             )
 
             # Should fit and predict without errors
@@ -502,7 +497,6 @@ class TestMushroomIntegration:
             max_depth=DEFAULT_MAX_DEPTH,
             min_samples_split=DEFAULT_MIN_SAMPLES_SPLIT,
             min_samples_leaf=DEFAULT_MIN_SAMPLES_LEAF,
-            tree_builder=DEFAULT_TREE_BUILDER,
             verbose=1  # Override default for testing output
         )
 
@@ -544,7 +538,6 @@ if __name__ == "__main__":
     clf = ThetaSketchDecisionTreeClassifier(
         criterion=DEFAULT_CRITERION,
         max_depth=DEFAULT_MAX_DEPTH,
-        tree_builder=DEFAULT_TREE_BUILDER,
         verbose=1  # Override default for demo output
     )
     clf.fit(sketch_data, feature_mapping)

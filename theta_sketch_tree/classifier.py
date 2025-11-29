@@ -37,8 +37,6 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Minimum samples to split internal node
     min_samples_leaf : int, default=1
         Minimum samples in leaf node
-    tree_builder : str, default='intersection'
-        Tree building algorithm: 'intersection' or 'ratio_based'
     pruning : str, default='none'
         Pruning method: 'none', 'validation', 'cost_complexity', 'reduced_error', 'min_impurity'
     min_impurity_decrease : float, default=0.0
@@ -72,7 +70,6 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         max_depth=None,
         min_samples_split=2,
         min_samples_leaf=1,
-        tree_builder="intersection",
         pruning="none",
         min_impurity_decrease=0.0,
         validation_fraction=0.2,
@@ -84,7 +81,6 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
-        self.tree_builder = tree_builder
         self.pruning = pruning
         self.min_impurity_decrease = min_impurity_decrease
         self.validation_fraction = validation_fraction
@@ -151,7 +147,6 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             min_samples_leaf=self.min_samples_leaf,
             pruner=None,
             feature_mapping=feature_mapping,
-            mode=self.tree_builder,
             verbose=self.verbose
         )
 
@@ -159,30 +154,17 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             print("Building decision tree...")
             print(f"Features: {len(feature_names)}")
             print(f"Criterion: {self.criterion}")
-            print(f"Building with {self.tree_builder} approach")
+            print("Building with intersection approach")
 
-        # Build tree using appropriate method
-        if self.tree_builder == "ratio_based":
-            pos_total_count = sketch_data['positive']['total'].get_estimate()
-            neg_total_count = sketch_data['negative']['total'].get_estimate()
-
-            root_node = tree_builder.build_tree(
-                parent_pos_count=pos_total_count,
-                parent_neg_count=neg_total_count,
-                sketch_dict=sketch_data,
-                feature_names=feature_names,
-                already_used=set(),
-                depth=0
-            )
-        else:
-            root_node = tree_builder.build_tree(
-                parent_sketch_pos=sketch_data['positive']['total'],
-                parent_sketch_neg=sketch_data['negative']['total'],
-                sketch_dict=sketch_data,
-                feature_names=feature_names,
-                already_used=set(),
-                depth=0
-            )
+        # Build tree using intersection-based approach
+        root_node = tree_builder.build_tree(
+            parent_sketch_pos=sketch_data['positive']['total'],
+            parent_sketch_neg=sketch_data['negative']['total'],
+            sketch_dict=sketch_data,
+            feature_names=feature_names,
+            already_used=set(),
+            depth=0
+        )
 
         # Apply pruning if enabled
         if self.pruning != "none":

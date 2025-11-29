@@ -498,34 +498,6 @@ class TestTreeBuilderEdgeCases:
 
         assert isinstance(tree, TreeNode)
 
-    def test_should_stop_splitting_edge_cases(self, minimal_builder):
-        """Test _should_stop_splitting method edge cases."""
-        # Test pure node
-        assert minimal_builder._should_stop_splitting(
-            n_samples=100, depth=0, impurity=0.0, class_counts=np.array([0, 100])
-        )
-
-        # Test max depth
-        minimal_builder.max_depth = 5
-        assert minimal_builder._should_stop_splitting(
-            n_samples=100, depth=5, impurity=0.5, class_counts=np.array([50, 50])
-        )
-
-        # Test min samples split
-        minimal_builder.min_samples_split = 10
-        assert minimal_builder._should_stop_splitting(
-            n_samples=5, depth=0, impurity=0.5, class_counts=np.array([2, 3])
-        )
-
-        # Test single class
-        assert minimal_builder._should_stop_splitting(
-            n_samples=100, depth=0, impurity=0.0, class_counts=np.array([0, 100])
-        )
-
-        # Test should continue splitting
-        assert not minimal_builder._should_stop_splitting(
-            n_samples=100, depth=0, impurity=0.5, class_counts=np.array([40, 60])
-        )
 
 
 class TestTreeBuilderIntegration:

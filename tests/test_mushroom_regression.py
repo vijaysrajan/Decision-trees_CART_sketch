@@ -85,11 +85,11 @@ class TestMushroomRegression:
 
         # Recreate the configuration
         config_map = {
-            "default_gini": {"criterion": "gini", "max_depth": 5, "tree_builder": "intersection"},
-            "entropy_shallow": {"criterion": "entropy", "max_depth": 3, "tree_builder": "intersection"},
-            "gain_ratio_medium": {"criterion": "gain_ratio", "max_depth": 7, "tree_builder": "intersection"},
-            "binomial_deep": {"criterion": "binomial", "max_depth": 10, "tree_builder": "intersection"},
-            "chi_square_default": {"criterion": "chi_square", "max_depth": 5, "tree_builder": "intersection"}
+            "default_gini": {"criterion": "gini", "max_depth": 5},
+            "entropy_shallow": {"criterion": "entropy", "max_depth": 3},
+            "gain_ratio_medium": {"criterion": "gain_ratio", "max_depth": 7},
+            "binomial_deep": {"criterion": "binomial", "max_depth": 10},
+            "chi_square_default": {"criterion": "chi_square", "max_depth": 5}
         }
 
         config = config_map[config_name]
@@ -123,7 +123,7 @@ class TestMushroomRegression:
 
         # Train classifier
         clf = ThetaSketchDecisionTreeClassifier(
-            criterion="gini", max_depth=5, tree_builder="intersection", verbose=0
+            criterion="gini", max_depth=5, verbose=0
         )
         clf.fit(sketches, feature_mapping)
 
@@ -167,7 +167,7 @@ class TestMushroomRegression:
 
         # Train classifier
         clf = ThetaSketchDecisionTreeClassifier(
-            criterion="entropy", max_depth=3, tree_builder="intersection", verbose=0
+            criterion="entropy", max_depth=3, verbose=0
         )
         clf.fit(sketches, feature_mapping)
 
@@ -204,11 +204,11 @@ class TestMushroomRegression:
         # Configuration mapping
         config_map = {
             "gini_cost_complexity": {
-                "criterion": "gini", "max_depth": 8, "tree_builder": "intersection",
+                "criterion": "gini", "max_depth": 8,
                 "pruning": "cost_complexity"
             },
             "entropy_validation_pruning": {
-                "criterion": "entropy", "max_depth": 10, "tree_builder": "intersection",
+                "criterion": "entropy", "max_depth": 10,
                 "pruning": "validation"
             }
         }

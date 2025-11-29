@@ -63,7 +63,6 @@ class ModelPersistence:
                 'max_depth': classifier.max_depth,
                 'min_samples_split': classifier.min_samples_split,
                 'min_samples_leaf': classifier.min_samples_leaf,
-                'tree_builder': classifier.tree_builder,
                 'pruning': classifier.pruning,
                 'min_impurity_decrease': classifier.min_impurity_decrease,
                 'validation_fraction': classifier.validation_fraction,
@@ -267,7 +266,6 @@ class ModelPersistence:
                 'max_depth': classifier.max_depth,
                 'min_samples_split': classifier.min_samples_split,
                 'min_samples_leaf': classifier.min_samples_leaf,
-                'tree_builder': classifier.tree_builder,
                 'pruning': classifier.pruning,
                 'min_impurity_decrease': classifier.min_impurity_decrease,
                 'validation_fraction': classifier.validation_fraction
