@@ -1,7 +1,8 @@
 """
 TreeBuilder module.
 
-Implements recursive decision tree construction using theta sketches with intersection-based approach.
+Simplified tree builder that delegates to TreeOrchestrator for actual construction.
+Maintains backward compatibility while using improved architecture.
 """
 
 from typing import Dict, Set, List, Any, Optional
@@ -9,17 +10,15 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .tree_structure import TreeNode
+from .tree_orchestrator import TreeOrchestrator
 
 
 class TreeBuilder:
     """
-    Builds decision tree using theta sketches with intersection-based algorithm.
+    Simplified tree builder that delegates to TreeOrchestrator.
 
-    This class implements the intersection-based algorithm where:
-    - Global feature sketches (loaded from CSV) are passed unchanged to all recursive calls
-    - Each node receives parent_sketch_pos/neg (accumulated intersection from root)
-    - Binary feature optimization: features in already_used set are skipped
-    - Split evaluation is integrated directly into build_tree
+    This class maintains backward compatibility while using the new
+    modular architecture with separated concerns.
     """
 
     def __init__(
@@ -46,7 +45,7 @@ class TreeBuilder:
         min_samples_leaf : int
             Minimum samples in a leaf
         pruner : Pruner, optional
-            Pre-pruning implementation
+            Pre-pruning implementation (deprecated, use post-pruning)
         feature_mapping : dict, optional
             Maps feature names to column indices
         verbose : int
@@ -56,9 +55,19 @@ class TreeBuilder:
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
-        self.pruner = pruner
+        self.pruner = pruner  # Kept for compatibility, but not used
         self.feature_mapping = feature_mapping or {}
         self.verbose = verbose
+
+        # Create internal orchestrator
+        self.orchestrator = TreeOrchestrator(
+            criterion=criterion,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            feature_mapping=feature_mapping,
+            verbose=verbose
+        )
 
     def build_tree(
         self,
@@ -72,7 +81,7 @@ class TreeBuilder:
         depth: int = 0
     ) -> TreeNode:
         """
-        Recursively build decision tree using theta sketches.
+        Build decision tree using theta sketches.
 
         Parameters
         ----------
@@ -80,6 +89,10 @@ class TreeBuilder:
             Positive class population at this node
         parent_sketch_neg : ThetaSketch
             Negative/all class population at this node
+        parent_pos_count : float, optional
+            Positive count (not used, for compatibility)
+        parent_neg_count : float, optional
+            Negative count (not used, for compatibility)
         sketch_dict : dict
             Global feature sketches: {'positive': {...}, 'negative': {...}}
         feature_names : list
@@ -94,178 +107,32 @@ class TreeBuilder:
         node : TreeNode
             Root of (sub)tree
         """
-        # Use intersection-based algorithm
-        return self._build_tree_intersection(
-            parent_sketch_pos, parent_sketch_neg,
-            sketch_dict, feature_names, already_used, depth
+        # Update orchestrator parameters if they've changed since initialization
+        # This handles cases where test code modifies attributes after __init__
+        if (self.orchestrator.stopping_criteria.max_depth != self.max_depth or
+            self.orchestrator.stopping_criteria.min_samples_split != self.min_samples_split or
+            self.orchestrator.stopping_criteria.min_samples_leaf != self.min_samples_leaf):
+
+            # Recreate orchestrator with current parameters
+            self.orchestrator = TreeOrchestrator(
+                criterion=self.criterion,
+                max_depth=self.max_depth,
+                min_samples_split=self.min_samples_split,
+                min_samples_leaf=self.min_samples_leaf,
+                feature_mapping=self.feature_mapping,
+                verbose=self.verbose
+            )
+
+        # Delegate to orchestrator for actual tree building
+        return self.orchestrator.build_tree(
+            parent_sketch_pos=parent_sketch_pos,
+            parent_sketch_neg=parent_sketch_neg,
+            sketch_dict=sketch_dict,
+            feature_names=feature_names,
+            already_used=already_used,
+            depth=depth
         )
 
-    def _build_tree_intersection(
-        self,
-        parent_sketch_pos: Any,
-        parent_sketch_neg: Any,
-        sketch_dict: Dict[str, Dict[str, Any]],
-        feature_names: List[str],
-        already_used: Set[str],
-        depth: int = 0
-    ) -> TreeNode:
-        """Intersection-based tree building algorithm."""
-
-        # ========== Step 1: Compute THIS NODE's Statistics ==========
-
-        # Extract class counts from sketches
-        pos_count = parent_sketch_pos.get_estimate()
-        neg_count = parent_sketch_neg.get_estimate()
-        n_samples = pos_count + neg_count
-        class_counts = np.array([neg_count, pos_count])
-
-        # Calculate impurity using the provided criterion
-        parent_impurity = self.criterion.compute_impurity(class_counts)
-
-        # Create current node
-        node = TreeNode(
-            depth=depth,
-            n_samples=n_samples,
-            class_counts=class_counts,
-            impurity=parent_impurity
-        )
-
-        if self.verbose >= 2:
-            print(f"Depth {depth}: n_samples={n_samples}, impurity={parent_impurity:.4f}, class_counts={class_counts}")
-
-        # ========== Step 2: Check Stopping Conditions ==========
-
-        # Pure node (impurity = 0)
-        if parent_impurity == 0:
-            node.make_leaf()
-            if self.verbose >= 2:
-                print(f"Created pure leaf at depth {depth}: prediction={node.prediction}")
-            return node
-
-        # Max depth reached
-        if self.max_depth is not None and depth >= self.max_depth:
-            node.make_leaf()
-            if self.verbose >= 2:
-                print(f"Created leaf at max depth {depth}: prediction={node.prediction}")
-            return node
-
-        # Insufficient samples to split
-        if n_samples < self.min_samples_split:
-            node.make_leaf()
-            if self.verbose >= 2:
-                print(f"Created leaf (insufficient samples {n_samples}): prediction={node.prediction}")
-            return node
-
-        # Only one class present
-        if np.sum(class_counts > 0) <= 1:
-            node.make_leaf()
-            if self.verbose >= 2:
-                print(f"Created leaf (single class): prediction={node.prediction}")
-            return node
-
-        # ========== Step 3: Find Best Split ==========
-
-        best_feature = None
-        best_score = float('inf')  # Lower is better for all criteria
-        best_left_sketch_pos = None
-        best_left_sketch_neg = None
-        best_right_sketch_pos = None
-        best_right_sketch_neg = None
-
-        # Filter features to only those available in sketch dict and not already used
-        available_features = [
-            f for f in feature_names
-            if f not in already_used
-            and f in sketch_dict.get('positive', {})
-            and f in sketch_dict.get('negative', {})
-        ]
-
-        if not available_features:
-            node.make_leaf()
-            if self.verbose >= 2:
-                print(f"Created leaf (no features available): prediction={node.prediction}")
-            return node
-
-        for feature_name in available_features:
-            # Get feature sketches from the global dictionary
-            feature_present_pos = sketch_dict['positive'][feature_name][0]
-            feature_absent_pos = sketch_dict['positive'][feature_name][1]
-            feature_present_neg = sketch_dict['negative'][feature_name][0]
-            feature_absent_neg = sketch_dict['negative'][feature_name][1]
-
-            # Compute child sketches using intersection (∩)
-            left_sketch_pos = parent_sketch_pos.intersection(feature_absent_pos)
-            left_sketch_neg = parent_sketch_neg.intersection(feature_absent_neg)
-
-            right_sketch_pos = parent_sketch_pos.intersection(feature_present_pos)
-            right_sketch_neg = parent_sketch_neg.intersection(feature_present_neg)
-
-            # Get child estimates
-            left_pos = left_sketch_pos.get_estimate()
-            left_neg = left_sketch_neg.get_estimate()
-            right_pos = right_sketch_pos.get_estimate()
-            right_neg = right_sketch_neg.get_estimate()
-
-            # Skip if either child is empty
-            if (left_pos + left_neg == 0) or (right_pos + right_neg == 0):
-                continue
-
-            # Calculate class counts
-            left_counts = np.array([left_neg, left_pos])
-            right_counts = np.array([right_neg, right_pos])
-
-            # Check minimum samples constraint
-            if (left_pos + left_neg < self.min_samples_leaf or
-                right_pos + right_neg < self.min_samples_leaf):
-                continue
-
-            # Evaluate split using criterion (lower is better)
-            score = self.criterion.evaluate_split(class_counts, left_counts, right_counts, parent_impurity)
-
-            if score < best_score:
-                best_score = score
-                best_feature = feature_name
-                best_left_sketch_pos = left_sketch_pos
-                best_left_sketch_neg = left_sketch_neg
-                best_right_sketch_pos = right_sketch_pos
-                best_right_sketch_neg = right_sketch_neg
-
-        # ========== Step 4: Apply Best Split or Create Leaf ==========
-
-        if best_feature is None:
-            node.make_leaf()
-            if self.verbose >= 2:
-                print(f"No valid split found at depth {depth}, creating leaf")
-            return node
-
-        # Configure internal node
-        node.is_leaf = False
-        node.feature_name = best_feature
-        node.feature_idx = self.feature_mapping.get(best_feature, -1)
-
-        if self.verbose >= 2:
-            print(f"Best split at depth {depth}: feature='{best_feature}', score={best_score:.4f}")
-
-        # Update already_used set for children
-        already_used_for_children = already_used.copy()
-        already_used_for_children.add(best_feature)
-
-        # Recursively build children
-        node.left = self._build_tree_intersection(
-            best_left_sketch_pos, best_left_sketch_neg,
-            sketch_dict, feature_names, already_used_for_children, depth + 1
-        )
-
-        node.right = self._build_tree_intersection(
-            best_right_sketch_pos, best_right_sketch_neg,
-            sketch_dict, feature_names, already_used_for_children, depth + 1
-        )
-
-        # Set parent references
-        node.left.parent = node
-        node.right.parent = node
-
-        return node
 
     @staticmethod
     def calculate_tree_depth(root: TreeNode) -> int:

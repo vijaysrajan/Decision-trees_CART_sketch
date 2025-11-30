@@ -27,6 +27,10 @@ from .feature_importance import FeatureImportanceCalculator, compute_feature_imp
 from .tree_traverser import TreeTraverser
 from .classifier_utils import ClassifierUtils
 
+# Phase 2 refactored components
+from .split_finder import SplitFinder, SplitResult
+from .tree_orchestrator import TreeOrchestrator, StoppingCriteria, NodeBuilder
+
 from .sketch_loader import SketchLoader
 from .config_parser import ConfigParser
 from typing import Dict, Optional, Union, Tuple, Any

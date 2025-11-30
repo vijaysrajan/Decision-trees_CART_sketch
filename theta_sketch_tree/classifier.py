@@ -139,17 +139,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         from .criteria import get_criterion
         criterion = get_criterion(self.criterion)
 
-        # Build tree
-        from .tree_builder import TreeBuilder
-        tree_builder = TreeBuilder(
-            criterion=criterion,
-            max_depth=self.max_depth,
-            min_samples_split=self.min_samples_split,
-            min_samples_leaf=self.min_samples_leaf,
-            pruner=None,
-            feature_mapping=feature_mapping,
-            verbose=self.verbose
-        )
+        # Build tree using improved orchestrator architecture
+        from .tree_orchestrator import TreeOrchestrator
 
         if self.verbose >= 1:
             print("Building decision tree...")
@@ -157,42 +148,38 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             print(f"Criterion: {self.criterion}")
             print("Building with intersection approach")
 
-        # Build tree using intersection-based approach
-        root_node = tree_builder.build_tree(
-            parent_sketch_pos=sketch_data['positive']['total'],
-            parent_sketch_neg=sketch_data['negative']['total'],
-            sketch_dict=sketch_data,
-            feature_names=feature_names,
-            already_used=set(),
-            depth=0
+        # Create orchestrator with all parameters
+        orchestrator = TreeOrchestrator(
+            criterion=criterion,
+            max_depth=self.max_depth,
+            min_samples_split=self.min_samples_split,
+            min_samples_leaf=self.min_samples_leaf,
+            feature_mapping=feature_mapping,
+            verbose=self.verbose
         )
 
-        # Apply pruning if enabled
+        # Build tree with integrated pruning (if enabled)
         if self.pruning != "none":
-            if self.verbose >= 1:
-                print(f"Applying {self.pruning} pruning...")
-
-            from .pruning import prune_tree, get_pruning_summary
-            from .tree_builder import TreeBuilder
-
-            # Count nodes before pruning
-            nodes_before = TreeBuilder.count_tree_nodes(root_node)
-
-            # Apply pruning
-            root_node = prune_tree(
-                tree_root=root_node,
-                method=self.pruning,
+            # Use integrated pruning approach
+            root_node = orchestrator.build_tree_with_postprocessing(
+                parent_sketch_pos=sketch_data['positive']['total'],
+                parent_sketch_neg=sketch_data['negative']['total'],
+                sketch_dict=sketch_data,
+                feature_names=feature_names,
+                pruning_method=self.pruning,
                 min_impurity_decrease=self.min_impurity_decrease,
                 X_val=X_val,
                 y_val=y_val,
                 feature_mapping=feature_mapping
             )
-
-            if self.verbose >= 1:
-                nodes_after = TreeBuilder.count_tree_nodes(root_node)
-                summary = get_pruning_summary(self.pruning, nodes_before, nodes_after)
-                print(f"Pruning complete: {summary['nodes_removed']} nodes removed")
-                print(f"Compression ratio: {summary['compression_ratio']:.3f}")
+        else:
+            # Build tree without pruning
+            root_node = orchestrator.build_tree(
+                parent_sketch_pos=sketch_data['positive']['total'],
+                parent_sketch_neg=sketch_data['negative']['total'],
+                sketch_dict=sketch_data,
+                feature_names=feature_names
+            )
 
         # Set sklearn attributes
         self.classes_ = np.array([0, 1])
