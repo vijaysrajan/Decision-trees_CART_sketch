@@ -19,6 +19,12 @@ from .tree_structure import TreeNode
 from .model_persistence import ModelPersistence
 from .feature_importance import compute_feature_importances
 from .tree_traverser import TreeTraverser
+from .logging_utils import TreeLogger
+from .validation_utils import (
+    SketchDataValidator, TreeValidator, ValidationError,
+    validate_and_convert_input
+)
+from .interfaces import ComponentFactory
 
 
 class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
@@ -77,6 +83,15 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         verbose=0,
         random_state=None,
     ):
+        # Validate parameters
+        try:
+            TreeValidator.validate_tree_hyperparameters(
+                max_depth, min_samples_split, min_samples_leaf,
+                min_impurity_decrease, validation_fraction
+            )
+        except ValidationError as e:
+            raise ValueError(str(e))
+
         # Store parameters
         self.criterion = criterion
         self.max_depth = max_depth
@@ -88,7 +103,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.verbose = verbose
         self.random_state = random_state
 
-        # Initialize fitted state
+        # Initialize components
+        self._logger = TreeLogger("Classifier", verbose)
         self._is_fitted = False
 
     def fit(
@@ -126,8 +142,12 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         -------
         self : ThetaSketchDecisionTreeClassifier
         """
-        # Validate input
-        self._validate_sketch_data(sketch_data)
+        # Validate inputs
+        try:
+            SketchDataValidator.validate_sketch_data(sketch_data)
+            SketchDataValidator.validate_feature_mapping(feature_mapping)
+        except ValidationError as e:
+            raise ValueError(str(e))
 
         # Extract feature names
         feature_names = [k for k in sketch_data['positive'].keys() if k != 'total']
@@ -135,18 +155,13 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         if not feature_names:
             raise ValueError("No features found in sketch_data")
 
-        # Initialize components
-        from .criteria import get_criterion
-        criterion = get_criterion(self.criterion)
+        # Initialize components with validation
+        criterion = ComponentFactory.create_criterion(self.criterion)
 
         # Build tree using improved orchestrator architecture
         from .tree_orchestrator import TreeOrchestrator
 
-        if self.verbose >= 1:
-            print("Building decision tree...")
-            print(f"Features: {len(feature_names)}")
-            print(f"Criterion: {self.criterion}")
-            print("Building with intersection approach")
+        self._logger.log_tree_building(len(feature_names), self.criterion)
 
         # Create orchestrator with all parameters
         orchestrator = TreeOrchestrator(
@@ -198,13 +213,12 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             self.tree_, self.feature_names_in_, self.n_features_in_
         )
 
-        if self.verbose >= 1:
-            print("Tree built successfully")
-            if self.verbose >= 2:
-                print("Feature importances:")
-                for i, feature_name in enumerate(self.feature_names_in_):
-                    importance = self._feature_importances[i]
-                    print(f"  {feature_name}: {importance:.4f}")
+        self._logger.info("Tree built successfully")
+        if self.verbose >= 2:
+            self._logger.debug("Feature importances:")
+            for i, feature_name in enumerate(self.feature_names_in_):
+                importance = self._feature_importances[i]
+                self._logger.debug(f"  {feature_name}: {importance:.4f}")
 
         return self
 
@@ -222,9 +236,11 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         y_pred : ndarray of shape (n_samples,)
             Predicted class labels (0 or 1).
         """
-        if not hasattr(self, '_is_fitted') or not self._is_fitted:
-            raise ValueError("Classifier must be fitted before making predictions. Call fit() first.")
-        X = self._validate_input(X)
+        try:
+            TreeValidator.validate_fitted_state(self._is_fitted, "prediction")
+            X = validate_and_convert_input(X, self.n_features_in_)
+        except ValidationError as e:
+            raise ValueError(str(e))
 
         traverser = TreeTraverser(self.tree_)
         return traverser.predict(X)
@@ -245,9 +261,11 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             - Column 0: P(class=0)
             - Column 1: P(class=1)
         """
-        if not hasattr(self, '_is_fitted') or not self._is_fitted:
-            raise ValueError("Classifier must be fitted before making predictions. Call fit() first.")
-        X = self._validate_input(X)
+        try:
+            TreeValidator.validate_fitted_state(self._is_fitted, "probability prediction")
+            X = validate_and_convert_input(X, self.n_features_in_)
+        except ValidationError as e:
+            raise ValueError(str(e))
 
         traverser = TreeTraverser(self.tree_)
         return traverser.predict_proba(X)
@@ -341,28 +359,10 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     # ========== Private Methods ==========
 
-    def _validate_sketch_data(self, sketch_data: Dict) -> None:
-        """Validate sketch_data structure."""
-        if 'positive' not in sketch_data:
-            raise ValueError("sketch_data must contain 'positive' key")
-        if 'negative' not in sketch_data:
-            raise ValueError("sketch_data must contain 'negative' key")
-        if 'total' not in sketch_data['positive']:
-            raise ValueError("sketch_data['positive'] must contain 'total' key")
-        if 'total' not in sketch_data['negative']:
-            raise ValueError("sketch_data['negative'] must contain 'total' key")
-
     def _check_is_fitted(self) -> None:
         """Check if classifier is fitted."""
-        if not hasattr(self, '_is_fitted') or not self._is_fitted:
-            raise ValueError("Classifier must be fitted before accessing feature importances")
-
-    def _validate_input(self, X: NDArray) -> NDArray:
-        """Validate and convert input data."""
-        X = np.asarray(X)
-        if X.ndim != 2:
-            raise ValueError(f"X must be 2D array, got shape {X.shape}")
-        if X.shape[1] != self.n_features_in_:
-            raise ValueError(f"X has {X.shape[1]} features, but classifier was fitted with {self.n_features_in_} features")
-        return X
+        try:
+            TreeValidator.validate_fitted_state(self._is_fitted, "feature importance access")
+        except ValidationError as e:
+            raise ValueError(str(e))
 

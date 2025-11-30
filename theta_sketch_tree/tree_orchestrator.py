@@ -11,6 +11,7 @@ from numpy.typing import NDArray
 
 from .tree_structure import TreeNode
 from .split_finder import SplitFinder
+from .logging_utils import TreeLogger
 
 
 class StoppingCriteria:
@@ -103,7 +104,7 @@ class NodeBuilder:
     Builds individual tree nodes from sketch data.
     """
 
-    def __init__(self, criterion: Any, verbose: int = 0):
+    def __init__(self, criterion: Any, logger: TreeLogger):
         """
         Initialize node builder.
 
@@ -111,11 +112,11 @@ class NodeBuilder:
         ----------
         criterion : Criterion
             Split evaluation criterion
-        verbose : int
-            Verbosity level
+        logger : TreeLogger
+            Logger instance for output
         """
         self.criterion = criterion
-        self.verbose = verbose
+        self.logger = logger
 
     def create_node(
         self,
@@ -157,8 +158,7 @@ class NodeBuilder:
             impurity=parent_impurity
         )
 
-        if self.verbose >= 2:
-            print(f"Depth {depth}: n_samples={n_samples}, impurity={parent_impurity:.4f}, class_counts={class_counts}")
+        self.logger.log_node_creation(depth, n_samples, class_counts, parent_impurity)
 
         return node
 
@@ -174,8 +174,7 @@ class NodeBuilder:
             Reason for making it a leaf
         """
         node.make_leaf()
-        if self.verbose >= 2:
-            print(f"Created leaf at depth {node.depth} ({reason}): prediction={node.prediction}")
+        self.logger.log_leaf_creation(node.depth, reason, node.prediction)
 
     def configure_split_node(
         self,
@@ -199,8 +198,7 @@ class NodeBuilder:
         node.feature_name = split_result.feature_name
         node.feature_idx = feature_mapping.get(split_result.feature_name, -1)
 
-        if self.verbose >= 2:
-            print(f"Best split at depth {node.depth}: feature='{split_result.feature_name}', score={split_result.score:.4f}")
+        self.logger.log_best_split(node.depth, split_result.feature_name, split_result.score)
 
 
 class TreeOrchestrator:
@@ -238,11 +236,12 @@ class TreeOrchestrator:
         verbose : int
             Verbosity level
         """
+        self.logger = TreeLogger("TreeOrchestrator", verbose)
         self.stopping_criteria = StoppingCriteria(
             max_depth, min_samples_split, min_samples_leaf, verbose
         )
         self.split_finder = SplitFinder(criterion, min_samples_leaf, verbose)
-        self.node_builder = NodeBuilder(criterion, verbose)
+        self.node_builder = NodeBuilder(criterion, self.logger)
         self.feature_mapping = feature_mapping or {}
         self.verbose = verbose
 
@@ -417,8 +416,7 @@ class TreeOrchestrator:
         pruned_root : TreeNode
             Root of pruned tree
         """
-        if self.verbose >= 1:
-            print(f"Applying {method} pruning...")
+        self.logger.info(f"Applying {method} pruning...")
 
         from .pruning import prune_tree, get_pruning_summary
         from .tree_builder import TreeBuilder
@@ -429,11 +427,8 @@ class TreeOrchestrator:
         # Apply pruning
         pruned_root = prune_tree(tree_root, method, **kwargs)
 
-        if self.verbose >= 1:
-            nodes_after = TreeBuilder.count_tree_nodes(pruned_root)
-            summary = get_pruning_summary(method, nodes_before, nodes_after)
-            print(f"Pruning complete: {summary['nodes_removed']} nodes removed")
-            print(f"Compression ratio: {summary['compression_ratio']:.3f}")
+        nodes_after = TreeBuilder.count_tree_nodes(pruned_root)
+        self.logger.log_pruning(method, nodes_before, nodes_after)
 
         return pruned_root
 

@@ -31,6 +31,11 @@ from .classifier_utils import ClassifierUtils
 from .split_finder import SplitFinder, SplitResult
 from .tree_orchestrator import TreeOrchestrator, StoppingCriteria, NodeBuilder
 
+# Phase 3 utilities
+from .logging_utils import TreeLogger
+from .validation_utils import ValidationError
+from .interfaces import ComponentFactory
+
 from .sketch_loader import SketchLoader
 from .config_parser import ConfigParser
 from typing import Dict, Optional, Union, Tuple, Any
@@ -148,4 +153,7 @@ __all__ = [
     "load_config",
     "SketchLoader",
     "ConfigParser",
+    "TreeLogger",
+    "ValidationError",
+    "ComponentFactory",
 ]
