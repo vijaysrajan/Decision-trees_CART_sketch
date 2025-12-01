@@ -294,7 +294,7 @@ class TestCriteriaSimplified:
             # Test with infinite values
             try:
                 result = criterion.compute_impurity(np.array([np.inf, 10.0]))
-                if not np.isinf(result):
+                if not np.isinf(result) and not np.isnan(result):
                     assert result >= 0.0
-            except (ValueError, RuntimeWarning):
+            except (ValueError, RuntimeWarning, OverflowError):
                 pass

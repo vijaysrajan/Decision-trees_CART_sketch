@@ -133,8 +133,16 @@ class TestSketchDataValidator:
     def test_validate_sketch_data_structure_valid(self):
         """Test validation of valid sketch data structure."""
         valid_data = {
-            'positive': {'total': 'mock_sketch'},
-            'negative': {'total': 'mock_sketch'}
+            'positive': {
+                'total': 'mock_sketch',
+                'feature_1': 'mock_feature_sketch',
+                'feature_2': 'mock_feature_sketch'
+            },
+            'negative': {
+                'total': 'mock_sketch',
+                'feature_1': 'mock_feature_sketch',
+                'feature_2': 'mock_feature_sketch'
+            }
         }
         # Should not raise
         SketchDataValidator.validate_sketch_data(valid_data)
@@ -143,13 +151,13 @@ class TestSketchDataValidator:
         """Test validation fails when positive key is missing."""
         invalid_data = {'negative': {'total': 'mock_sketch'}}
         with pytest.raises(ValidationError, match="sketch_data must contain 'positive' key"):
-            SketchDataValidator.validate_sketch_data_structure(invalid_data)
+            SketchDataValidator.validate_sketch_data(invalid_data)
 
     def test_validate_sketch_data_structure_missing_negative(self):
         """Test validation fails when negative key is missing."""
         invalid_data = {'positive': {'total': 'mock_sketch'}}
         with pytest.raises(ValidationError, match="sketch_data must contain 'negative' key"):
-            SketchDataValidator.validate_sketch_data_structure(invalid_data)
+            SketchDataValidator.validate_sketch_data(invalid_data)
 
     def test_validate_sketch_data_structure_missing_total(self):
         """Test validation fails when total key is missing."""
@@ -158,7 +166,7 @@ class TestSketchDataValidator:
             'negative': {'total': 'mock_sketch'}
         }
         with pytest.raises(ValidationError, match="must contain 'total' key"):
-            SketchDataValidator.validate_sketch_data_structure(invalid_data)
+            SketchDataValidator.validate_sketch_data(invalid_data)
 
     def test_validate_feature_mapping_valid(self):
         """Test validation of valid feature mapping."""
@@ -175,11 +183,11 @@ class TestSketchDataValidator:
             SketchDataValidator.validate_feature_mapping({})
 
         # Test non-string keys
-        with pytest.raises(ValidationError, match="All feature names must be strings"):
+        with pytest.raises(ValidationError, match="Feature names must be strings"):
             SketchDataValidator.validate_feature_mapping({1: 0, 'feature_2': 1})
 
         # Test non-integer values
-        with pytest.raises(ValidationError, match="All feature indices must be integers"):
+        with pytest.raises(ValidationError, match="Column indices must be non-negative integers"):
             SketchDataValidator.validate_feature_mapping({'feature_1': '0', 'feature_2': 1})
 
 
@@ -194,53 +202,64 @@ class TestArrayValidator:
             [[1, 2], [3, 4]]  # list should work
         ]
         for arr in valid_arrays:
-            result = ArrayValidator.validate_array_2d(arr, "test_array")
+            result = ArrayValidator.validate_input_array(arr)
             assert result.ndim == 2
 
     def test_validate_array_2d_invalid(self):
         """Test validation of invalid arrays."""
         with pytest.raises(ValidationError, match="Input must be 2D array"):
-            ArrayValidator.validate_array_2d(np.array([1, 2, 3]), "test_array")
+            ArrayValidator.validate_input_array(np.array([1, 2, 3]))
 
         with pytest.raises(ValidationError, match="Input must be 2D array"):
-            ArrayValidator.validate_array_2d(np.array([[[1, 2]]]), "test_array")
+            ArrayValidator.validate_input_array(np.array([[[1, 2]]]))
 
     def test_validate_feature_count_valid(self):
         """Test validation of valid feature counts."""
-        # Should not raise
-        ArrayValidator.validate_feature_count(5, 5, "test_array")
+        # Test with matching feature counts
+        test_array = np.array([[1, 0, 1, 0, 1]])
+        result = ArrayValidator.validate_input_array(test_array, expected_features=5)
+        assert result.shape[1] == 5
 
     def test_validate_feature_count_invalid(self):
         """Test validation of invalid feature counts."""
+        test_array = np.array([[1, 0, 1]])  # 3 features
         with pytest.raises(ValidationError, match="Input has 3 features, but classifier expects 5"):
-            ArrayValidator.validate_feature_count(3, 5, "test_array")
+            ArrayValidator.validate_input_array(test_array, expected_features=5)
 
 
 class TestTreeValidator:
     """Test tree validation methods."""
 
-    def test_validate_tree_structure_none(self):
-        """Test validation fails for None tree."""
-        with pytest.raises(ValidationError, match="Tree structure cannot be None"):
-            TreeValidator.validate_tree_structure(None)
+    def test_validate_tree_hyperparameters(self):
+        """Test tree hyperparameter validation."""
+        # Test valid hyperparameters
+        TreeValidator.validate_tree_hyperparameters(
+            max_depth=5,
+            min_samples_split=2,
+            min_samples_leaf=1,
+            min_impurity_decrease=0.0,
+            validation_fraction=0.1
+        )
+
+        # Test invalid max_depth
+        with pytest.raises(ValidationError):
+            TreeValidator.validate_tree_hyperparameters(
+                max_depth=0,  # Invalid
+                min_samples_split=2,
+                min_samples_leaf=1,
+                min_impurity_decrease=0.0,
+                validation_fraction=0.1
+            )
 
     def test_validate_fitted_state_not_fitted(self):
         """Test validation fails for unfitted classifier."""
-        class MockClassifier:
-            _is_fitted = False
-
-        classifier = MockClassifier()
-        with pytest.raises(ValidationError, match="Classifier must be fitted"):
-            TreeValidator.validate_fitted_state(classifier)
+        with pytest.raises(ValidationError, match="Classifier must be fitted before predict"):
+            TreeValidator.validate_fitted_state(False, "predict")
 
     def test_validate_fitted_state_fitted(self):
         """Test validation passes for fitted classifier."""
-        class MockClassifier:
-            _is_fitted = True
-
-        classifier = MockClassifier()
-        # Should not raise
-        TreeValidator.validate_fitted_state(classifier)
+        # Should not raise when fitted
+        TreeValidator.validate_fitted_state(True, "predict")
 
 
 class TestEdgeCasesAndErrorHandling:
@@ -267,24 +286,32 @@ class TestEdgeCasesAndErrorHandling:
         """Test array validator with edge cases."""
         # Test empty array
         empty_array = np.array([]).reshape(0, 2)
-        result = ArrayValidator.validate_array_2d(empty_array, "test")
+        result = ArrayValidator.validate_input_array(empty_array)
         assert result.shape == (0, 2)
 
         # Test single row
         single_row = np.array([[1, 2]])
-        result = ArrayValidator.validate_array_2d(single_row, "test")
+        result = ArrayValidator.validate_input_array(single_row)
         assert result.shape == (1, 2)
 
     def test_sketch_validator_edge_cases(self):
         """Test sketch validator with edge cases."""
         # Test with additional keys (should be allowed)
         extra_keys_data = {
-            'positive': {'total': 'mock', 'extra_key': 'value'},
-            'negative': {'total': 'mock', 'extra_key': 'value'},
+            'positive': {
+                'total': 'mock',
+                'feature_1': 'mock_feature',
+                'extra_key': 'value'
+            },
+            'negative': {
+                'total': 'mock',
+                'feature_1': 'mock_feature',
+                'extra_key': 'value'
+            },
             'metadata': 'allowed'
         }
         # Should not raise
-        SketchDataValidator.validate_sketch_data_structure(extra_keys_data)
+        SketchDataValidator.validate_sketch_data(extra_keys_data)
 
         # Test feature mapping with non-sequential indices (should be allowed)
         non_sequential = {'feat_a': 5, 'feat_b': 1, 'feat_c': 10}

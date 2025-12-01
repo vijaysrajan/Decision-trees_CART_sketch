@@ -25,20 +25,36 @@ class TestComponentFactory:
 
     def test_create_criterion_invalid(self):
         """Test creating invalid criteria."""
-        with pytest.raises(ValueError, match="Unknown criterion"):
+        from theta_sketch_tree.validation_utils import ValidationError
+
+        with pytest.raises(ValidationError, match="Invalid criterion"):
             ComponentFactory.create_criterion('invalid_criterion')
 
     def test_create_split_finder_valid(self):
         """Test creating valid split finders."""
-        algorithms = ['intersection', 'ratio_based']
-        for algorithm in algorithms:
-            split_finder = ComponentFactory.create_split_finder(algorithm)
-            assert hasattr(split_finder, 'find_best_split')
+        # Create criterion first, then split finder
+        criterion = ComponentFactory.create_criterion('gini')
+        split_finder = ComponentFactory.create_split_finder(
+            criterion=criterion,
+            min_samples_leaf=1,
+            verbose=0
+        )
+        assert hasattr(split_finder, 'find_best_split')
+        assert split_finder.criterion == criterion
+        assert split_finder.min_samples_leaf == 1
 
     def test_create_split_finder_invalid(self):
         """Test creating invalid split finders."""
-        with pytest.raises(ValueError, match="Unknown split algorithm"):
-            ComponentFactory.create_split_finder('invalid_algorithm')
+        from theta_sketch_tree.validation_utils import ValidationError
+
+        criterion = ComponentFactory.create_criterion('gini')
+        # Test invalid min_samples_leaf
+        with pytest.raises(ValidationError):
+            ComponentFactory.create_split_finder(
+                criterion=criterion,
+                min_samples_leaf=0,  # Invalid
+                verbose=0
+            )
 
     def test_create_stopping_criteria_valid(self):
         """Test creating valid stopping criteria."""
@@ -47,7 +63,7 @@ class TestComponentFactory:
             min_samples_split=2,
             min_samples_leaf=1
         )
-        assert hasattr(criteria, 'should_stop')
+        assert hasattr(criteria, 'should_stop_splitting')
 
     def test_create_stopping_criteria_with_params(self):
         """Test creating stopping criteria with different parameters."""
@@ -103,7 +119,8 @@ class TestProtocolConformance:
         from theta_sketch_tree.split_finder import SplitFinder
 
         # Create with minimal parameters
-        split_finder = SplitFinder(criterion='gini', verbose=0)
+        criterion = ComponentFactory.create_criterion('gini')
+        split_finder = SplitFinder(criterion=criterion, min_samples_leaf=1, verbose=0)
 
         # Test required method exists
         assert callable(getattr(split_finder, 'find_best_split', None))
@@ -114,26 +131,33 @@ class TestFactoryErrorHandling:
 
     def test_factory_with_none_inputs(self):
         """Test factory behavior with None inputs."""
-        with pytest.raises((ValueError, TypeError)):
+        from theta_sketch_tree.validation_utils import ValidationError
+
+        with pytest.raises(ValidationError):
             ComponentFactory.create_criterion(None)
 
-        with pytest.raises((ValueError, TypeError)):
-            ComponentFactory.create_split_finder(None)
+        # Test split finder with invalid min_samples_leaf
+        criterion = ComponentFactory.create_criterion('gini')
+        with pytest.raises(ValidationError):
+            ComponentFactory.create_split_finder(criterion, min_samples_leaf=0)
 
     def test_factory_with_empty_string(self):
         """Test factory behavior with empty strings."""
-        with pytest.raises(ValueError):
+        from theta_sketch_tree.validation_utils import ValidationError
+
+        with pytest.raises(ValidationError):
             ComponentFactory.create_criterion('')
 
-        with pytest.raises(ValueError):
-            ComponentFactory.create_split_finder('')
+        # Test split finder with invalid criterion name
+        with pytest.raises(ValidationError):
+            invalid_criterion = ComponentFactory.create_criterion('invalid')  # This will fail
 
     def test_stopping_criteria_edge_cases(self):
         """Test stopping criteria with edge case values."""
         # Test with None values (should use defaults)
         criteria = ComponentFactory.create_stopping_criteria(
             max_depth=None,
-            min_samples_split=1,
+            min_samples_split=2,  # Must be >= 2
             min_samples_leaf=1
         )
         assert criteria.max_depth is None
@@ -153,32 +177,37 @@ class TestComponentIntegration:
     def test_criterion_and_split_finder_integration(self):
         """Test that criteria and split finders work together."""
         criterion = ComponentFactory.create_criterion('gini')
-        split_finder = ComponentFactory.create_split_finder('intersection')
+        split_finder = ComponentFactory.create_split_finder(
+            criterion=criterion,
+            min_samples_leaf=1
+        )
 
         # Both should be created successfully
         assert criterion is not None
         assert split_finder is not None
 
         # Split finder should be able to use criterion
-        # (This is tested more thoroughly in integration tests)
+        assert split_finder.criterion == criterion
 
     def test_all_component_combinations(self):
         """Test creating all valid component combinations."""
         criteria_names = ['gini', 'entropy', 'gain_ratio', 'binomial', 'chi_square']
-        split_algorithms = ['intersection', 'ratio_based']
 
         for criterion_name in criteria_names:
             criterion = ComponentFactory.create_criterion(criterion_name)
             assert criterion is not None
 
-            for algorithm in split_algorithms:
-                split_finder = ComponentFactory.create_split_finder(algorithm)
-                assert split_finder is not None
+            # Test split finder with this criterion
+            split_finder = ComponentFactory.create_split_finder(
+                criterion=criterion,
+                min_samples_leaf=1
+            )
+            assert split_finder is not None
 
-                # Test stopping criteria with different combinations
-                stopping = ComponentFactory.create_stopping_criteria(
-                    max_depth=3,
-                    min_samples_split=2,
-                    min_samples_leaf=1
-                )
-                assert stopping is not None
+            # Test stopping criteria with different combinations
+            stopping = ComponentFactory.create_stopping_criteria(
+                max_depth=3,
+                min_samples_split=2,
+                min_samples_leaf=1
+            )
+            assert stopping is not None
