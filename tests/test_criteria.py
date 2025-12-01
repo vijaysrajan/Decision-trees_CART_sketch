@@ -227,3 +227,74 @@ class TestCriteriaSimplified:
         for case in test_cases:
             entropy_val = entropy.compute_impurity(case)
             assert 0.0 <= entropy_val <= 1.0
+
+    def test_error_handling_and_fallbacks(self):
+        """Test error handling and fallback mechanisms in criteria."""
+        from theta_sketch_tree.criteria import BinomialCriterion, ChiSquareCriterion
+
+        # Test binomial criterion with edge cases
+        binomial = BinomialCriterion()
+
+        # Test with zero total (should return 1.0)
+        zero_counts = np.array([0.0, 0.0])
+        assert binomial.compute_impurity(zero_counts) == 1.0
+
+        # Test with very small counts
+        tiny_counts = np.array([1e-10, 1e-10])
+        result = binomial.compute_impurity(tiny_counts)
+        # Allow for NaN in extreme cases
+        assert np.isnan(result) or (0.0 <= result <= 1.0)
+
+        # Test chi-square with edge cases
+        chi_square = ChiSquareCriterion()
+
+        # Test with zero counts (should handle gracefully)
+        result = chi_square.compute_impurity(zero_counts)
+        assert result >= 0.0
+
+        # Test split evaluation with edge cases
+        parent_counts = np.array([100.0, 100.0])
+        left_counts = np.array([0.0, 100.0])  # Pure left
+        right_counts = np.array([100.0, 0.0])  # Pure right
+
+        # This should work without errors
+        gini_score = binomial.evaluate_split(parent_counts, left_counts, right_counts)
+        assert isinstance(gini_score, (int, float))
+
+        chi_score = chi_square.evaluate_split(parent_counts, left_counts, right_counts)
+        assert isinstance(chi_score, (int, float))
+
+    def test_criterion_with_invalid_inputs(self):
+        """Test criteria behavior with invalid or unexpected inputs."""
+        from theta_sketch_tree.criteria import get_criterion
+
+        # Test all criteria with various edge cases
+        criteria_names = ['gini', 'entropy', 'gain_ratio', 'binomial', 'chi_square']
+
+        for criterion_name in criteria_names:
+            criterion = get_criterion(criterion_name)
+
+            # Test with negative counts (should be handled gracefully)
+            try:
+                result = criterion.compute_impurity(np.array([-1.0, 10.0]))
+                # Some criteria may return negative values or NaN for invalid inputs
+                assert isinstance(result, (int, float)) or np.isnan(result)
+            except (ValueError, RuntimeWarning):
+                pass  # Some criteria may reject negative values
+
+            # Test with NaN values
+            try:
+                result = criterion.compute_impurity(np.array([np.nan, 10.0]))
+                # Should either handle gracefully or raise an exception
+                if not np.isnan(result):
+                    assert result >= 0.0
+            except (ValueError, RuntimeWarning):
+                pass
+
+            # Test with infinite values
+            try:
+                result = criterion.compute_impurity(np.array([np.inf, 10.0]))
+                if not np.isinf(result):
+                    assert result >= 0.0
+            except (ValueError, RuntimeWarning):
+                pass

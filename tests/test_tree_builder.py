@@ -315,8 +315,11 @@ class TestTreeBuilder:
             expected_idx = feature_mapping.get(tree.feature_name, -1)
             assert tree.feature_idx == expected_idx
 
-    def test_verbose_output(self, verbose_builder, simple_sketch_data, capsys):
+    def test_verbose_output(self, verbose_builder, simple_sketch_data, caplog):
         """Test verbose output during tree building."""
+        import logging
+        caplog.set_level(logging.DEBUG)
+
         parent_pos = MockThetaSketch(100)
         parent_neg = MockThetaSketch(100)
 
@@ -329,9 +332,10 @@ class TestTreeBuilder:
             depth=0
         )
 
-        # Check that verbose output was generated
-        captured = capsys.readouterr()
-        assert "Depth 0:" in captured.out
+        # Check that verbose output was generated in logs
+        log_messages = [record.message for record in caplog.records]
+        depth_messages = [msg for msg in log_messages if "Depth 0:" in msg]
+        assert len(depth_messages) > 0, f"Expected 'Depth 0:' in log messages: {log_messages}"
 
     def test_different_criteria(self, simple_sketch_data):
         """Test tree building with different criteria."""

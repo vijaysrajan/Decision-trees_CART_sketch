@@ -2,10 +2,11 @@
 Utility functions for ThetaSketchDecisionTreeClassifier.
 
 This module provides convenience methods and helper functions
-to reduce the main classifier class complexity.
+to reduce the main classifier class complexity with comprehensive
+validation and error handling.
 """
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Dict, Any, List
 
 if TYPE_CHECKING:
     from .classifier import ThetaSketchDecisionTreeClassifier
@@ -111,6 +112,124 @@ class ClassifierUtils:
         defaults.update(kwargs)
 
         return ThetaSketchDecisionTreeClassifier(**defaults)
+
+    @staticmethod
+    def get_feature_importance_dict(classifier: "ThetaSketchDecisionTreeClassifier") -> Dict[str, float]:
+        """
+        Get feature importances as a dictionary.
+
+        Parameters
+        ----------
+        classifier : ThetaSketchDecisionTreeClassifier
+            Fitted classifier instance
+
+        Returns
+        -------
+        dict
+            Mapping from feature names to importance scores
+        """
+        classifier._check_is_fitted()
+        return {
+            feature_name: float(importance)
+            for feature_name, importance in zip(
+                classifier.feature_names_in_,
+                classifier._feature_importances
+            )
+        }
+
+    @staticmethod
+    def get_top_features(
+        classifier: "ThetaSketchDecisionTreeClassifier",
+        top_k: int = 5
+    ) -> List[tuple]:
+        """
+        Get the top k most important features.
+
+        Parameters
+        ----------
+        classifier : ThetaSketchDecisionTreeClassifier
+            Fitted classifier instance
+        top_k : int, default=5
+            Number of top features to return
+
+        Returns
+        -------
+        list of tuple
+            List of (feature_name, importance) tuples sorted by importance
+        """
+        classifier._check_is_fitted()
+
+        # Create list of (feature_name, importance) tuples
+        feature_importance_pairs = [
+            (feature_name, importance)
+            for feature_name, importance in zip(
+                classifier.feature_names_in_,
+                classifier._feature_importances
+            )
+        ]
+
+        # Sort by importance (descending)
+        feature_importance_pairs.sort(key=lambda x: x[1], reverse=True)
+
+        # Return top k
+        return feature_importance_pairs[:top_k]
+
+    @staticmethod
+    def save_model(
+        classifier: "ThetaSketchDecisionTreeClassifier",
+        filepath: str,
+        include_sketches: bool = False
+    ) -> None:
+        """
+        Save the trained model to disk.
+
+        Parameters
+        ----------
+        classifier : ThetaSketchDecisionTreeClassifier
+            Fitted classifier instance
+        filepath : str
+            Path to save the model
+        include_sketches : bool, default=False
+            Whether to include sketch data in save
+        """
+        from .model_persistence import ModelPersistence
+        ModelPersistence.save_model(classifier, filepath, include_sketches)
+
+    @staticmethod
+    def load_model(filepath: str) -> "ThetaSketchDecisionTreeClassifier":
+        """
+        Load a trained model from disk.
+
+        Parameters
+        ----------
+        filepath : str
+            Path to load the model from
+
+        Returns
+        -------
+        classifier : ThetaSketchDecisionTreeClassifier
+            Loaded classifier instance
+        """
+        from .model_persistence import ModelPersistence
+        return ModelPersistence.load_model(filepath)
+
+    @staticmethod
+    def get_model_info(classifier: "ThetaSketchDecisionTreeClassifier") -> Dict[str, Any]:
+        """
+        Get comprehensive information about the fitted model.
+
+        Parameters
+        ----------
+        classifier : ThetaSketchDecisionTreeClassifier
+            Fitted classifier instance
+
+        Returns
+        -------
+        dict
+            Model information dictionary
+        """
+        from .model_persistence import ModelPersistence
+        return ModelPersistence.get_model_info(classifier)
 
 
 # Convenience functions for backward compatibility

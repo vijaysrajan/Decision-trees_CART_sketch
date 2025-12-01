@@ -16,7 +16,6 @@ from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 from .tree_structure import TreeNode
-from .model_persistence import ModelPersistence
 from .feature_importance import compute_feature_importances
 from .tree_traverser import TreeTraverser
 from .logging_utils import TreeLogger

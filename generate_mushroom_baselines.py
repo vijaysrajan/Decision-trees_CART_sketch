@@ -73,45 +73,31 @@ def generate_mushroom_baselines():
             "name": "default_gini",
             "criterion": "gini",
             "max_depth": 5,
-            "tree_builder": "intersection",
             "description": "Default Gini criterion, depth 5"
         },
         {
             "name": "entropy_shallow",
             "criterion": "entropy",
             "max_depth": 3,
-            "tree_builder": "intersection",
             "description": "Entropy criterion, shallow tree (depth 3)"
         },
         {
             "name": "gain_ratio_medium",
             "criterion": "gain_ratio",
             "max_depth": 7,
-            "tree_builder": "intersection",
             "description": "Gain ratio criterion, medium depth"
         },
         {
             "name": "binomial_deep",
             "criterion": "binomial",
             "max_depth": 10,
-            "tree_builder": "intersection",
             "description": "Binomial criterion, deeper tree"
         },
         {
             "name": "chi_square_default",
             "criterion": "chi_square",
             "max_depth": 5,
-            "tree_builder": "intersection",
             "description": "Chi-square criterion, default depth"
-        },
-
-        # Different tree builders (if available)
-        {
-            "name": "gini_ratio_based",
-            "criterion": "gini",
-            "max_depth": 5,
-            "tree_builder": "ratio_based",
-            "description": "Gini with ratio-based tree builder"
         },
 
         # Pruning combinations
@@ -119,7 +105,6 @@ def generate_mushroom_baselines():
             "name": "gini_cost_complexity",
             "criterion": "gini",
             "max_depth": 8,
-            "tree_builder": "intersection",
             "pruning": "cost_complexity",
             "description": "Gini with cost-complexity pruning"
         },
@@ -127,7 +112,6 @@ def generate_mushroom_baselines():
             "name": "entropy_validation_pruning",
             "criterion": "entropy",
             "max_depth": 10,
-            "tree_builder": "intersection",
             "pruning": "validation",
             "description": "Entropy with validation pruning"
         },
@@ -137,14 +121,12 @@ def generate_mushroom_baselines():
             "name": "very_shallow",
             "criterion": "gini",
             "max_depth": 1,
-            "tree_builder": "intersection",
             "description": "Very shallow tree (depth 1)"
         },
         {
             "name": "min_samples_high",
             "criterion": "gini",
             "max_depth": 5,
-            "tree_builder": "intersection",
             "min_samples_split": 100,
             "min_samples_leaf": 50,
             "description": "High minimum samples requirements"

@@ -2,7 +2,7 @@
 Feature importance calculation for theta sketch decision trees.
 
 This module provides clean separation of feature importance logic
-from the main classifier class.
+from the main classifier class with comprehensive validation and logging.
 """
 
 from typing import List
@@ -10,6 +10,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .tree_structure import TreeNode
+from .validation_utils import ValidationError
+from .logging_utils import TreeLogger
 
 
 class FeatureImportanceCalculator:
@@ -25,7 +27,8 @@ class FeatureImportanceCalculator:
     def compute_importances(
         tree_root: TreeNode,
         feature_names: NDArray,
-        n_features: int
+        n_features: int,
+        verbose: int = 0
     ) -> NDArray:
         """
         Compute feature importances from a fitted tree.
@@ -38,17 +41,36 @@ class FeatureImportanceCalculator:
             Array of feature names
         n_features : int
             Number of features
+        verbose : int, optional
+            Verbosity level for logging
 
         Returns
         -------
         importances : ndarray
             Feature importance scores normalized to sum to 1.0
+
+        Raises
+        ------
+        ValidationError
+            If inputs are invalid
         """
+        # Validate inputs
+        if tree_root is None:
+            raise ValidationError("tree_root cannot be None")
+        if n_features <= 0:
+            raise ValidationError(f"n_features must be positive, got {n_features}")
+        if len(feature_names) != n_features:
+            raise ValidationError(f"feature_names length ({len(feature_names)}) != n_features ({n_features})")
+
+        logger = TreeLogger("FeatureImportance", verbose)
+        logger.debug(f"Computing feature importances for {n_features} features")
+
         # Initialize importance array
         importances = np.zeros(n_features)
 
         # Get total samples at root for normalization
         total_samples = tree_root.n_samples
+        logger.debug(f"Total samples at root: {total_samples}")
 
         # Recursively compute importances
         FeatureImportanceCalculator._compute_node_importance(
@@ -59,9 +81,11 @@ class FeatureImportanceCalculator:
         total_importance = np.sum(importances)
         if total_importance > 0:
             importances = importances / total_importance
+            logger.debug(f"Normalized importances, total: {total_importance:.6f}")
         else:
             # If no splits (single node tree), all features have equal importance
             importances = np.ones(n_features) / n_features
+            logger.debug("No splits found, using uniform feature importance")
 
         return importances
 

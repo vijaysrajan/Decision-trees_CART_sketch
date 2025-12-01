@@ -96,10 +96,10 @@ class TestIntegration:
         clf = ThetaSketchDecisionTreeClassifier()
         X_test = np.array([[1, 0], [0, 1]])
 
-        with pytest.raises(ValueError, match="must be fitted before making predictions"):
+        with pytest.raises(ValueError, match="Classifier must be fitted before"):
             clf.predict(X_test)
 
-        with pytest.raises(ValueError, match="must be fitted before making predictions"):
+        with pytest.raises(ValueError, match="Classifier must be fitted before"):
             clf.predict_proba(X_test)
 
     def test_full_pipeline_with_mock_sketches(self, sample_sketch_data, feature_mapping):
@@ -222,10 +222,10 @@ class TestIntegration:
         clf = ThetaSketchDecisionTreeClassifier()
 
         # Test invalid sketch_data structure
-        with pytest.raises(ValueError, match="must contain 'positive' key"):
+        with pytest.raises(ValueError, match="sketch_data must contain 'positive' key"):
             clf.fit({}, feature_mapping)
 
-        with pytest.raises(ValueError, match="must contain 'negative' key"):
+        with pytest.raises(ValueError, match="sketch_data must contain 'negative' key"):
             clf.fit({'positive': {}}, feature_mapping)
 
         with pytest.raises(ValueError, match="must contain 'total' key"):
@@ -242,12 +242,12 @@ class TestIntegration:
 
         # Test wrong number of features
         X_wrong_features = np.array([[1, 0, 1]])  # 3 features instead of 2
-        with pytest.raises(ValueError, match="has 3 features, but classifier was fitted with 2"):
+        with pytest.raises(ValueError, match="Input has 3 features, but classifier expects 2"):
             clf.predict(X_wrong_features)
 
         # Test wrong dimensions
         X_wrong_dims = np.array([1, 0])  # 1D instead of 2D
-        with pytest.raises(ValueError, match="X must be 2D array"):
+        with pytest.raises(ValueError, match="Input must be 2D array"):
             clf.predict(X_wrong_dims)
 
     def test_different_criteria(self, sample_sketch_data, feature_mapping):

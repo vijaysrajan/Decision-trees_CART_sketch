@@ -83,7 +83,9 @@ def validation_prune(tree_root: TreeNode, X_val: Optional[NDArray], y_val: Optio
             # Test accuracy
             new_acc = np.mean(traverser.predict(X_val) == y_val)
 
-            if new_acc >= current_acc:
+            # Allow small decrease in accuracy (tolerance = 2%)
+            tolerance = 0.02
+            if new_acc >= (current_acc - tolerance):
                 improved = True
                 break
             else:
@@ -93,7 +95,7 @@ def validation_prune(tree_root: TreeNode, X_val: Optional[NDArray], y_val: Optio
     return tree_root
 
 
-def cost_complexity_prune(tree_root: TreeNode, min_impurity_decrease: float = 0.0) -> TreeNode:
+def cost_complexity_prune(tree_root: TreeNode, min_impurity_decrease: float = 0.005) -> TreeNode:
     """Cost-complexity pruning based on impurity decrease."""
     def prune_recursive(node):
         if node.is_leaf:
@@ -166,18 +168,43 @@ def reduced_error_prune(tree_root: TreeNode, X_val: Optional[NDArray], y_val: Op
     return tree_root
 
 
-def min_impurity_prune(tree_root: TreeNode, min_impurity_decrease: float = 0.0) -> TreeNode:
-    """Min impurity decrease pruning."""
+def min_impurity_prune(tree_root: TreeNode, min_impurity_decrease: float = 0.01) -> TreeNode:
+    """
+    Min impurity decrease pruning.
+
+    Prunes nodes where the impurity decrease from splitting is below threshold.
+    More aggressive default threshold for better tree compression.
+    """
+    def calculate_impurity_decrease(node):
+        """Calculate weighted impurity decrease for this split."""
+        if node.is_leaf or not hasattr(node, 'left') or not hasattr(node, 'right'):
+            return 0.0
+
+        total_samples = node.n_samples
+        left_samples = node.left.n_samples
+        right_samples = node.right.n_samples
+
+        # Weighted impurity decrease
+        left_weight = left_samples / total_samples
+        right_weight = right_samples / total_samples
+        weighted_child_impurity = (left_weight * node.left.impurity +
+                                 right_weight * node.right.impurity)
+
+        return node.impurity - weighted_child_impurity
+
     def prune_recursive(node):
         if node.is_leaf:
             return
 
-        # Recurse first
+        # Recurse first (post-order traversal)
         prune_recursive(node.left)
         prune_recursive(node.right)
 
-        # Check if should prune based on impurity
-        if (hasattr(node, 'impurity') and node.impurity < min_impurity_decrease):
+        # Calculate impurity decrease for this split
+        impurity_decrease = calculate_impurity_decrease(node)
+
+        # Prune if impurity decrease is below threshold
+        if impurity_decrease <= min_impurity_decrease:
             node.is_leaf = True
             node.prediction = int(np.argmax(node.class_counts))
             node.left = node.right = None
