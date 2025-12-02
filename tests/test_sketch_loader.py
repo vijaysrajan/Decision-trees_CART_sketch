@@ -333,3 +333,151 @@ class TestSketchLoader:
 
         with pytest.raises(ValueError, match="Invalid CSV format"):
             loader.load(positive_csv=str(csv_file), negative_csv=str(csv_file))
+
+    def test_hex_encoding(self, tmp_path, sample_sketches):
+        """Test hex encoding support in sketch deserialization."""
+        csv_file = tmp_path / "hex_encoded.csv"
+
+        # Use hex encoding instead of base64
+        sketch_hex = sample_sketches["yes_total"].compact().serialize().hex()
+
+        with open(csv_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["identifier", "sketch"])
+            writer.writerow(["total", sketch_hex])
+
+        loader = SketchLoader(encoding="hex")
+        sketch_data = loader.load(
+            positive_csv=str(csv_file), negative_csv=str(csv_file)
+        )
+
+        # Verify the sketch was properly deserialized
+        assert sketch_data["positive"]["total"].get_estimate() > 0
+
+    def test_unsupported_encoding(self, tmp_path, sample_sketches):
+        """Test error when unsupported encoding is used."""
+        csv_file = tmp_path / "test.csv"
+
+        with open(csv_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["identifier", "sketch"])
+            writer.writerow(["total", "dummy_data"])
+
+        loader = SketchLoader(encoding="unsupported")
+
+        with pytest.raises(ValueError, match="Unsupported encoding"):
+            loader.load(positive_csv=str(csv_file), negative_csv=str(csv_file))
+
+    def test_malformed_csv_rows(self, tmp_path, sample_sketches):
+        """Test handling of empty and malformed CSV rows."""
+        csv_file = tmp_path / "malformed.csv"
+
+        with open(csv_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
+            writer.writerow([
+                "total",
+                base64.b64encode(sample_sketches["yes_total"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["yes_total"].compact().serialize()).decode(),
+            ])
+            # Empty row
+            writer.writerow([])
+            # Malformed row (wrong number of columns)
+            writer.writerow(["incomplete"])
+            # Another valid row
+            writer.writerow([
+                "age>30",
+                base64.b64encode(sample_sketches["yes_age_present"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["yes_age_absent"].compact().serialize()).decode(),
+            ])
+
+        loader = SketchLoader()
+        sketch_data = loader.load(
+            positive_csv=str(csv_file), negative_csv=str(csv_file)
+        )
+
+        # Should still work despite malformed rows
+        assert "total" in sketch_data["positive"]
+        assert "age>30" in sketch_data["positive"]
+
+    def test_missing_total_in_negative_csv_mode2(self, tmp_path, sample_sketches):
+        """Test error when 'total' is missing in negative CSV (Mode 2)."""
+        # Create positive CSV with 'total'
+        pos_csv = tmp_path / "pos_with_total.csv"
+        with open(pos_csv, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
+            writer.writerow([
+                "total",
+                base64.b64encode(sample_sketches["yes_total"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["yes_total"].compact().serialize()).decode(),
+            ])
+
+        # Create negative CSV without 'total'
+        neg_csv = tmp_path / "neg_without_total.csv"
+        with open(neg_csv, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
+            writer.writerow([
+                "age>30",  # Only feature, no 'total'
+                base64.b64encode(sample_sketches["no_age_present"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["no_age_absent"].compact().serialize()).decode(),
+            ])
+
+        loader = SketchLoader()
+        with pytest.raises(ValueError, match="'total' key not found in negative CSV"):
+            loader.load(positive_csv=str(pos_csv), negative_csv=str(neg_csv))
+
+    def test_missing_total_in_mode1_positive(self, tmp_path, sample_sketches):
+        """Test error when 'total' is missing for positive target in Mode 1."""
+        csv_file = tmp_path / "mode1_missing_pos_total.csv"
+
+        with open(csv_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
+            # Only negative total, missing positive total
+            writer.writerow([
+                "target_no_total",
+                base64.b64encode(sample_sketches["no_total"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["no_total"].compact().serialize()).decode(),
+            ])
+            writer.writerow([
+                "target_yes_age>30",  # Feature for positive, but no total
+                base64.b64encode(sample_sketches["yes_age_present"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["yes_age_absent"].compact().serialize()).decode(),
+            ])
+
+        loader = SketchLoader()
+        with pytest.raises(ValueError, match="'total' key not found for target 'target_yes'"):
+            loader.load(
+                csv_path=str(csv_file),
+                target_positive="target_yes",
+                target_negative="target_no"
+            )
+
+    def test_missing_total_in_mode1_negative(self, tmp_path, sample_sketches):
+        """Test error when 'total' is missing for negative target in Mode 1."""
+        csv_file = tmp_path / "mode1_missing_neg_total.csv"
+
+        with open(csv_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["identifier", "sketch_feature_present", "sketch_feature_absent"])
+            # Only positive total, missing negative total
+            writer.writerow([
+                "target_yes_total",
+                base64.b64encode(sample_sketches["yes_total"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["yes_total"].compact().serialize()).decode(),
+            ])
+            writer.writerow([
+                "target_no_age>30",  # Feature for negative, but no total
+                base64.b64encode(sample_sketches["no_age_present"].compact().serialize()).decode(),
+                base64.b64encode(sample_sketches["no_age_absent"].compact().serialize()).decode(),
+            ])
+
+        loader = SketchLoader()
+        with pytest.raises(ValueError, match="'total' key not found for target 'target_no'"):
+            loader.load(
+                csv_path=str(csv_file),
+                target_positive="target_yes",
+                target_negative="target_no"
+            )

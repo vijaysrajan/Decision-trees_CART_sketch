@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from .classifier import ThetaSketchDecisionTreeClassifier
 
 from .tree_structure import TreeNode
+from .logging_utils import TreeLogger
 
 
 class ModelPersistence:
@@ -27,6 +28,8 @@ class ModelPersistence:
     - Managing file I/O operations
     - Validating model file formats
     """
+
+    _logger = TreeLogger(__name__)
 
     @staticmethod
     def save_model(classifier: 'ThetaSketchDecisionTreeClassifier',
@@ -83,19 +86,19 @@ class ModelPersistence:
 
         # Optionally include sketch data (can be very large)
         if include_sketches:
-            print("⚠️  Sketch serialization not yet implemented (DataSketches objects cannot be pickled)")
-            print("   Model will be saved without sketch data (prediction-only mode)")
+            ModelPersistence._logger.warning("⚠️  Sketch serialization not yet implemented (DataSketches objects cannot be pickled)")
+            ModelPersistence._logger.warning("   Model will be saved without sketch data (prediction-only mode)")
             # TODO: Implement sketch serialization using DataSketches serialize/deserialize methods
 
         # Save to file
         try:
             with open(filepath, 'wb') as f:
                 pickle.dump(model_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-            print(f"Model saved successfully to: {filepath}")
+            ModelPersistence._logger.info(f"Model saved successfully to: {filepath}")
 
             # Print file size info
             file_size = os.path.getsize(filepath) / (1024 * 1024)  # MB
-            print(f"File size: {file_size:.2f} MB")
+            ModelPersistence._logger.info(f"File size: {file_size:.2f} MB")
 
         except Exception as e:
             raise IOError(f"Failed to save model to {filepath}: {e}")
@@ -136,7 +139,7 @@ class ModelPersistence:
             if not isinstance(model_data, dict) or 'version' not in model_data:
                 raise ValueError("Invalid model file format")
 
-            print(f"Loading model version {model_data['version']} from: {filepath}")
+            ModelPersistence._logger.info(f"Loading model version {model_data['version']} from: {filepath}")
 
             # Create new classifier instance with saved hyperparameters
             clf = ThetaSketchDecisionTreeClassifier(**model_data['hyperparameters'])
@@ -159,12 +162,12 @@ class ModelPersistence:
             # Restore sketch data if available
             if 'sketch_data' in model_data:
                 clf._sketch_dict = model_data['sketch_data']
-                print("✅ Sketch data loaded (model can be retrained)")
+                ModelPersistence._logger.info("✅ Sketch data loaded (model can be retrained)")
             else:
                 clf._sketch_dict = None
-                print("⚠️  Sketch data not available (model is prediction-only)")
+                ModelPersistence._logger.warning("⚠️  Sketch data not available (model is prediction-only)")
 
-            print("✅ Model loaded successfully")
+            ModelPersistence._logger.info("✅ Model loaded successfully")
             return clf
 
         except Exception as e:

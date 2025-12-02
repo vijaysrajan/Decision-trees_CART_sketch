@@ -8,6 +8,7 @@ from the main tree builder class.
 from typing import Dict, Set, List, Any, Optional, Tuple, NamedTuple
 import numpy as np
 from numpy.typing import NDArray
+from .logging_utils import TreeLogger
 
 
 class SplitResult(NamedTuple):
@@ -56,6 +57,7 @@ class SplitFinder:
         self.criterion = criterion
         self.min_samples_leaf = min_samples_leaf
         self.verbose = verbose
+        self.logger = TreeLogger(__name__)
 
     def find_best_split(
         self,
@@ -102,7 +104,7 @@ class SplitFinder:
 
         if not available_features:
             if self.verbose >= 2:
-                print("No features available for splitting")
+                self.logger.warning("No features available for splitting")
             return None
 
         # Evaluate each feature
@@ -121,7 +123,7 @@ class SplitFinder:
                 best_split = split_result
 
                 if self.verbose >= 3:
-                    print(f"  New best split: {feature_name} (score: {best_score:.4f})")
+                    self.logger.debug(f"  New best split: {feature_name} (score: {best_score:.4f})")
 
         return best_split
 
@@ -195,7 +197,7 @@ class SplitFinder:
             feature_absent_neg = sketch_dict['negative'][feature_name][1]
         except (KeyError, IndexError):
             if self.verbose >= 3:
-                print(f"  Skipping {feature_name}: invalid sketch structure")
+                self.logger.debug(f"  Skipping {feature_name}: invalid sketch structure")
             return None
 
         # Compute child sketches using intersection (∩)
@@ -214,7 +216,7 @@ class SplitFinder:
         # Skip if either child is empty
         if (left_pos + left_neg == 0) or (right_pos + right_neg == 0):
             if self.verbose >= 3:
-                print(f"  Skipping {feature_name}: empty child node")
+                self.logger.debug(f"  Skipping {feature_name}: empty child node")
             return None
 
         # Calculate class counts
@@ -224,7 +226,7 @@ class SplitFinder:
         # Check minimum samples constraint
         if not self._validate_min_samples(left_counts, right_counts):
             if self.verbose >= 3:
-                print(f"  Skipping {feature_name}: min_samples_leaf constraint")
+                self.logger.debug(f"  Skipping {feature_name}: min_samples_leaf constraint")
             return None
 
         # Evaluate split using criterion (lower is better)
