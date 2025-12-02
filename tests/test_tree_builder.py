@@ -550,3 +550,187 @@ class TestTreeBuilderIntegration:
         if not tree.is_leaf:
             assert tree.feature_name in ['age>30', 'income>50k']
             assert tree.feature_idx in [0, 1]
+
+
+class TestTreeBuilderUtilityMethods:
+    """Test static utility methods in TreeBuilder."""
+
+    def test_calculate_tree_depth_single_node(self):
+        """Test depth calculation for single leaf node."""
+        leaf = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        leaf.is_leaf = True
+
+        depth = TreeBuilder.calculate_tree_depth(leaf)
+        assert depth == 0
+
+    def test_calculate_tree_depth_two_levels(self):
+        """Test depth calculation for two-level tree."""
+        root = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        root.is_leaf = False
+
+        left = TreeNode(depth=1, n_samples=50, class_counts=np.array([30, 20]), impurity=0.48)
+        left.is_leaf = True
+
+        right = TreeNode(depth=1, n_samples=50, class_counts=np.array([20, 30]), impurity=0.48)
+        right.is_leaf = True
+
+        root.left = left
+        root.right = right
+
+        depth = TreeBuilder.calculate_tree_depth(root)
+        assert depth == 1  # Root is depth 0, children are depth 1, so max depth is 1
+
+    def test_calculate_tree_depth_unbalanced(self):
+        """Test depth calculation for unbalanced tree."""
+        root = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        root.is_leaf = False
+
+        # Left side: single leaf
+        left = TreeNode(depth=1, n_samples=30, class_counts=np.array([25, 5]), impurity=0.28)
+        left.is_leaf = True
+
+        # Right side: has another level
+        right = TreeNode(depth=1, n_samples=70, class_counts=np.array([25, 45]), impurity=0.45)
+        right.is_leaf = False
+
+        right_left = TreeNode(depth=2, n_samples=35, class_counts=np.array([10, 25]), impurity=0.32)
+        right_left.is_leaf = True
+
+        right_right = TreeNode(depth=2, n_samples=35, class_counts=np.array([15, 20]), impurity=0.49)
+        right_right.is_leaf = True
+
+        root.left = left
+        root.right = right
+        right.left = right_left
+        right.right = right_right
+
+        depth = TreeBuilder.calculate_tree_depth(root)
+        assert depth == 2  # Root -> right -> right_left/right_right
+
+    def test_calculate_tree_depth_none_node(self):
+        """Test depth calculation for None node."""
+        depth = TreeBuilder.calculate_tree_depth(None)
+        assert depth == 0
+
+    def test_count_tree_nodes_single_node(self):
+        """Test node counting for single node."""
+        leaf = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        leaf.is_leaf = True
+
+        count = TreeBuilder.count_tree_nodes(leaf)
+        assert count == 1
+
+    def test_count_tree_nodes_three_nodes(self):
+        """Test node counting for three-node tree."""
+        root = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        root.is_leaf = False
+
+        left = TreeNode(depth=1, n_samples=50, class_counts=np.array([30, 20]), impurity=0.48)
+        left.is_leaf = True
+
+        right = TreeNode(depth=1, n_samples=50, class_counts=np.array([20, 30]), impurity=0.48)
+        right.is_leaf = True
+
+        root.left = left
+        root.right = right
+
+        count = TreeBuilder.count_tree_nodes(root)
+        assert count == 3
+
+    def test_count_tree_nodes_complex_tree(self):
+        """Test node counting for complex tree."""
+        # Create tree with 5 nodes
+        root = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        root.is_leaf = False
+
+        left = TreeNode(depth=1, n_samples=30, class_counts=np.array([25, 5]), impurity=0.28)
+        left.is_leaf = True
+
+        right = TreeNode(depth=1, n_samples=70, class_counts=np.array([25, 45]), impurity=0.45)
+        right.is_leaf = False
+
+        right_left = TreeNode(depth=2, n_samples=35, class_counts=np.array([10, 25]), impurity=0.32)
+        right_left.is_leaf = True
+
+        right_right = TreeNode(depth=2, n_samples=35, class_counts=np.array([15, 20]), impurity=0.49)
+        right_right.is_leaf = True
+
+        root.left = left
+        root.right = right
+        right.left = right_left
+        right.right = right_right
+
+        count = TreeBuilder.count_tree_nodes(root)
+        assert count == 5
+
+    def test_count_tree_nodes_none(self):
+        """Test node counting for None tree."""
+        count = TreeBuilder.count_tree_nodes(None)
+        assert count == 0
+
+    def test_count_tree_leaves_single_leaf(self):
+        """Test leaf counting for single leaf."""
+        leaf = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        leaf.is_leaf = True
+
+        count = TreeBuilder.count_tree_leaves(leaf)
+        assert count == 1
+
+    def test_count_tree_leaves_two_leaves(self):
+        """Test leaf counting for tree with two leaves."""
+        root = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        root.is_leaf = False
+
+        left = TreeNode(depth=1, n_samples=50, class_counts=np.array([30, 20]), impurity=0.48)
+        left.is_leaf = True
+
+        right = TreeNode(depth=1, n_samples=50, class_counts=np.array([20, 30]), impurity=0.48)
+        right.is_leaf = True
+
+        root.left = left
+        root.right = right
+
+        count = TreeBuilder.count_tree_leaves(root)
+        assert count == 2
+
+    def test_count_tree_leaves_unbalanced_tree(self):
+        """Test leaf counting for unbalanced tree."""
+        root = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        root.is_leaf = False
+
+        # Left side: single leaf
+        left = TreeNode(depth=1, n_samples=30, class_counts=np.array([25, 5]), impurity=0.28)
+        left.is_leaf = True
+
+        # Right side: internal node with 2 leaves
+        right = TreeNode(depth=1, n_samples=70, class_counts=np.array([25, 45]), impurity=0.45)
+        right.is_leaf = False
+
+        right_left = TreeNode(depth=2, n_samples=35, class_counts=np.array([10, 25]), impurity=0.32)
+        right_left.is_leaf = True
+
+        right_right = TreeNode(depth=2, n_samples=35, class_counts=np.array([15, 20]), impurity=0.49)
+        right_right.is_leaf = True
+
+        root.left = left
+        root.right = right
+        right.left = right_left
+        right.right = right_right
+
+        count = TreeBuilder.count_tree_leaves(root)
+        assert count == 3  # left, right_left, right_right
+
+    def test_count_tree_leaves_none(self):
+        """Test leaf counting for None tree."""
+        count = TreeBuilder.count_tree_leaves(None)
+        assert count == 0
+
+    def test_count_tree_leaves_no_leaves(self):
+        """Test leaf counting for tree with no explicitly marked leaves."""
+        # Create tree where nodes exist but none are marked as leaves
+        root = TreeNode(depth=0, n_samples=100, class_counts=np.array([50, 50]), impurity=0.5)
+        root.is_leaf = False
+
+        # This should return 0 since no nodes are marked as leaves
+        count = TreeBuilder.count_tree_leaves(root)
+        assert count == 0

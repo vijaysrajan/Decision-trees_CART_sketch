@@ -104,7 +104,7 @@ class SplitFinder:
 
         if not available_features:
             if self.verbose >= 2:
-                self.logger.warning("No features available for splitting")
+                self.logger.info("No features available for splitting", level=2)
             return None
 
         # Evaluate each feature

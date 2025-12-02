@@ -86,8 +86,8 @@ class ModelPersistence:
 
         # Optionally include sketch data (can be very large)
         if include_sketches:
-            ModelPersistence._logger.warning("⚠️  Sketch serialization not yet implemented (DataSketches objects cannot be pickled)")
-            ModelPersistence._logger.warning("   Model will be saved without sketch data (prediction-only mode)")
+            ModelPersistence._logger.logger.warning("⚠️  Sketch serialization not yet implemented (DataSketches objects cannot be pickled)")
+            ModelPersistence._logger.logger.warning("   Model will be saved without sketch data (prediction-only mode)")
             # TODO: Implement sketch serialization using DataSketches serialize/deserialize methods
 
         # Save to file
@@ -165,11 +165,14 @@ class ModelPersistence:
                 ModelPersistence._logger.info("✅ Sketch data loaded (model can be retrained)")
             else:
                 clf._sketch_dict = None
-                ModelPersistence._logger.warning("⚠️  Sketch data not available (model is prediction-only)")
+                ModelPersistence._logger.info("⚠️  Sketch data not available (model is prediction-only)", level=1)
 
             ModelPersistence._logger.info("✅ Model loaded successfully")
             return clf
 
+        except ValueError:
+            # Re-raise validation errors as-is for tests
+            raise
         except Exception as e:
             raise IOError(f"Failed to load model from {filepath}: {e}")
 
