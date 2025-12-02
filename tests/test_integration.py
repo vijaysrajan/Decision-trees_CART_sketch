@@ -6,6 +6,9 @@ Tests the full workflow from sketch data loading to prediction.
 
 import pytest
 import numpy as np
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 from pathlib import Path
 import sys
 

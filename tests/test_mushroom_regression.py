@@ -8,6 +8,9 @@ with the baseline reference outputs generated before code cleanup.
 import json
 import pytest
 import numpy as np
+
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
 from numpy.testing import assert_allclose
 from tests.test_binary_classification_sketches import (
     load_mushroom_dataset,

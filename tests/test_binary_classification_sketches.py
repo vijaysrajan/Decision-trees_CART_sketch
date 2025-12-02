@@ -11,6 +11,9 @@ import pytest
 import json
 from typing import Dict, Any, Tuple
 
+# Mark all tests in this module as integration tests
+pytestmark = pytest.mark.integration
+
 # Global configuration parameters
 DEFAULT_LG_K = 16           # Log-base-2 of nominal entries (65,536 entries)
 DEFAULT_MIN_SAMPLES_SPLIT = 2   # Minimum samples required to split a node
