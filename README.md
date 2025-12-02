@@ -2,7 +2,7 @@
 
 A production-ready CART Decision Tree that trains on theta sketches but performs inference on raw tabular data. Designed for large-scale machine learning with privacy-preserving data structures and full sklearn compatibility.
 
-**Status**: ✅ **Production Ready** - 155/156 tests passing with 89% coverage
+**Status**: ✅ **Production Ready** - 420 tests passing with 97% coverage
 
 ## Quick Start
 
@@ -32,7 +32,7 @@ print(f"Top features: {clf.get_top_features(top_k=3)}")
 
 - **🎯 Sketch-based Training**: Memory-efficient learning from theta sketches
 - **📊 Standard Inference**: sklearn-compatible predictions on raw binary data
-- **🌳 Advanced Pruning**: 4 pruning methods (cost-complexity, validation, min-impurity)
+- **🌳 Advanced Pruning**: 4 pruning methods (cost-complexity, validation, reduced-error, min-impurity)
 - **⚖️ Multiple Criteria**: Gini, Entropy, Gain Ratio, Binomial, Chi-Square
 - **💾 Model Persistence**: Save/load trained models with hyperparameters
 - **🔧 Missing Values**: Robust handling with majority-vote strategy
@@ -81,7 +81,7 @@ clf = ThetaSketchDecisionTreeClassifier(
 | Training Speed | ~1.5s for 100 features |
 | Prediction Throughput | >400K samples/sec |
 | Memory Usage | Linear scaling |
-| Test Coverage | 89% (155/156 tests) |
+| Test Coverage | 97% (420 tests) |
 
 ## Documentation
 
