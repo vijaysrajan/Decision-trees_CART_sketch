@@ -41,6 +41,46 @@ class TestMushroomRegression:
         except FileNotFoundError:
             pytest.skip("Baseline outputs not found. Run generate_mushroom_baselines.py first.")
 
+    def _compare_tree_structures_recursively(self, current_node, baseline_node, path):
+        """
+        Recursively compare two tree structures for exact match.
+
+        This addresses the critical flaw where test_core_criteria_regression only
+        compared top-level metadata but ignored the actual tree structure.
+        """
+        # Compare node metadata
+        assert current_node["is_leaf"] == baseline_node["is_leaf"], f"Leaf status mismatch at {path}"
+        assert current_node["depth"] == baseline_node["depth"], f"Depth mismatch at {path}"
+
+        # Compare sample counts (allow small float differences)
+        current_samples = current_node["n_samples"]
+        baseline_samples = baseline_node["n_samples"]
+        assert abs(current_samples - baseline_samples) < 1.0, f"Sample count mismatch at {path}: {current_samples} vs {baseline_samples}"
+
+        # Compare class counts
+        current_counts = current_node["class_counts"]
+        baseline_counts = baseline_node["class_counts"]
+        assert len(current_counts) == len(baseline_counts), f"Class count length mismatch at {path}"
+        for i, (curr, base) in enumerate(zip(current_counts, baseline_counts)):
+            assert abs(curr - base) < 1.0, f"Class count {i} mismatch at {path}: {curr} vs {base}"
+
+        # Compare impurity (allow small numerical differences)
+        current_impurity = current_node["impurity"]
+        baseline_impurity = baseline_node["impurity"]
+        assert abs(current_impurity - baseline_impurity) < 1e-6, f"Impurity mismatch at {path}: {current_impurity} vs {baseline_impurity}"
+
+        # If it's a split node, compare split details and recurse to children
+        if not current_node["is_leaf"]:
+            assert current_node["feature_idx"] == baseline_node["feature_idx"], f"Feature index mismatch at {path}"
+            assert current_node["feature_name"] == baseline_node["feature_name"], f"Feature name mismatch at {path}"
+
+            # Recursively compare children - THIS IS THE CRITICAL PART THAT WAS MISSING
+            assert "left" in current_node and "left" in baseline_node, f"Missing left child at {path}"
+            assert "right" in current_node and "right" in baseline_node, f"Missing right child at {path}"
+
+            self._compare_tree_structures_recursively(current_node["left"], baseline_node["left"], f"{path}/left")
+            self._compare_tree_structures_recursively(current_node["right"], baseline_node["right"], f"{path}/right")
+
     def serialize_current_output(self, clf, description):
         """Serialize current classifier output for comparison."""
         try:
@@ -111,6 +151,13 @@ class TestMushroomRegression:
 
         # Compare sample counts (allow small differences due to floating point)
         assert abs(current["n_samples"] - baseline["n_samples"]) < 1, f"Sample count mismatch in {config_name}"
+
+        # CRITICAL: Compare full tree structure recursively
+        self._compare_tree_structures_recursively(
+            current["tree_structure"],
+            baseline["tree_structure"],
+            f"{config_name}/root"
+        )
 
     def test_feature_importance_consistency(self, mushroom_data, baseline_outputs):
         """Test that feature importance rankings remain consistent."""
