@@ -41,49 +41,169 @@ class TestMushroomRegression:
         except FileNotFoundError:
             pytest.skip("Baseline outputs not found. Run generate_mushroom_baselines.py first.")
 
-    def _compare_tree_structures_recursively(self, current_node, baseline_node, path):
+    def _compare_tree_structures_recursively(self, current_node, baseline_node, path, log_file=None):
         """
         Recursively compare two tree structures for exact match.
 
         This addresses the critical flaw where test_core_criteria_regression only
         compared top-level metadata but ignored the actual tree structure.
+
+        Args:
+            current_node: Current tree node to compare
+            baseline_node: Baseline tree node to compare against
+            path: Current path in the tree (for error reporting)
+            log_file: Optional file handle to write detailed logs
         """
-        print(f"  Comparing node at {path}: is_leaf={current_node['is_leaf']}, depth={current_node['depth']}")
+        # Log basic node info
+        node_info = f"🌳 Comparing node at {path}:"
+        node_details = f"   Type: {'LEAF' if current_node['is_leaf'] else 'SPLIT'}, Depth: {current_node['depth']}, Samples: {current_node['n_samples']:.0f}"
+
+        print(node_info)
+        print(node_details)
+        if log_file:
+            log_file.write(f"{node_info}\n")
+            log_file.write(f"{node_details}\n")
 
         # Compare node metadata
-        assert current_node["is_leaf"] == baseline_node["is_leaf"], f"Leaf status mismatch at {path}"
-        assert current_node["depth"] == baseline_node["depth"], f"Depth mismatch at {path}"
+        try:
+            assert current_node["is_leaf"] == baseline_node["is_leaf"], f"Leaf status mismatch at {path}"
+            assert current_node["depth"] == baseline_node["depth"], f"Depth mismatch at {path}"
+            print("   ✅ Node metadata matches")
+            if log_file:
+                log_file.write("   ✅ Node metadata matches\n")
+        except AssertionError as e:
+            error_msg = f"   ❌ METADATA ERROR: {str(e)}"
+            print(error_msg)
+            if log_file:
+                log_file.write(f"{error_msg}\n")
+            raise
 
         # Compare sample counts (allow small float differences)
         current_samples = current_node["n_samples"]
         baseline_samples = baseline_node["n_samples"]
-        assert abs(current_samples - baseline_samples) < 1.0, f"Sample count mismatch at {path}: {current_samples} vs {baseline_samples}"
+        sample_diff = abs(current_samples - baseline_samples)
+        sample_info = f"   📊 Sample counts: current={current_samples:.0f}, baseline={baseline_samples:.0f}, diff={sample_diff:.6f}"
+        print(sample_info)
+        if log_file:
+            log_file.write(f"{sample_info}\n")
+
+        try:
+            assert sample_diff < 1.0, f"Sample count mismatch at {path}: {current_samples} vs {baseline_samples}"
+            print("   ✅ Sample counts match")
+            if log_file:
+                log_file.write("   ✅ Sample counts match\n")
+        except AssertionError as e:
+            error_msg = f"   ❌ SAMPLE COUNT ERROR: {str(e)}"
+            print(error_msg)
+            if log_file:
+                log_file.write(f"{error_msg}\n")
+            raise
 
         # Compare class counts
         current_counts = current_node["class_counts"]
         baseline_counts = baseline_node["class_counts"]
-        assert len(current_counts) == len(baseline_counts), f"Class count length mismatch at {path}"
-        for i, (curr, base) in enumerate(zip(current_counts, baseline_counts)):
-            assert abs(curr - base) < 1.0, f"Class count {i} mismatch at {path}: {curr} vs {base}"
+        class_info = f"   📈 Class counts: current={current_counts}, baseline={baseline_counts}"
+        print(class_info)
+        if log_file:
+            log_file.write(f"{class_info}\n")
+
+        try:
+            assert len(current_counts) == len(baseline_counts), f"Class count length mismatch at {path}"
+            for i, (curr, base) in enumerate(zip(current_counts, baseline_counts)):
+                assert abs(curr - base) < 1.0, f"Class count {i} mismatch at {path}: {curr} vs {base}"
+            print("   ✅ Class counts match")
+            if log_file:
+                log_file.write("   ✅ Class counts match\n")
+        except AssertionError as e:
+            error_msg = f"   ❌ CLASS COUNT ERROR: {str(e)}"
+            print(error_msg)
+            if log_file:
+                log_file.write(f"{error_msg}\n")
+            raise
 
         # Compare impurity (allow small numerical differences)
         current_impurity = current_node["impurity"]
         baseline_impurity = baseline_node["impurity"]
-        print(f"    Impurity at {path}: current={current_impurity:.6f}, baseline={baseline_impurity:.6f}")
-        assert abs(current_impurity - baseline_impurity) < 1e-6, f"Impurity mismatch at {path}: {current_impurity} vs {baseline_impurity}"
+        impurity_diff = abs(current_impurity - baseline_impurity)
+        impurity_info = f"   🎯 Impurity: current={current_impurity:.8f}, baseline={baseline_impurity:.8f}, diff={impurity_diff:.2e}"
+        print(impurity_info)
+        if log_file:
+            log_file.write(f"{impurity_info}\n")
+
+        try:
+            assert impurity_diff < 1e-6, f"Impurity mismatch at {path}: {current_impurity} vs {baseline_impurity}"
+            print("   ✅ Impurity matches")
+            if log_file:
+                log_file.write("   ✅ Impurity matches\n")
+        except AssertionError as e:
+            error_msg = f"   ❌ IMPURITY ERROR: {str(e)}"
+            print(error_msg)
+            if log_file:
+                log_file.write(f"{error_msg}\n")
+            raise
 
         # If it's a split node, compare split details and recurse to children
         if not current_node["is_leaf"]:
-            assert current_node["feature_idx"] == baseline_node["feature_idx"], f"Feature index mismatch at {path}"
-            assert current_node["feature_name"] == baseline_node["feature_name"], f"Feature name mismatch at {path}"
-            print(f"    Split feature at {path}: {current_node['feature_name']} (idx={current_node['feature_idx']})")
+            # Compare split feature details
+            split_info = f"   🔀 Split feature: {current_node['feature_name']} (idx={current_node['feature_idx']})"
+            split_condition = f"   📋 Condition: {current_node.get('split_condition', 'N/A')}"
+            print(split_info)
+            print(split_condition)
+            if log_file:
+                log_file.write(f"{split_info}\n")
+                log_file.write(f"{split_condition}\n")
 
-            # Recursively compare children - THIS IS THE CRITICAL PART THAT WAS MISSING
-            assert "left" in current_node and "left" in baseline_node, f"Missing left child at {path}"
-            assert "right" in current_node and "right" in baseline_node, f"Missing right child at {path}"
+            try:
+                assert current_node["feature_idx"] == baseline_node["feature_idx"], f"Feature index mismatch at {path}"
+                assert current_node["feature_name"] == baseline_node["feature_name"], f"Feature name mismatch at {path}"
+                print("   ✅ Split feature matches")
+                if log_file:
+                    log_file.write("   ✅ Split feature matches\n")
+            except AssertionError as e:
+                error_msg = f"   ❌ SPLIT FEATURE ERROR: {str(e)}"
+                print(error_msg)
+                if log_file:
+                    log_file.write(f"{error_msg}\n")
+                raise
 
-            self._compare_tree_structures_recursively(current_node["left"], baseline_node["left"], f"{path}/left")
-            self._compare_tree_structures_recursively(current_node["right"], baseline_node["right"], f"{path}/right")
+            # Check for children presence
+            try:
+                assert "left" in current_node and "left" in baseline_node, f"Missing left child at {path}"
+                assert "right" in current_node and "right" in baseline_node, f"Missing right child at {path}"
+                print("   ✅ Both children present")
+                if log_file:
+                    log_file.write("   ✅ Both children present\n")
+            except AssertionError as e:
+                error_msg = f"   ❌ CHILDREN ERROR: {str(e)}"
+                print(error_msg)
+                if log_file:
+                    log_file.write(f"{error_msg}\n")
+                raise
+
+            # Add separator before recursing
+            separator = f"\n{'─' * 80}"
+            print(separator)
+            if log_file:
+                log_file.write(f"{separator}\n")
+
+            # Recursively compare children
+            self._compare_tree_structures_recursively(current_node["left"], baseline_node["left"], f"{path}/left", log_file)
+            self._compare_tree_structures_recursively(current_node["right"], baseline_node["right"], f"{path}/right", log_file)
+        else:
+            # Leaf node details
+            prediction_info = f"   🍃 Leaf prediction: {current_node.get('prediction', 'N/A')}"
+            probabilities = current_node.get('probabilities', [])
+            prob_info = f"   📊 Probabilities: {probabilities}"
+            print(prediction_info)
+            print(prob_info)
+            if log_file:
+                log_file.write(f"{prediction_info}\n")
+                log_file.write(f"{prob_info}\n")
+
+        # Add spacing after each node
+        print()
+        if log_file:
+            log_file.write("\n")
 
     def serialize_current_output(self, clf, description):
         """Serialize current classifier output for comparison."""
@@ -169,14 +289,45 @@ class TestMushroomRegression:
         # Compare sample counts (allow small differences due to floating point)
         assert abs(current["n_samples"] - baseline["n_samples"]) < 1, f"Sample count mismatch in {config_name}"
 
-        # CRITICAL: Compare full tree structure recursively
+        # CRITICAL: Compare full tree structure recursively with detailed logging
         print(f"Starting recursive tree comparison for {config_name}...")
-        self._compare_tree_structures_recursively(
-            current["tree_structure"],
-            baseline["tree_structure"],
-            f"{config_name}/root"
-        )
-        print(f"Recursive tree comparison completed for {config_name} ✓")
+
+        # Create detailed log file for this configuration
+        log_filename = f"tree_comparison_{config_name}.log"
+        print(f"📝 Writing detailed logs to: {log_filename}")
+
+        with open(log_filename, 'w') as log_file:
+            # Write log header
+            header = f"""{'='*100}
+RECURSIVE TREE STRUCTURE COMPARISON LOG
+Configuration: {config_name.upper()}
+Timestamp: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+{'='*100}
+
+"""
+            log_file.write(header)
+            print(f"🌲 Beginning detailed recursive comparison...")
+
+            # Perform recursive comparison with file logging
+            self._compare_tree_structures_recursively(
+                current["tree_structure"],
+                baseline["tree_structure"],
+                f"{config_name}/root",
+                log_file
+            )
+
+            # Write log footer
+            footer = f"""
+{'='*100}
+RECURSIVE TREE COMPARISON COMPLETED SUCCESSFULLY ✓
+Configuration: {config_name.upper()}
+All nodes, splits, and impurities match within tolerance
+{'='*100}
+"""
+            log_file.write(footer)
+
+        print(f"✅ Recursive tree comparison completed for {config_name}")
+        print(f"📄 Detailed log saved to: {log_filename}")
 
     def test_feature_importance_consistency(self, mushroom_data, baseline_outputs):
         """Test that feature importance rankings remain consistent."""
