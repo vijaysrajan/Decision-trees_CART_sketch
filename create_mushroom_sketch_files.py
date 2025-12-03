@@ -14,6 +14,8 @@ import csv
 import io
 import base64
 
+DEFAULT_LG_K = 16
+
 
 def serialize_sketch_to_string(sketch):
     """Serialize a theta sketch to a base64 string."""
@@ -33,7 +35,7 @@ def serialize_sketch_to_string(sketch):
         return ""
 
 
-def deserialize_sketch_from_string(sketch_str, lg_k=16):
+def deserialize_sketch_from_string(sketch_str, lg_k=DEFAULT_LG_K):
     """Deserialize a theta sketch from a base64 string."""
     try:
         # Decode from base64
@@ -99,7 +101,7 @@ def create_binary_features(df):
     return binary_features, feature_mapping
 
 
-def create_theta_sketches_with_ids(df, binary_features, lg_k=16):
+def create_theta_sketches_with_ids(df, binary_features, lg_k=DEFAULT_LG_K):
     """Create theta sketches for each class and feature combination."""
     print(f"Creating theta sketches with lg_k={lg_k}")
 
@@ -216,7 +218,7 @@ def save_sketches_to_csv(sketch_data, positive_file="positive_sketches.csv", neg
     print(f"  Negative sketches saved to: {negative_file}")
 
 
-def load_sketches_from_csv(positive_file="positive_sketches.csv", negative_file="negative_sketches.csv", lg_k=16):
+def load_sketches_from_csv(positive_file="positive_sketches.csv", negative_file="negative_sketches.csv", lg_k=DEFAULT_LG_K):
     """Load sketch data from CSV files."""
     print(f"Loading sketches from CSV files...")
 
@@ -338,7 +340,7 @@ def main():
         binary_features, feature_mapping = create_binary_features(df)
 
         # Create theta sketches
-        lg_k = 16
+        lg_k = DEFAULT_LG_K
         sketch_data = create_theta_sketches_with_ids(df, binary_features, lg_k)
 
         # Validate sketch data

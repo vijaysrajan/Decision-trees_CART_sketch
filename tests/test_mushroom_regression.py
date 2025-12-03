@@ -48,6 +48,8 @@ class TestMushroomRegression:
         This addresses the critical flaw where test_core_criteria_regression only
         compared top-level metadata but ignored the actual tree structure.
         """
+        print(f"  Comparing node at {path}: is_leaf={current_node['is_leaf']}, depth={current_node['depth']}")
+
         # Compare node metadata
         assert current_node["is_leaf"] == baseline_node["is_leaf"], f"Leaf status mismatch at {path}"
         assert current_node["depth"] == baseline_node["depth"], f"Depth mismatch at {path}"
@@ -67,12 +69,14 @@ class TestMushroomRegression:
         # Compare impurity (allow small numerical differences)
         current_impurity = current_node["impurity"]
         baseline_impurity = baseline_node["impurity"]
+        print(f"    Impurity at {path}: current={current_impurity:.6f}, baseline={baseline_impurity:.6f}")
         assert abs(current_impurity - baseline_impurity) < 1e-6, f"Impurity mismatch at {path}: {current_impurity} vs {baseline_impurity}"
 
         # If it's a split node, compare split details and recurse to children
         if not current_node["is_leaf"]:
             assert current_node["feature_idx"] == baseline_node["feature_idx"], f"Feature index mismatch at {path}"
             assert current_node["feature_name"] == baseline_node["feature_name"], f"Feature name mismatch at {path}"
+            print(f"    Split feature at {path}: {current_node['feature_name']} (idx={current_node['feature_idx']})")
 
             # Recursively compare children - THIS IS THE CRITICAL PART THAT WAS MISSING
             assert "left" in current_node and "left" in baseline_node, f"Missing left child at {path}"
@@ -144,6 +148,19 @@ class TestMushroomRegression:
         # Get current output
         current = self.serialize_current_output(clf, baseline["description"])
 
+        # RECORD MODE: Print complete JSON output for manual inspection
+        print(f"\n{'='*60}")
+        print(f"CURRENT OUTPUT FOR {config_name.upper()}:")
+        print(f"{'='*60}")
+        print(json.dumps(current, indent=2, default=str))
+        print(f"{'='*60}")
+
+        print(f"\n{'='*60}")
+        print(f"BASELINE OUTPUT FOR {config_name.upper()}:")
+        print(f"{'='*60}")
+        print(json.dumps(baseline, indent=2, default=str))
+        print(f"{'='*60}\n")
+
         # Compare key metrics
         assert current["n_features"] == baseline["n_features"], f"Feature count mismatch in {config_name}"
         assert current["classes"] == baseline["classes"], f"Classes mismatch in {config_name}"
@@ -153,11 +170,13 @@ class TestMushroomRegression:
         assert abs(current["n_samples"] - baseline["n_samples"]) < 1, f"Sample count mismatch in {config_name}"
 
         # CRITICAL: Compare full tree structure recursively
+        print(f"Starting recursive tree comparison for {config_name}...")
         self._compare_tree_structures_recursively(
             current["tree_structure"],
             baseline["tree_structure"],
             f"{config_name}/root"
         )
+        print(f"Recursive tree comparison completed for {config_name} ✓")
 
     def test_feature_importance_consistency(self, mushroom_data, baseline_outputs):
         """Test that feature importance rankings remain consistent."""
