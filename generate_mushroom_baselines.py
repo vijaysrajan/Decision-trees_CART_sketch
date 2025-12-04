@@ -58,13 +58,19 @@ def generate_mushroom_baselines():
     print("🍄 Generating Mushroom Dataset Baselines")
     print("=" * 50)
 
-    # Load data
-    print("Loading mushroom dataset...")
-    df = load_mushroom_dataset()
-    sketches = create_mushroom_sketches(df)
-    feature_mapping = create_mushroom_feature_mapping(sketches)
+    # Load data from same fixtures as test
+    print("Loading mushroom sketches from test fixtures...")
+    from tools.sketch_generation.create_mushroom_sketch_files import load_sketches_from_csv
+    positive_file = "tests/fixtures/mushroom_positive_sketches_lg_k_11.csv"
+    negative_file = "tests/fixtures/mushroom_negative_sketches_lg_k_11.csv"
+    sketches = load_sketches_from_csv(positive_file, negative_file, lg_k=11)
 
-    print(f"Dataset: {df.shape[0]} samples, {len(feature_mapping)} binary features")
+    # Load feature mapping
+    import json
+    with open("tests/fixtures/mushroom_feature_mapping.json", 'r') as f:
+        feature_mapping = json.load(f)
+
+    print(f"Dataset: {len(feature_mapping)} binary features")
 
     # Define hyperparameter combinations to test
     test_configurations = [
@@ -169,7 +175,7 @@ def generate_mushroom_baselines():
             }
 
     # Save baselines to file
-    baseline_file = "mushroom_baseline_outputs.json"
+    baseline_file = "tests/integration/mushroom/baselines/mushroom_baseline_outputs_lg_k_11.json"
     with open(baseline_file, 'w') as f:
         json.dump(baselines, f, indent=2, default=str)
 

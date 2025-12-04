@@ -35,6 +35,7 @@ from .tree_orchestrator import TreeOrchestrator, StoppingCriteria, NodeBuilder
 from .logging_utils import TreeLogger
 from .validation_utils import ValidationError
 from .interfaces import ComponentFactory
+from .model_evaluation import ModelEvaluator, evaluate_model
 
 from .sketch_loader import SketchLoader
 from .config_parser import ConfigParser
@@ -156,4 +157,6 @@ __all__ = [
     "TreeLogger",
     "ValidationError",
     "ComponentFactory",
+    "ModelEvaluator",
+    "evaluate_model",
 ]

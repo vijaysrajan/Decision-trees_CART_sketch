@@ -28,6 +28,11 @@ print(f"Predictions: {predictions}")
 print(f"Top features: {clf.get_top_features(top_k=3)}")
 ```
 
+## Specialized Tools
+
+**Mushroom Classification Example**: See `tools/README.md` for sketch generation and tree comparison tools.
+**Real-world Demo**: Complete workflow from data to trained models with accuracy evaluation.
+
 ## Key Features
 
 - **🎯 Sketch-based Training**: Memory-efficient learning from theta sketches

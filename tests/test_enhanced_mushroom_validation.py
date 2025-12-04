@@ -32,15 +32,21 @@ class TestEnhancedMushroomValidation:
     def mushroom_data(self):
         """Load mushroom dataset and sketches."""
         df = load_mushroom_dataset()
-        sketches = create_mushroom_sketches(df, lg_k=12)
-        feature_mapping = create_mushroom_feature_mapping(sketches)
+        # Use pre-computed sketches for consistency with other tests
+        from tools.sketch_generation.create_mushroom_sketch_files import load_sketches_from_csv
+        import json
+        positive_file = "tests/fixtures/mushroom_positive_sketches_lg_k_11.csv"
+        negative_file = "tests/fixtures/mushroom_negative_sketches_lg_k_11.csv"
+        sketches = load_sketches_from_csv(positive_file, negative_file, lg_k=11)
+        with open("tests/fixtures/mushroom_feature_mapping.json", 'r') as f:
+            feature_mapping = json.load(f)
         return df, sketches, feature_mapping
 
     @pytest.fixture
     def baseline_outputs(self):
         """Load baseline outputs for comparison."""
         try:
-            with open("mushroom_baseline_outputs.json", 'r') as f:
+            with open("tests/integration/mushroom/baselines/mushroom_baseline_outputs_lg_k_11.json", 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
             pytest.skip("Baseline outputs not found. Run generate_mushroom_baselines.py first.")
