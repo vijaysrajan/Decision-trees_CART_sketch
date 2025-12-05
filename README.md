@@ -90,14 +90,26 @@ clf = ThetaSketchDecisionTreeClassifier(
 
 ## Documentation
 
-📖 **Complete documentation in [`docs/`](docs/)**:
+📖 **Comprehensive documentation in [`docs/`](docs/)**:
 
-- **[User Guide](docs/user_guide.md)** - Comprehensive usage examples
-- **[Architecture Overview](docs/architecture-overview.md)** - System design and components
-- **[Algorithm Details](docs/03_algorithms.md)** - Mathematical foundations
-- **[API Reference](docs/05_api_design.md)** - Method signatures and examples
-- **[Performance Analysis](docs/performance_analysis.md)** - Benchmarks and optimization
-- **[Testing Strategy](TESTING.md)** - Unit vs integration test approach
+### Essential Documentation
+1. **[Quick Start Guide](docs/01-quickstart.md)** - 5-minute setup and basic usage
+2. **[User Guide](docs/02-user-guide.md)** - Complete API usage with examples
+3. **[Architecture Overview](docs/03-architecture.md)** - System design and components
+4. **[Algorithm Reference](docs/04-algorithms.md)** - Mathematical foundations and pseudocode
+5. **[API Reference](docs/05-api-reference.md)** - Complete method specifications
+
+### Specialized Guides
+6. **[Performance Guide](docs/06-performance.md)** - Optimization and benchmarking
+7. **[Testing Guide](docs/07-testing.md)** - Validation strategies
+8. **[Troubleshooting Guide](docs/08-troubleshooting.md)** - Common issues and solutions
+
+### Advanced Topics
+9. **[Data Formats](docs/09-data-formats.md)** - Input requirements and validation
+10. **[Hyperparameter Tuning](docs/10-hyperparameter-tuning.md)** - Model optimization
+11. **[Deployment Guide](docs/11-deployment.md)** - Production deployment strategies
+
+**Start here**: New users should begin with the [Quick Start Guide](docs/01-quickstart.md)
 
 ## Testing
 
