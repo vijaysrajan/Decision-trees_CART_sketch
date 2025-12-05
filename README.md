@@ -30,7 +30,7 @@ print(f"Top features: {clf.get_top_features(top_k=3)}")
 
 ## Specialized Tools
 
-**Mushroom Classification Example**: See `tools/README.md` for sketch generation and tree comparison tools.
+**Mushroom Classification Example**: See `tools/tools-guide.md` for sketch generation and tree comparison tools.
 **Real-world Demo**: Complete workflow from data to trained models with accuracy evaluation.
 
 ## Key Features
@@ -90,7 +90,7 @@ clf = ThetaSketchDecisionTreeClassifier(
 
 ## Documentation
 
-📖 **Comprehensive documentation in [`docs/`](docs/)**:
+📖 **Comprehensive documentation in [`docs/`](docs/index.md)**:
 
 ### Essential Documentation
 1. **[Quick Start Guide](docs/01-quickstart.md)** - 5-minute setup and basic usage
@@ -144,7 +144,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-- 📖 **Documentation**: [docs/](docs/)
+- 📖 **Documentation**: [docs/](docs/index.md)
 - 🐛 **Issues**: GitHub Issues
 - 💬 **Discussions**: GitHub Discussions
 
