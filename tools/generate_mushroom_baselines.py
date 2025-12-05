@@ -9,6 +9,10 @@ code cleanup and refactoring.
 import json
 import pandas as pd
 import numpy as np
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from tests.test_binary_classification_sketches import (
     load_mushroom_dataset,
     create_mushroom_sketches,

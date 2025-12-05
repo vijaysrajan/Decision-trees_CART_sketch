@@ -52,7 +52,7 @@ class TestMushroomRegression:
             with open(baseline_file, 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
-            pytest.skip("Baseline outputs not found. Run generate_mushroom_baselines.py first.")
+            pytest.skip("Baseline outputs not found. Run tools/generate_mushroom_baselines.py first.")
 
     def _compare_tree_structures_recursively(self, current_node, baseline_node, path, log_file=None):
         """

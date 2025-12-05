@@ -9,11 +9,16 @@ on tree complexity and model generalization.
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from tests.test_binary_classification_sketches import (
     create_binary_classification_sketches,
     create_binary_classification_feature_mapping
 )
 from theta_sketch_tree.classifier import ThetaSketchDecisionTreeClassifier
+from theta_sketch_tree.tree_builder import TreeBuilder
 
 
 def demonstrate_pruning_methods():
@@ -22,7 +27,10 @@ def demonstrate_pruning_methods():
     print("=" * 60)
 
     # Load and prepare dataset
-    df = pd.read_csv('./tests/resources/binary_classification_data.csv')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    dataset_path = os.path.join(project_root, 'tests', 'resources', 'binary_classification_data.csv')
+    df = pd.read_csv(dataset_path)
     df = df.rename(columns={'target': 'class'})
 
     # Split for validation data
@@ -83,8 +91,8 @@ def demonstrate_pruning_methods():
                 clf.fit(sketches, mapping)
 
             # Collect results
-            nodes = clf._count_tree_nodes()
-            leaves = clf._count_tree_leaves()
+            nodes = TreeBuilder.count_tree_nodes(clf.tree_)
+            leaves = TreeBuilder.count_tree_leaves(clf.tree_)
             depth = clf.tree_.depth
 
             # Convert training data to binary format for predictions

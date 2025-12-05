@@ -49,7 +49,7 @@ class TestEnhancedMushroomValidation:
             with open("tests/integration/mushroom/baselines/mushroom_baseline_outputs_lg_k_11.json", 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
-            pytest.skip("Baseline outputs not found. Run generate_mushroom_baselines.py first.")
+            pytest.skip("Baseline outputs not found. Run tools/generate_mushroom_baselines.py first.")
 
     def compare_tree_structures_recursively(self, current_node: Dict, baseline_node: Dict, path: str = "root") -> None:
         """
