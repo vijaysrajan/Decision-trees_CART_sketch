@@ -1,16 +1,31 @@
 #!/usr/bin/env python3
 """
-Comprehensive mushroom dataset pruning analysis.
+Comprehensive mushroom dataset pruning analysis tool.
+
+This analysis tool demonstrates the effectiveness of different pruning methods
+on the mushroom dataset, providing detailed comparisons of tree complexity
+reduction vs accuracy preservation.
+
+Usage:
+    python tools/analyze_mushroom_pruning.py
+
+The tool will analyze all available pruning methods and provide insights
+about their effectiveness on the mushroom classification problem.
 """
 
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from tests.test_binary_classification_sketches import (
     create_binary_classification_sketches,
     create_binary_classification_feature_mapping
 )
 from theta_sketch_tree.classifier import ThetaSketchDecisionTreeClassifier
+from theta_sketch_tree.tree_builder import TreeBuilder
 
 
 def main():
@@ -18,8 +33,11 @@ def main():
     print('=' * 60)
 
     # Load mushroom dataset with larger sample
-    df = pd.read_csv('./tests/resources/agaricus-lepiota.csv')
-    df = df.sample(n=3000, random_state=42)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    dataset_path = os.path.join(project_root, 'tests', 'resources', 'agaricus-lepiota.csv')
+    df = pd.read_csv(dataset_path)
+    df = df.sample(n=500, random_state=42)  # Reduced sample for testing
 
     # Split for validation data
     train_df, val_df = train_test_split(df, test_size=0.3, random_state=42, stratify=df['class'])
@@ -30,7 +48,7 @@ def main():
     print(f'Class distribution: {df["class"].value_counts().to_dict()}')
 
     # Create sketches
-    sketches = create_binary_classification_sketches(train_df, lg_k=14)
+    sketches = create_binary_classification_sketches(train_df, lg_k=12)
     mapping = create_binary_classification_feature_mapping(sketches)
 
     # Convert validation data to binary features
@@ -52,7 +70,7 @@ def main():
         'min_impurity': 'Minimum impurity decrease'
     }
 
-    print(f'\n🌳 Pruning Results (max_depth=15):')
+    print(f'\n🌳 Pruning Results (max_depth=8):')
     print('=' * 80)
     print(f'Method           | Nodes | Leaves | Depth | Reduction     | Effectiveness')
     print('-' * 80)
@@ -64,7 +82,7 @@ def main():
         try:
             clf = ThetaSketchDecisionTreeClassifier(
                 criterion='gini',
-                max_depth=15,
+                max_depth=8,
                 pruning=method,
                 min_impurity_decrease=0.01 if method == 'min_impurity' else 0.0,
                 validation_fraction=0.25,
@@ -77,8 +95,8 @@ def main():
             else:
                 clf.fit(sketches, mapping)
 
-            nodes = clf._count_tree_nodes()
-            leaves = clf._count_tree_leaves()
+            nodes = TreeBuilder.count_tree_nodes(clf.tree_)
+            leaves = TreeBuilder.count_tree_leaves(clf.tree_)
             depth = clf.tree_.depth
 
             if method == 'none':
@@ -117,7 +135,7 @@ def main():
             })
 
         except Exception as e:
-            print(f'{method:<16} | ERROR: {str(e)[:30]}...')
+            print(f'{method:<16} | ERROR: {str(e)}')
             results.append({'method': method, 'error': str(e)})
 
     # Summary analysis

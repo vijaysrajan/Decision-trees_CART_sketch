@@ -255,7 +255,7 @@ Pruning automatically updates feature importance rankings to reflect the simplif
 
 See the complete examples in:
 - `test_pruning_demo.py` - Basic pruning demonstration
-- `test_mushroom_pruning.py` - Comprehensive mushroom dataset analysis
+- `tools/analyze_mushroom_pruning.py` - Comprehensive mushroom dataset analysis
 - `EXAMPLES.md` - More real-world use cases
 
 ## 🔍 Next Steps
