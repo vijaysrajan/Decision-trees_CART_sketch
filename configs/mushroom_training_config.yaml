@@ -1,0 +1,18 @@
+# Mushroom Dataset Training Configuration
+# Auto-generated for agaricus-lepiota dataset
+
+lg_k: 19
+
+targets:
+  positive: "class=e"  # Edible
+  negative: "class=p"  # Poisonous
+
+hyperparameters:
+  criterion: gini
+  max_depth: 8
+  min_samples_split: 20
+  min_samples_leaf: 10
+  min_impurity_decrease: 0.0
+  verbose: 2
+
+# Feature mapping loaded separately from JSON file

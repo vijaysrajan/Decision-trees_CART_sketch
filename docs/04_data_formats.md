@@ -7,14 +7,11 @@
 
 **NO SET OPERATIONS DURING LOADING**: Every sketch in every CSV file is computed **directly from the original raw big data source**. The loader simply reads these pre-computed sketches - it does NOT perform any set operations (union, intersection, a_not_b, etc.) at load time.
 
-**For One-vs-All Mode**:
-- The `total.csv` file contains sketches of the **ENTIRE dataset (unfiltered)**, computed directly from big data
-- These are NOT computed via `total.a_not_b(positive)` or any other set operation
-- Negative class counts are computed via **arithmetic subtraction ONLY**: `n_neg = n_total - n_pos` (at the numeric level, not the sketch level)
-
-**For Dual-Class Mode**:
-- Both `positive.csv` and `negative.csv` contain sketches filtered to their respective classes, computed directly from big data
-- No set operations needed during loading or tree building
+**Binary Classification Only**:
+- The algorithm requires exactly two CSV files: `positive.csv` and `negative.csv`
+- Each contains sketches filtered to their respective classes, computed directly from big data
+- Class counts extracted directly from sketches: `pos_count = positive_sketch.get_estimate()`
+- No arithmetic subtraction operations during tree building
 
 ---
 
@@ -30,23 +27,20 @@
 
 ## 1. CSV Sketch Format
 
-### Classification Modes
+### Binary Classification Input
 
-The classifier supports two classification modes using **dual CSV files** (two separate files):
+The classifier requires exactly **two CSV files** for binary classification:
 
-**Dual-Class Mode**
-- Two CSV files: `positive.csv` and `negative.csv`
-- Each represents a distinct class (e.g., treatment vs control, yes vs no)
+**Required Files**
+- `positive.csv`: Contains sketches for positive class (e.g., clicked, success, treatment)
+- `negative.csv`: Contains sketches for negative class (e.g., not-clicked, failure, control)
+
+**Data Preparation**
 - Both files contain sketches computed directly from big data, filtered to their respective classes
-- **Use cases**: A/B testing, clinical trials, balanced binary classification
+- For single-target scenarios (e.g., click vs no-click), use `tools/convert_2col_to_3col_sketches.py` to automatically generate the negative class as complement
+- **Use cases**: A/B testing, clinical trials, click prediction, healthcare outcomes
 
-**One-vs-All Mode**
-- Two CSV files: `positive.csv` (filtered to positive class) and `total.csv` (ENTIRE dataset, unfiltered)
-- Positive class sketches + entire population sketches (negative counts = arithmetic: total - positive)
-- **CRITICAL**: `total.csv` contains sketches of the FULL dataset computed from big data - NOT via a_not_b!
-- **Use cases**: Rare events, healthcare (Type2Diabetes vs all patients), CTR (clicked vs impressions)
-
-**Common Properties (Both Modes)**:
+**File Format Requirements**:
 - **3-column CSV format only**: `identifier, sketch_feature_present, sketch_feature_absent`
 - **All sketches pre-computed in big data pipeline** - NO set operations at load time
 - **Stores BOTH feature_present AND feature_absent sketches** per feature
@@ -74,9 +68,9 @@ The classifier supports two classification modes using **dual CSV files** (two s
   - Serialized Apache DataSketches theta sketch
   - **For `total` row**: Must be same sketch as column 2
 
-### Dual-Class Mode Example
+### Binary Classification Example
 
-**target_yes.csv** (positive class, pre-intersected with both present and absent):
+**positive.csv** (positive class, pre-intersected with both present and absent):
 ```csv
 identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_positive_class_total>,<base64_positive_class_total>
@@ -86,7 +80,7 @@ has_diabetes,<base64_yes_AND_diabetes_TRUE>,<base64_yes_AND_diabetes_FALSE>
 clicked,<base64_yes_AND_clicked>,<base64_yes_AND_not_clicked>
 ```
 
-**target_no.csv** (negative class, pre-intersected with both present and absent):
+**negative.csv** (negative class, pre-intersected with both present and absent):
 ```csv
 identifier,sketch_feature_present,sketch_feature_absent
 total,<base64_negative_class_total>,<base64_negative_class_total>
@@ -235,7 +229,7 @@ The loader must validate:
 - ✅ Sketch bytes can be decoded (base64 or hex)
 - ✅ Sketch bytes can be deserialized to ThetaSketch
 - ✅ 'total' row exists in each CSV file
-- ✅ Feature sketches are present for both CSV files (or positive + total for one-vs-all)
+- ✅ Feature sketches are present for both positive.csv and negative.csv files
 - ✅ Both sketch_feature_present and sketch_feature_absent are provided for each feature
 - ✅ For 'total' row: sketch_feature_present equals sketch_feature_absent
 - ✅ Cardinality of sketch_feature_present + sketch_feature_absent ≈ total sketch (within error bounds)
@@ -455,7 +449,7 @@ sketch_data: SketchData = {
         ),
         ...
     },
-    'negative': {  # OR 'total' for one-vs-all mode
+    'negative': {  # negative class sketches
         'total': <ThetaSketch>,                          # Required: population sketch
         '<feature_name>': (
             <sketch_feature_present>,
@@ -468,8 +462,8 @@ sketch_data: SketchData = {
 
 **Notes**:
 - For **dual-class mode**: Structure has both 'positive' and 'negative' keys, each pointing to CSV files with pre-computed sketches from big data
-- For **one-vs-all mode**: Structure has 'positive' (filtered to positive class) and 'negative_or_total' (ENTIRE dataset, unfiltered) keys. BOTH are loaded directly from CSV files - NO set operations used
-- **CRITICAL**: The 'negative_or_total' sketches in One-vs-All mode represent the full dataset and are computed directly from raw data, NOT via a_not_b or any other set operation
+- For **binary classification**: Structure has 'positive' (filtered to positive class) and 'negative' (negative class) keys. BOTH are loaded directly from CSV files - NO set operations used
+- **CRITICAL**: All sketches are computed directly from raw data, NOT via a_not_b or any other set operation during loading
 - All features MUST be tuples: (sketch_feature_present, sketch_feature_absent)
 - 'total' is always a single ThetaSketch (not a tuple)
 
@@ -1500,15 +1494,15 @@ The same principles apply to:
 
 | Use Case | Positive Rate | Recommended Mode | Recommended Settings |
 |----------|---------------|------------------|----------------------|
-| **Fraud Detection** | 0.01-0.1% | One-vs-all | k=8192, depth=5, binomial, min_samples_split=5000 |
-| **Conversion Prediction** | 1-5% | One-vs-all | k=4096, depth=5, binomial, min_samples_split=1000 |
-| **Churn Prediction** | 5-15% | Dual-class or One-vs-all | k=4096, depth=6, entropy/gini, min_samples_split=500 |
-| **Rare Disease** | 0.001-0.01% | One-vs-all | k=16384, depth=3, binomial, min_samples_split=10000 |
-| **Anomaly Detection** | <1% | One-vs-all | k=8192, depth=4, binomial, min_samples_split=2000 |
+| **Fraud Detection** | 0.01-0.1% | Binary (fraud vs normal) | k=8192, depth=5, binomial, min_samples_split=5000 |
+| **Conversion Prediction** | 1-5% | Binary (convert vs no-convert) | k=4096, depth=5, binomial, min_samples_split=1000 |
+| **Churn Prediction** | 5-15% | Binary classification | k=4096, depth=6, entropy/gini, min_samples_split=500 |
+| **Rare Disease** | 0.001-0.01% | Binary (rare vs all) | k=16384, depth=3, binomial, min_samples_split=10000 |
+| **Anomaly Detection** | <1% | Binary (anomaly vs normal) | k=8192, depth=4, binomial, min_samples_split=2000 |
 
 **Common Pattern**:
 - ✅ Always use 3-column CSV format with feature-absent sketches
-- ✅ Use one-vs-all mode for rare events where negative class is implicit
+- ✅ Use binary classification for rare events with automatic negative class generation
 - ✅ Always use class_weight="balanced"
 - ✅ Use binomial criterion for statistical rigor
 - ✅ Increase sketch size (k) for very rare events
@@ -1517,8 +1511,8 @@ The same principles apply to:
 
 ### Summary: CTR Best Practices
 
-✅ **CSV Format**: 3-column format with feature-absent sketches (one-vs-all mode)
-✅ **Classification Mode**: One-vs-all (clicked vs impressions)
+✅ **CSV Format**: 3-column format with feature-absent sketches (binary classification)
+✅ **Classification Mode**: Binary classification (clicked vs not-clicked)
 ✅ **Sketch Size**: k=4096 (or k=8192 for critical applications)
 ✅ **Tree Depth**: max_depth=5 (3 for analysis, 5 for deployment)
 ✅ **Criterion**: binomial with min_pvalue=0.001

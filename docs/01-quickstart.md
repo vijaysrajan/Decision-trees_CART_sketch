@@ -76,15 +76,73 @@ predictions = clf.predict(X_test)
 
 ## Command Line Interface
 
-### Basic Training
+### Training from Raw CSV Data
 
 ```bash
-# Train on mushroom dataset
+# Train on mushroom dataset (generates sketches automatically)
 ./venv/bin/python run_binary_classification.py \
     ./tests/resources/agaricus-lepiota.csv class \
     --lg_k 14 --max_depth 8 --criterion gini \
     --verbose 1
 ```
+
+### Complete Sketch-Based Workflow (Recommended)
+
+Train from any CSV dataset using the 3-step sketch-based workflow:
+
+```bash
+# Step 1: Generate 2-column sketches from raw CSV
+./venv/bin/python tools/create_2col_sketches.py data.csv target_column --lg_k 16
+
+# Step 2: Convert to 3-column training format
+./venv/bin/python tools/simple_convert_to_3col.py \
+    examples/sketches/dataset_sketches/dataset_positive_2col_sketches_lg_k_16.csv \
+    examples/sketches/dataset_sketches/dataset_negative_2col_sketches_lg_k_16.csv \
+    examples/sketches/dataset_sketches/dataset_feature_mapping.json \
+    examples/sketches/dataset_sketches/
+
+# Step 3: Train from 3-column sketches
+./venv/bin/python tools/train_from_3col_sketches.py \
+    examples/sketches/dataset_sketches/dataset_3col_sketches.csv \
+    examples/sketches/dataset_sketches/dataset_feature_mapping.json \
+    configs/training_config.yaml
+```
+
+**Complete Example - Mushroom Dataset:**
+```bash
+# Generate mushroom sketches
+./venv/bin/python tools/create_2col_sketches.py \
+    tests/resources/agaricus-lepiota.csv class --lg_k 12
+
+# Convert to training format
+./venv/bin/python tools/simple_convert_to_3col.py \
+    examples/sketches/agaricus_lepiota_sketches/agaricus_lepiota_positive_2col_sketches_lg_k_19.csv \
+    examples/sketches/agaricus_lepiota_sketches/agaricus_lepiota_negative_2col_sketches_lg_k_19.csv \
+    examples/sketches/agaricus_lepiota_sketches/agaricus_lepiota_feature_mapping.json \
+    examples/sketches/agaricus_lepiota_sketches/
+
+# Train model
+./venv/bin/python tools/train_from_3col_sketches.py \
+    examples/sketches/agaricus_lepiota_sketches/agaricus_lepiota_3col_sketches.csv \
+    examples/sketches/agaricus_lepiota_sketches/agaricus_lepiota_feature_mapping.json \
+    configs/mushroom_training_config.yaml
+```
+
+### Legacy Sketch Training
+
+```bash
+# Train directly from legacy sketch CSV files
+./venv/bin/python tools/train_from_sketches.py \
+    positive.csv negative.csv config.yaml
+```
+
+**Benefits of Sketch-Based Workflow:**
+- 🔄 **Reproducible**: Same sketches can be reused for multiple training runs
+- ⚡ **Fast**: Skip sketch generation for repeated experiments
+- 🔒 **Privacy**: Share sketches without exposing raw data
+- 📦 **Portable**: Sketches are much smaller than original datasets
+- 🎛️ **Flexible**: Works with any binary classification CSV dataset
+- 🏭 **Production Ready**: Ideal for enterprise deployment scenarios
 
 ### With Pruning (Recommended)
 

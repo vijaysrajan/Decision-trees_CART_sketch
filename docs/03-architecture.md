@@ -20,11 +20,30 @@ The Theta Sketch Decision Tree classifier implements a unique **dual-phase archi
 
 **Key Implementation Details:**
 - CSV files contain sketches computed from the original big data pipeline
-- For One-vs-All mode: `total.csv` contains sketches of the ENTIRE dataset (unfiltered)
+- Algorithm requires separate positive and negative class sketches (binary classification only)
 - Loader performs NO set operations - it simply reads pre-computed sketches
-- Negative class counts: Arithmetic subtraction at numeric level (`n_neg = n_total - n_pos`)
+- Class counts extracted directly from respective sketches (`pos_count = positive_sketch.get_estimate()`)
 
 **Design Rationale:** This pattern ensures deterministic behavior, eliminates sketch operation errors, and maintains data lineage from big data sources.
+
+### Handling Single-Target Scenarios ("One-vs-All")
+
+While the core algorithm only supports binary classification, traditional "one-vs-all" scenarios (e.g., clicked vs not-clicked) are handled through data preprocessing:
+
+**Example: Click Prediction**
+- **Positive Class**: Users who clicked (from raw data: `action=click`)
+- **Negative Class**: All other users (computed as: `total_users - clicked_users`)
+
+**Data Preparation Process:**
+1. User has click events (`action=click`) in their data
+2. Use `tools/convert_2col_to_3col_sketches.py` to generate both classes:
+   - Positive sketches: Contains only users who clicked
+   - Negative sketches: Automatically computed as complement (total - positive)
+3. Algorithm trains on the resulting positive/negative binary classification
+
+**Key Point:** The core algorithm never performs subtraction operations. All class complement calculations happen during data preprocessing, ensuring mathematical correctness and eliminating runtime sketch errors.
+
+For smaller datasets, users can leverage the conversion tool to automatically generate the required binary class structure from single-target data.
 
 ## System Architecture
 
@@ -116,7 +135,7 @@ The Theta Sketch Decision Tree classifier implements a unique **dual-phase archi
 **SketchLoader** (`sketch_loader.py`)
 - Parses CSV files containing theta sketches
 - Validates sketch format and integrity
-- Handles dual-class and one-vs-all modes
+- Handles binary classification with positive/negative class sketches
 - Loads feature mappings and configurations
 
 **TreeBuilder** (`tree_builder.py`)

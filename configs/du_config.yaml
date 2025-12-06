@@ -1,0 +1,406 @@
+# DU Dataset Configuration for Theta Sketch Decision Tree
+#
+# This configuration file defines the training parameters and feature mapping
+# for the DU (trip outcome prediction) dataset.
+#
+# Dataset: tests/resources/DU_raw.csv
+# Target: tripOutcome (good vs bad)
+# Features: 354 binary features from 9 categorical dimensions
+
+# Sketch parameters
+lg_k: 16  # Sketch size = 2^16 = 65,536 entries
+
+# Target class mapping
+targets:
+  positive: "tripOutcome=good"  # Successful trips
+  negative: "tripOutcome=bad"   # Failed trips
+
+# Model hyperparameters
+hyperparameters:
+  criterion: gini              # Split criterion: gini, entropy, gain_ratio, binomial, chi_square
+  max_depth: 6                # Maximum tree depth (6-8 recommended for DU dataset)
+  min_samples_split: 100      # Minimum samples required to split internal node
+  min_samples_leaf: 50        # Minimum samples required in leaf node
+  min_impurity_decrease: 0.0  # Minimum impurity decrease for split
+  class_weight: balanced      # Handle class imbalance automatically
+  verbose: 2                  # Verbosity: 0=silent, 1=basic, 2=detailed
+
+# Feature mapping: Maps feature=value combinations to column indices (0-353)
+feature_mapping:
+  # Source (6 values: 0-5)
+  source=B2B Portal: 0
+  source=Phone: 1
+  source=android: 2
+  source=ios: 3
+  source=msite: 4
+  source=website: 5
+
+  # Estimated usage bins (8 values: 6-13)
+  estimated_usage_bins=GT_1_LTE_2_HOURS: 6
+  estimated_usage_bins=GT_2_LTE_3_HOURS: 7
+  estimated_usage_bins=GT_3_LTE_4_HOURS: 8
+  estimated_usage_bins=GT_4_LTE_6_HOURS: 9
+  estimated_usage_bins=GT_6_LTE_8_HOURS: 10
+  estimated_usage_bins=GT_8_HOURS: 11
+  estimated_usage_bins=LTE_1_HOUR: 12
+  estimated_usage_bins=NOT_SPECIFIED: 13
+
+  # City (6 values: 14-19)
+  city=Bangalore: 14
+  city=Chennai: 15
+  city=Delhi NCR: 16
+  city=Hyderabad: 17
+  city=Mumbai: 18
+  city=Pune: 19
+
+  # Zone (267 values: 20-286, truncated for readability)
+  zone=48: 20
+  zone=49: 21
+  zone=50: 22
+  zone=52: 23
+  zone=53: 24
+  zone=54: 25
+  zone=55: 26
+  zone=56: 27
+  zone=57: 28
+  zone=58: 29
+  zone=60: 30
+  zone=62: 31
+  zone=67: 32
+  zone=71: 33
+  zone=74: 34
+  zone=75: 35
+  zone=77: 36
+  zone=81: 37
+  zone=82: 38
+  zone=84: 39
+  zone=86: 40
+  zone=89: 41
+  zone=90: 42
+  zone=92: 43
+  zone=96: 44
+  zone=97: 45
+  zone=99: 46
+  zone=100: 47
+  zone=101: 48
+  zone=102: 49
+  zone=103: 50
+  zone=105: 51
+  zone=106: 52
+  zone=107: 53
+  zone=111: 54
+  zone=141: 55
+  zone=142: 56
+  zone=143: 57
+  zone=144: 58
+  zone=150: 59
+  zone=151: 60
+  zone=152: 61
+  zone=153: 62
+  zone=154: 63
+  zone=155: 64
+  zone=156: 65
+  zone=157: 66
+  zone=158: 67
+  zone=159: 68
+  zone=160: 69
+  zone=161: 70
+  zone=162: 71
+  zone=163: 72
+  zone=164: 73
+  zone=166: 74
+  zone=167: 75
+  zone=171: 76
+  zone=173: 77
+  zone=174: 78
+  zone=175: 79
+  zone=190: 80
+  zone=191: 81
+  zone=193: 82
+  zone=194: 83
+  zone=200: 84
+  zone=202: 85
+  zone=203: 86
+  zone=205: 87
+  zone=206: 88
+  zone=207: 89
+  zone=208: 90
+  zone=209: 91
+  zone=216: 92
+  zone=217: 93
+  zone=218: 94
+  zone=219: 95
+  zone=220: 96
+  zone=221: 97
+  zone=223: 98
+  zone=227: 99
+  zone=230: 100
+  zone=231: 101
+  zone=236: 102
+  zone=239: 103
+  zone=241: 104
+  zone=242: 105
+  zone=243: 106
+  zone=244: 107
+  zone=245: 108
+  zone=246: 109
+  zone=248: 110
+  zone=249: 111
+  zone=250: 112
+  zone=251: 113
+  zone=252: 114
+  zone=253: 115
+  zone=254: 116
+  zone=256: 117
+  zone=257: 118
+  zone=258: 119
+  zone=260: 120
+  zone=261: 121
+  zone=262: 122
+  zone=263: 123
+  zone=264: 124
+  zone=267: 125
+  zone=268: 126
+  zone=269: 127
+  zone=270: 128
+  zone=275: 129
+  zone=276: 130
+  zone=277: 131
+  zone=278: 132
+  zone=281: 133
+  zone=282: 134
+  zone=283: 135
+  zone=289: 136
+  zone=296: 137
+  zone=297: 138
+  zone=298: 139
+  zone=299: 140
+  zone=300: 141
+  zone=301: 142
+  zone=304: 143
+  zone=305: 144
+  zone=306: 145
+  zone=307: 146
+  zone=308: 147
+  zone=310: 148
+  zone=311: 149
+  zone=313: 150
+  zone=314: 151
+  zone=315: 152
+  zone=316: 153
+  zone=317: 154
+  zone=318: 155
+  zone=319: 156
+  zone=320: 157
+  zone=322: 158
+  zone=324: 159
+  zone=325: 160
+  zone=326: 161
+  zone=327: 162
+  zone=328: 163
+  zone=329: 164
+  zone=330: 165
+  zone=331: 166
+  zone=332: 167
+  zone=333: 168
+  zone=334: 169
+  zone=335: 170
+  zone=337: 171
+  zone=338: 172
+  zone=339: 173
+  zone=340: 174
+  zone=341: 175
+  zone=342: 176
+  zone=344: 177
+  zone=345: 178
+  zone=346: 179
+  zone=347: 180
+  zone=348: 181
+  zone=349: 182
+  zone=350: 183
+  zone=351: 184
+  zone=352: 185
+  zone=353: 186
+  zone=354: 187
+  zone=355: 188
+  zone=356: 189
+  zone=357: 190
+  zone=359: 191
+  zone=360: 192
+  zone=361: 193
+  zone=363: 194
+  zone=364: 195
+  zone=365: 196
+  zone=367: 197
+  zone=368: 198
+  zone=370: 199
+  zone=372: 200
+  zone=374: 201
+  zone=375: 202
+  zone=376: 203
+  zone=377: 204
+  zone=378: 205
+  zone=379: 206
+  zone=380: 207
+  zone=381: 208
+  zone=382: 209
+  zone=383: 210
+  zone=384: 211
+  zone=385: 212
+  zone=386: 213
+  zone=387: 214
+  zone=388: 215
+  zone=389: 216
+  zone=390: 217
+  zone=391: 218
+  zone=392: 219
+  zone=393: 220
+  zone=395: 221
+  zone=396: 222
+  zone=397: 223
+  zone=398: 224
+  zone=399: 225
+  zone=400: 226
+  zone=401: 227
+  zone=403: 228
+  zone=404: 229
+  zone=405: 230
+  zone=406: 231
+  zone=408: 232
+  zone=409: 233
+  zone=410: 234
+  zone=411: 235
+  zone=412: 236
+  zone=413: 237
+  zone=414: 238
+  zone=415: 239
+  zone=416: 240
+  zone=417: 241
+  zone=418: 242
+  zone=419: 243
+  zone=420: 244
+  zone=421: 245
+  zone=422: 246
+  zone=423: 247
+  zone=424: 248
+  zone=425: 249
+  zone=426: 250
+  zone=427: 251
+  zone=428: 252
+  zone=429: 253
+  zone=430: 254
+  zone=431: 255
+  zone=432: 256
+  zone=433: 257
+  zone=434: 258
+  zone=435: 259
+  zone=436: 260
+  zone=437: 261
+  zone=438: 262
+  zone=439: 263
+  zone=441: 264
+  zone=442: 265
+  zone=443: 266
+  zone=444: 267
+  zone=445: 268
+  zone=446: 269
+  zone=447: 270
+  zone=448: 271
+  zone=449: 272
+  zone=450: 273
+  zone=451: 274
+  zone=452: 275
+  zone=453: 276
+  zone=454: 277
+  zone=455: 278
+  zone=456: 279
+  zone=457: 280
+  zone=458: 281
+  zone=459: 282
+  zone=460: 283
+  zone=461: 284
+  zone=462: 285
+  zone=465: 286
+  zone=466: 287
+  zone=467: 288
+  zone=468: 289
+  zone=469: 290
+  zone=472: 291
+  zone=475: 292
+  zone=476: 293
+  zone=477: 294
+  zone=478: 295
+  zone=479: 296
+  zone=480: 297
+  zone=481: 298
+  zone=482: 299
+  zone=484: 300
+  zone=485: 301
+  zone=486: 302
+  zone=488: 303
+  zone=489: 304
+  zone=490: 305
+  zone=491: 306
+  zone=492: 307
+  zone=493: 308
+  zone=494: 309
+  zone=495: 310
+  zone=496: 311
+  zone=497: 312
+  zone=498: 313
+  zone=499: 314
+  zone=500: 315
+  zone=501: 316
+  zone=502: 317
+  zone=503: 318
+  zone=504: 319
+  zone=505: 320
+  zone=506: 321
+  zone=507: 322
+  zone=508: 323
+  zone=509: 324
+  zone=510: 325
+  zone=511: 326
+
+  # Zone demand popularity (5 values: 327-331)
+  zone_demand_popularity=POPULARITY_INDEX_1: 327
+  zone_demand_popularity=POPULARITY_INDEX_2: 328
+  zone_demand_popularity=POPULARITY_INDEX_3: 329
+  zone_demand_popularity=POPULARITY_INDEX_4: 330
+  zone_demand_popularity=POPULARITY_INDEX_5: 331
+
+  # Day type (3 values: 332-334)
+  dayType=FRIDAY: 332
+  dayType=NORMAL_WEEKDAY: 333
+  dayType=WEEKEND: 334
+
+  # Pickup hour of day (7 values: 335-341)
+  pickUpHourOfDay=AFTERNOON: 335
+  pickUpHourOfDay=EARLY: 336
+  pickUpHourOfDay=EVENING: 337
+  pickUpHourOfDay=LATENIGHT: 338
+  pickUpHourOfDay=MORNING: 339
+  pickUpHourOfDay=NIGHT: 340
+  pickUpHourOfDay=VERYLATE: 341
+
+  # SLA (2 values: 342-343)
+  sla=Immediate: 342
+  sla=Scheduled: 343
+
+  # Booking type (10 values: 344-353)
+  booking_type=12hr: 344
+  booking_type=2hr: 345
+  booking_type=4hr: 346
+  booking_type=5hr: 347
+  booking_type=6hr: 348
+  booking_type=8hr: 349
+  booking_type=one_way_outstation: 350
+  booking_type=one_way_trip: 351
+  booking_type=outstation: 352
+  booking_type=round_trip: 353
+
+# Usage example:
+# python tools/train_from_sketches.py \
+#     du_sketches/positive.csv \
+#     du_sketches/negative.csv \
+#     du_config.yaml

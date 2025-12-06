@@ -1,0 +1,203 @@
+# Mushroom Dataset Configuration for Theta Sketch Decision Tree
+#
+# This configuration file defines the training parameters and feature mapping
+# for the classic UCI Mushroom dataset (agaricus-lepiota.csv).
+#
+# Dataset: tests/resources/agaricus-lepiota.csv
+# Target: class (edible vs poisonous)
+# Features: 117 binary features from 22 categorical dimensions
+# Samples: 8,124 mushroom records
+
+# Sketch parameters
+lg_k: 12  # Sketch size = 2^12 = 4,096 entries (sufficient for mushroom dataset)
+
+# Target class mapping
+targets:
+  positive: "class=e"  # Edible mushrooms
+  negative: "class=p"  # Poisonous mushrooms
+
+# Model hyperparameters
+hyperparameters:
+  criterion: gini              # Split criterion: gini, entropy, gain_ratio, binomial, chi_square
+  max_depth: 8                # Maximum tree depth (8-10 recommended for mushroom dataset)
+  min_samples_split: 20       # Minimum samples required to split internal node
+  min_samples_leaf: 10        # Minimum samples required in leaf node
+  min_impurity_decrease: 0.0  # Minimum impurity decrease for split
+  class_weight: null          # Balanced dataset - no need for class weighting
+  verbose: 2                  # Verbosity: 0=silent, 1=basic, 2=detailed
+
+# Feature mapping: Maps feature=value combinations to column indices (0-116)
+feature_mapping:
+  # Cap shape (6 values: 0-5)
+  cap_shape=b: 0    # bell
+  cap_shape=c: 1    # conical
+  cap_shape=f: 2    # flat
+  cap_shape=k: 3    # knobbed
+  cap_shape=s: 4    # sunken
+  cap_shape=x: 5    # convex
+
+  # Cap surface (4 values: 6-9)
+  cap_surface=f: 6  # fibrous
+  cap_surface=g: 7  # grooves
+  cap_surface=s: 8  # smooth
+  cap_surface=y: 9  # scaly
+
+  # Cap color (10 values: 10-19)
+  cap_color=b: 10   # buff
+  cap_color=c: 11   # cinnamon
+  cap_color=e: 12   # red
+  cap_color=g: 13   # gray
+  cap_color=n: 14   # brown
+  cap_color=p: 15   # pink
+  cap_color=r: 16   # green
+  cap_color=u: 17   # purple
+  cap_color=w: 18   # white
+  cap_color=y: 19   # yellow
+
+  # Bruises (2 values: 20-21)
+  bruises=f: 20     # no bruises
+  bruises=t: 21     # bruises
+
+  # Odor (9 values: 22-30)
+  odor=a: 22        # almond
+  odor=c: 23        # creosote
+  odor=f: 24        # foul
+  odor=l: 25        # anise
+  odor=m: 26        # musty
+  odor=n: 27        # none
+  odor=p: 28        # pungent
+  odor=s: 29        # spicy
+  odor=y: 30        # fishy
+
+  # Gill attachment (2 values: 31-32)
+  gill_attachment=a: 31  # attached
+  gill_attachment=f: 32  # free
+
+  # Gill spacing (2 values: 33-34)
+  gill_spacing=c: 33     # close
+  gill_spacing=w: 34     # crowded
+
+  # Gill size (2 values: 35-36)
+  gill_size=b: 35        # broad
+  gill_size=n: 36        # narrow
+
+  # Gill color (12 values: 37-48)
+  gill_color=b: 37  # buff
+  gill_color=e: 38  # red
+  gill_color=g: 39  # gray
+  gill_color=h: 40  # chocolate
+  gill_color=k: 41  # black
+  gill_color=n: 42  # brown
+  gill_color=o: 43  # orange
+  gill_color=p: 44  # pink
+  gill_color=r: 45  # green
+  gill_color=u: 46  # purple
+  gill_color=w: 47  # white
+  gill_color=y: 48  # yellow
+
+  # Stalk shape (2 values: 49-50)
+  stalk_shape=e: 49      # enlarging
+  stalk_shape=t: 50      # tapering
+
+  # Stalk root (5 values: 51-55)
+  stalk_root=?: 51       # missing
+  stalk_root=b: 52       # bulbous
+  stalk_root=c: 53       # club
+  stalk_root=e: 54       # equal
+  stalk_root=r: 55       # rooted
+
+  # Stalk surface above ring (4 values: 56-59)
+  stalk_surface_above_ring=f: 56  # fibrous
+  stalk_surface_above_ring=k: 57  # silky
+  stalk_surface_above_ring=s: 58  # smooth
+  stalk_surface_above_ring=y: 59  # scaly
+
+  # Stalk surface below ring (4 values: 60-63)
+  stalk_surface_below_ring=f: 60  # fibrous
+  stalk_surface_below_ring=k: 61  # silky
+  stalk_surface_below_ring=s: 62  # smooth
+  stalk_surface_below_ring=y: 63  # scaly
+
+  # Stalk color above ring (9 values: 64-72)
+  stalk_color_above_ring=b: 64  # buff
+  stalk_color_above_ring=c: 65  # cinnamon
+  stalk_color_above_ring=e: 66  # red
+  stalk_color_above_ring=g: 67  # gray
+  stalk_color_above_ring=n: 68  # brown
+  stalk_color_above_ring=o: 69  # orange
+  stalk_color_above_ring=p: 70  # pink
+  stalk_color_above_ring=w: 71  # white
+  stalk_color_above_ring=y: 72  # yellow
+
+  # Stalk color below ring (9 values: 73-81)
+  stalk_color_below_ring=b: 73  # buff
+  stalk_color_below_ring=c: 74  # cinnamon
+  stalk_color_below_ring=e: 75  # red
+  stalk_color_below_ring=g: 76  # gray
+  stalk_color_below_ring=n: 77  # brown
+  stalk_color_below_ring=o: 78  # orange
+  stalk_color_below_ring=p: 79  # pink
+  stalk_color_below_ring=w: 80  # white
+  stalk_color_below_ring=y: 81  # yellow
+
+  # Veil type (1 value: 82) - NOTE: Only one value in dataset
+  veil_type=p: 82               # partial
+
+  # Veil color (4 values: 83-86)
+  veil_color=n: 83  # brown
+  veil_color=o: 84  # orange
+  veil_color=w: 85  # white
+  veil_color=y: 86  # yellow
+
+  # Ring number (3 values: 87-89)
+  ring_number=n: 87  # none
+  ring_number=o: 88  # one
+  ring_number=t: 89  # two
+
+  # Ring type (5 values: 90-94)
+  ring_type=e: 90    # evanescent
+  ring_type=f: 91    # flaring
+  ring_type=l: 92    # large
+  ring_type=n: 93    # none
+  ring_type=p: 94    # pendant
+
+  # Spore print color (9 values: 95-103)
+  spore_print_color=b: 95   # buff
+  spore_print_color=h: 96   # chocolate
+  spore_print_color=k: 97   # black
+  spore_print_color=n: 98   # brown
+  spore_print_color=o: 99   # orange
+  spore_print_color=r: 100  # green
+  spore_print_color=u: 101  # purple
+  spore_print_color=w: 102  # white
+  spore_print_color=y: 103  # yellow
+
+  # Population (6 values: 104-109)
+  population=a: 104  # abundant
+  population=c: 105  # clustered
+  population=n: 106  # numerous
+  population=s: 107  # scattered
+  population=v: 108  # several
+  population=y: 109  # solitary
+
+  # Habitat (7 values: 110-116)
+  habitat=d: 110     # woods
+  habitat=g: 111     # grasses
+  habitat=l: 112     # leaves
+  habitat=m: 113     # meadows
+  habitat=p: 114     # paths
+  habitat=u: 115     # urban
+  habitat=w: 116     # waste
+
+# Usage examples:
+#
+# Train from existing mushroom sketch files:
+# python tools/train_from_sketches.py \
+#     tests/fixtures/mushroom_positive_sketches.csv \
+#     tests/fixtures/mushroom_negative_sketches_lg_k_12.csv \
+#     mushroom_config.yaml
+#
+# Or generate new sketches and train:
+# python run_binary_classification.py \
+#     tests/resources/agaricus-lepiota.csv class \
+#     --lg_k 12 --max_depth 8 --criterion gini --verbose 2
