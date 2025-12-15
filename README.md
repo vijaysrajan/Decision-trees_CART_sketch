@@ -57,6 +57,109 @@ python tools/train_from_3col_sketches.py \
     configs/training_config.yaml
 ```
 
+## 🚀 Production Pipeline Scripts
+
+For production deployments and customer demos, use these complete pipeline scripts:
+
+### Script 1: Complete CSV → Model Pipeline
+Transforms raw CSV data through the entire pipeline to a trained model:
+
+```bash
+# Complete pipeline: CSV → 2-col sketches → 3-col sketches → model
+./du_pipeline.sh
+
+# Uses DU dataset, outputs to DU_output/ directory
+# Includes decision rules extraction for validation
+```
+
+### Script 2: 2-Column Sketches → Model Pipeline
+Starts from existing 2-column sketches:
+
+```bash
+# From 2-column sketches to trained model
+./pipeline_2col_to_model.sh <2col_sketches.csv> <lg_k> <output_dir> <target_column> [config.yaml]
+
+# Examples:
+./pipeline_2col_to_model.sh DU_output/DU_raw_2col_sketches_lg_k_16.csv 16 models/ tripOutcome
+./pipeline_2col_to_model.sh mushroom_2col_sketches.csv 12 mushroom_models/ edible configs/mushroom_config.yaml
+```
+
+### Script 3: 3-Column Sketches → Model Training
+Direct model training from prepared sketches:
+
+```bash
+# Train model from 3-column sketches
+./pipeline_3col_to_model.sh <positive_3col.csv> <negative_3col.csv> <lg_k> <output_dir> [config.yaml]
+
+# Examples:
+./pipeline_3col_to_model.sh positive_sketches.csv negative_sketches.csv 16 models/
+./pipeline_3col_to_model.sh DU_output/positive_3col_sketches_lg_k_16.csv DU_output/negative_3col_sketches_lg_k_16.csv 16 production_models/ configs/production_config.yaml
+```
+
+### Script 4: Advanced Classification Strategies Demo
+Showcases business-ready classification strategies:
+
+```bash
+# Complete advanced classification demo
+./demo_advanced_classification.sh [model.pkl] [test_data.csv] [strategy] [output_dir]
+
+# Examples:
+./demo_advanced_classification.sh                                    # Use defaults (DU model)
+./demo_advanced_classification.sh model.pkl data.csv class_weightage demo/
+./demo_advanced_classification.sh model.pkl data.csv all output/     # Test all strategies
+```
+
+## 🎯 Advanced Classification Strategies
+
+Post-processing classification with multiple business strategies:
+
+### Available Strategies
+
+| Strategy | Use Case | Key Feature |
+|----------|----------|-------------|
+| **Class Weightage** | Cost-sensitive decisions | Adjusts threshold based on business costs |
+| **Binomial P-value** | Statistical rigor | Ensures significance vs. population baseline |
+| **Ratio Threshold** | Simple rules | Interpretable percentage cutoffs |
+| **Confidence Intervals** | Uncertainty-aware | Wilson score intervals for reliability |
+
+### Business Scenarios
+
+```yaml
+# Customer Retention (False negatives expensive)
+strategy: "class_weightage"
+positive_class_weight: 5.0  # Losing customers costs 5x more
+negative_class_weight: 1.0
+min_collateral_damage: 100  # Need ≥100 safe samples
+
+# Fraud Detection (Need statistical confidence)
+strategy: "binomial_pvalue"
+population_positive_rate: 0.001  # Baseline fraud rate
+significance_level: 0.01         # 99% confidence required
+
+# Marketing Campaign (Simple + reliable)
+strategy: "ratio_threshold"
+ratio_threshold: 0.25           # 25% positive rate required
+min_samples_for_prediction: 50  # Minimum sample size
+
+# Medical Diagnosis (Uncertainty-aware)
+strategy: "confidence_intervals"
+confidence_level: 0.99          # 99% confidence intervals
+decision_threshold: 0.10        # Conservative threshold
+```
+
+### Quick Demo
+```bash
+# See all strategies in action
+./venv/bin/python demo_advanced_strategies.py
+
+# Test with your model
+./venv/bin/python tools/advanced_classifier.py \
+    --model your_model.pkl \
+    --data your_data.csv \
+    --config configs/classification_strategies.yaml \
+    --summary
+```
+
 **Real Example - Mushroom Dataset:**
 ```bash
 # Generate mushroom sketches

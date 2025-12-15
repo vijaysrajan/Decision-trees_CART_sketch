@@ -1,0 +1,4 @@
+strategy: "confidence_intervals"
+confidence_level: 0.95
+decision_threshold: 0.25
+min_collateral_damage: 75

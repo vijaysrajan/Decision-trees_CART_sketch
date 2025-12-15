@@ -1,0 +1,74 @@
+# Advanced Classification Strategies Configuration
+# Choose one strategy and configure its parameters
+
+# Strategy options: class_weightage, binomial_pvalue, ratio_threshold, confidence_intervals
+strategy: "ratio_threshold"
+
+# Optional: Minimum collateral damage constraint (applies to all strategies)
+# If specified, positive predictions require at least this many negative samples in the leaf
+# min_collateral_damage: 50
+
+# =============================================================================
+# Strategy: class_weightage
+# Adjust decision threshold based on class costs
+# =============================================================================
+class_weightage:
+  positive_class_weight: 2.0    # Higher weight = more sensitive to positive class
+  negative_class_weight: 1.0    # Higher weight = more sensitive to negative class
+  # Example: positive_weight=2, negative_weight=1 means false negatives cost twice as much
+
+# =============================================================================
+# Strategy: binomial_pvalue
+# Statistical significance testing against population rate
+# =============================================================================
+binomial_pvalue:
+  population_positive_rate: 0.15    # Expected positive rate in overall population
+  significance_level: 0.05          # P-value threshold for significance
+  # Leaf is classified as positive only if significantly higher than population rate
+
+# =============================================================================
+# Strategy: ratio_threshold
+# Simple percentage cutoffs
+# =============================================================================
+ratio_threshold:
+  ratio_threshold: 0.30             # Minimum positive rate for positive classification
+  min_samples_for_prediction: 20    # Minimum samples required for reliable prediction
+  # If below min_samples, prediction defaults to negative (low confidence)
+
+# =============================================================================
+# Strategy: confidence_intervals
+# Wilson score intervals for robust confidence estimation
+# =============================================================================
+confidence_intervals:
+  confidence_level: 0.95            # Confidence level for interval calculation
+  decision_threshold: 0.25          # Threshold for positive classification
+  # Classify as positive only if confidence interval lower bound > threshold
+
+# =============================================================================
+# Example configurations for different use cases:
+# =============================================================================
+
+# High precision (few false positives):
+# strategy: "confidence_intervals"
+# confidence_intervals:
+#   confidence_level: 0.99
+#   decision_threshold: 0.40
+
+# Risk averse (statistical rigor):
+# strategy: "binomial_pvalue"
+# binomial_pvalue:
+#   population_positive_rate: 0.15
+#   significance_level: 0.01
+# min_collateral_damage: 100
+
+# Cost sensitive (false negatives expensive):
+# strategy: "class_weightage"
+# class_weightage:
+#   positive_class_weight: 5.0
+#   negative_class_weight: 1.0
+
+# Simple threshold with safety:
+# strategy: "ratio_threshold"
+# ratio_threshold:
+#   ratio_threshold: 0.25
+#   min_samples_for_prediction: 50

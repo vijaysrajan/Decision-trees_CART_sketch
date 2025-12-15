@@ -1,0 +1,4 @@
+strategy: "class_weightage"
+positive_class_weight: 3.0
+negative_class_weight: 1.0
+min_collateral_damage: 50

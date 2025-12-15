@@ -1,0 +1,4 @@
+strategy: "ratio_threshold"
+ratio_threshold: 0.30
+min_samples_for_prediction: 20
+min_collateral_damage: 25

@@ -1,0 +1,4 @@
+strategy: "binomial_pvalue"
+population_positive_rate: 0.15
+significance_level: 0.05
+min_collateral_damage: 100
