@@ -1,68 +1,83 @@
-#Complete DU Pipeline Commands
+#!/bin/bash
+# Complete DU Pipeline Commands
+# Updated to use correct file paths and tool arguments
 
-#Step 1: Raw CSV → 2-Column Sketches
-./venv/bin/python tools/create_2col_sketches.py DU_raw.csv target --lg_k 18 --output DU_output/
+set -e  # Exit on any error
 
-#  Output:
-#  - DU_output/DU_raw_positive_2col_sketches_lg_k_18.csv
-#  - DU_output/DU_raw_negative_2col_sketches_lg_k_18.csv
-#  - DU_output/DU_raw_feature_mapping.json
+echo "🚗 Running DU Pipeline with lg_k=18"
+echo "==================================="
 
+# Step 1: Raw CSV → 2-Column Sketches
+echo "📊 Step 1: Creating 2-column sketches..."
+./venv/bin/python tools/create_2col_sketches.py \
+    --input tests/resources/DU_raw.csv \
+    --output DU_output/ \
+    --lg_k 18 \
+    --skip_columns tripId
 
-#Step 2: 2-Column Sketches → 3-Column Sketches
-./venv/bin/python tools/simple_convert_to_3col.py  DU_output/DU_raw_positive_2col_sketches_lg_k_18.csv  DU_output/DU_raw_negative_2col_sketches_lg_k_18.csv  DU_output/DU_raw_feature_mapping.json --output DU_output/DU_raw_3col_sketches_lg_k_18.csv
+echo "✅ Step 1 completed"
+echo "   Output: DU_output/DU_raw_2col_sketches_lg_k_18.csv"
+echo ""
 
-#Output:
-#  - DU_output/DU_raw_3col_sketches_lg_k_18.csv
+# Step 2: 2-Column Sketches → 3-Column Sketches
+echo "🔄 Step 2: Converting to 3-column sketches..."
+./venv/bin/python tools/simple_convert_to_3col.py \
+    --input DU_output/DU_raw_2col_sketches_lg_k_18.csv \
+    --suffix _3col_sketches_lg_k_18 \
+    --mapping DU_feature_mapping.json \
+    --output DU_output/ \
+    --target tripOutcome
 
+echo "✅ Step 2 completed"
+echo "   Output: DU_output/positive_3col_sketches_lg_k_18.csv"
+echo "   Output: DU_output/negative_3col_sketches_lg_k_18.csv"
+echo "   Output: DU_output/DU_feature_mapping.json"
+echo ""
 
-#Step 3: 3-Column Sketches → Trained Tree Model
+# Step 3: 3-Column Sketches → Trained Tree Model
+echo "🌳 Step 3: Training decision tree model..."
 ./venv/bin/python tools/train_from_3col_sketches.py \
-      DU_output/DU_raw_3col_sketches_lg_k_18.csv \
-      --positive 1 \
-      --lg_k 18 \
-      --criterion gini \
-      --max_depth 6 \
-      --min_samples_split 100 \
-      --min_samples_leaf 50 \
-      --output DU_output/test_model_lg_k_18
+    --lg_k 18 \
+    --positive DU_output/positive_3col_sketches_lg_k_18.csv \
+    --negative DU_output/negative_3col_sketches_lg_k_18.csv \
+    --config configs/du_config.yaml \
+    --output DU_output/du_model_lg_k_18
 
-#Output:
-#  - DU_output/test_model_lg_k_18/3col_sketches_model_lg_k_18.pkl (trained model)
-#  - DU_output/test_model_lg_k_18/3col_sketches_model_lg_k_18.json (tree structure)
+echo "✅ Step 3 completed"
+echo "   Output: DU_output/du_model_lg_k_18/3col_sketches_lg_k_18_model_lg_k_18.pkl"
+echo "   Output: DU_output/du_model_lg_k_18/3col_sketches_lg_k_18_model_lg_k_18.json"
+echo ""
 
-#Complete One-Liner Pipeline
+# Step 4: Extract Decision Rules
+echo "📋 Step 4: Extracting decision rules for validation..."
+./venv/bin/python tools/extract_tree_rules.py \
+    DU_output/du_model_lg_k_18/3col_sketches_lg_k_18_model_lg_k_18.json \
+    --save_rules DU_output/tree_rules.json \
+    --save_sql DU_output/tree_validation_queries.sql \
+    --table DU_raw \
+    --target_column tripOutcome \
+    --quiet
 
-#If you want to run all steps in sequence:
+./venv/bin/python tools/quick_tree_test.py \
+    DU_output/du_model_lg_k_18/3col_sketches_lg_k_18_model_lg_k_18.json \
+    --num_rules 5 \
+    --table DU_raw \
+    --target tripOutcome > DU_output/quick_test_rules.txt
 
-## Step 1: Raw CSV → 2-column sketches
-#./venv/bin/python tools/create_2col_sketches.py DU_raw.csv target --lg_k 18 --output DU_output/ && \
+echo "✅ Step 4 completed"
+echo "   Output: DU_output/tree_rules.json"
+echo "   Output: DU_output/tree_validation_queries.sql"
+echo "   Output: DU_output/quick_test_rules.txt"
+echo ""
 
-## Step 2: 2-column → 3-column sketches  
-#./venv/bin/python tools/simple_convert_to_3col.py \
-#      DU_output/DU_raw_positive_2col_sketches_lg_k_18.csv \
-#      DU_output/DU_raw_negative_2col_sketches_lg_k_18.csv \
-#      DU_output/DU_raw_feature_mapping.json \
-#      --output DU_output/DU_raw_3col_sketches_lg_k_18.csv && \
+echo "🎉 DU Pipeline completed successfully!"
+echo "All outputs available in DU_output/ directory"
 
-## Step 3: 3-column sketches → trained model
-#./venv/bin/python tools/train_from_3col_sketches.py \
-#      DU_output/DU_raw_3col_sketches_lg_k_18.csv \
-#      --positive 1 \
-#      --lg_k 18 \
-#      --criterion gini \
-#      --max_depth 6 \
-#      --min_samples_split 100 \
-#      --min_samples_leaf 50 \
-#      --output DU_output/test_model_lg_k_18
+# Alternative: You can also use the comprehensive script:
+# ./sample_du_training.sh
 
-#Alternative: Using the Existing Script
-#I noticed there's a sample_du_training.sh script that should contain this pipeline. You can also run:
-#./sample_du_training.sh
-#Key Parameters Explained
+# Key Parameters Explained:
 # - --lg_k 18: Theta sketch precision parameter (higher = more accurate, more memory)
-#  - --positive 1: Target value for positive class in the CSV
-#  - --criterion gini: Split criterion (options: gini, entropy, gain_ratio, etc.)
-#  - --max_depth 6: Maximum tree depth
-#  - --min_samples_split 100: Minimum samples to split a node
-#  - --min_samples_leaf 50: Minimum samples in leaf nodes
+# - --target tripOutcome: Target column name in the CSV
+# - --skip_columns tripId: Columns to exclude from feature creation
+# - configs/du_config.yaml: Contains tree hyperparameters (max_depth=6, min_samples_split=100, etc.)

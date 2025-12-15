@@ -1,155 +1,75 @@
 {
   "metadata": {
     "source_tree": "DU_output/du_model_lg_k_18/3col_sketches_lg_k_18_model_lg_k_18.json",
-    "total_rules": 32,
+    "total_rules": 34,
     "extraction_timestamp": null
   },
   "rules": [
     {
       "rule_id": 1,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=0 \u2192 sla=Immediate=0 \u2192 booking_type=one_way_trip=0 \u2192 city=Pune=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 0 AND sla=Immediate = 0 AND booking_type=one_way_trip = 0 AND city=Pune = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is FALSE AND sla=Immediate is FALSE AND booking_type=one_way_trip is FALSE AND city=Pune is FALSE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 zone=221=0 \u2192 zone=194=0 \u2192 sla=Immediate=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 0 AND zone=221 = 0 AND zone=194 = 0 AND sla=Immediate = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is FALSE AND zone=221 is FALSE AND zone=194 is FALSE AND sla=Immediate is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.9148,
+      "confidence": 0.9035,
       "class_counts": [
-        7655.0,
-        713.0
+        11560.0,
+        1234.0
       ],
-      "n_samples": 8368.0,
+      "n_samples": 12794.0,
       "class_probabilities": [
-        0.9148,
-        0.0852
+        0.9035,
+        0.0965
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 2,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=0 \u2192 sla=Immediate=0 \u2192 booking_type=one_way_trip=0 \u2192 city=Pune=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 0 AND sla=Immediate = 0 AND booking_type=one_way_trip = 0 AND city=Pune = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is FALSE AND sla=Immediate is FALSE AND booking_type=one_way_trip is FALSE AND city=Pune is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 zone=221=0 \u2192 zone=194=0 \u2192 sla=Immediate=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 0 AND zone=221 = 0 AND zone=194 = 0 AND sla=Immediate = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is FALSE AND zone=221 is FALSE AND zone=194 is FALSE AND sla=Immediate is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.7985,
+      "confidence": 0.99,
       "class_counts": [
-        107.0,
-        27.0
+        690.0,
+        7.0
       ],
-      "n_samples": 134.0,
+      "n_samples": 697.0,
       "class_probabilities": [
-        0.7985,
-        0.2015
+        0.99,
+        0.01
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 3,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=0 \u2192 sla=Immediate=0 \u2192 booking_type=one_way_trip=1 \u2192 dayType=NORMAL_WEEKDAY=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 0 AND sla=Immediate = 0 AND booking_type=one_way_trip = 1 AND dayType=NORMAL_WEEKDAY = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is FALSE AND sla=Immediate is FALSE AND booking_type=one_way_trip is TRUE AND dayType=NORMAL_WEEKDAY is FALSE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 zone=221=0 \u2192 zone=194=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 0 AND zone=221 = 0 AND zone=194 = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is FALSE AND zone=221 is FALSE AND zone=194 is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.8313,
+      "confidence": 0.6087,
       "class_counts": [
-        2094.0,
-        425.0
+        42.0,
+        27.0
       ],
-      "n_samples": 2519.0,
+      "n_samples": 69.0,
       "class_probabilities": [
-        0.8313,
-        0.1687
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 4,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=0 \u2192 sla=Immediate=0 \u2192 booking_type=one_way_trip=1 \u2192 dayType=NORMAL_WEEKDAY=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 0 AND sla=Immediate = 0 AND booking_type=one_way_trip = 1 AND dayType=NORMAL_WEEKDAY = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is FALSE AND sla=Immediate is FALSE AND booking_type=one_way_trip is TRUE AND dayType=NORMAL_WEEKDAY is TRUE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.8906,
-      "class_counts": [
-        3020.0,
-        371.0
-      ],
-      "n_samples": 3391.0,
-      "class_probabilities": [
-        0.8906,
-        0.1094
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 5,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=0 \u2192 sla=Immediate=1 \u2192 city=Chennai=0 \u2192 estimated_usage_bins=LTE_1_HOUR=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 0 AND sla=Immediate = 1 AND city=Chennai = 0 AND estimated_usage_bins=LTE_1_HOUR = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is FALSE AND sla=Immediate is TRUE AND city=Chennai is FALSE AND estimated_usage_bins=LTE_1_HOUR is FALSE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 1.0,
-      "class_counts": [
-        286.0,
-        0.0
-      ],
-      "n_samples": 286.0,
-      "class_probabilities": [
-        1.0,
-        0.0
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 6,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=0 \u2192 sla=Immediate=1 \u2192 city=Chennai=0 \u2192 estimated_usage_bins=LTE_1_HOUR=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 0 AND sla=Immediate = 1 AND city=Chennai = 0 AND estimated_usage_bins=LTE_1_HOUR = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is FALSE AND sla=Immediate is TRUE AND city=Chennai is FALSE AND estimated_usage_bins=LTE_1_HOUR is TRUE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.9903,
-      "class_counts": [
-        410.0,
-        4.0
-      ],
-      "n_samples": 414.0,
-      "class_probabilities": [
-        0.9903,
-        0.0097
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 7,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=0 \u2192 sla=Immediate=1 \u2192 city=Chennai=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 0 AND sla=Immediate = 1 AND city=Chennai = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is FALSE AND sla=Immediate is TRUE AND city=Chennai is TRUE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.9538,
-      "class_counts": [
-        62.0,
-        3.0
-      ],
-      "n_samples": 65.0,
-      "class_probabilities": [
-        0.9538,
-        0.0462
+        0.6087,
+        0.3913
       ],
       "conditions_count": 5,
       "depth": 5
     },
     {
-      "rule_id": 8,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=1 \u2192 booking_type=one_way_trip=0 \u2192 estimated_usage_bins=GT_3_LTE_4_HOURS=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 1 AND booking_type=one_way_trip = 0 AND estimated_usage_bins=GT_3_LTE_4_HOURS = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is TRUE AND booking_type=one_way_trip is FALSE AND estimated_usage_bins=GT_3_LTE_4_HOURS is FALSE",
+      "rule_id": 4,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 zone=221=1 \u2192 booking_type=one_way_trip=0 \u2192 estimated_usage_bins=GT_3_LTE_4_HOURS=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 0 AND zone=221 = 1 AND booking_type=one_way_trip = 0 AND estimated_usage_bins=GT_3_LTE_4_HOURS = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is FALSE AND zone=221 is TRUE AND booking_type=one_way_trip is FALSE AND estimated_usage_bins=GT_3_LTE_4_HOURS is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
       "confidence": 0.8454,
@@ -162,311 +82,431 @@
         0.8454,
         0.1546
       ],
+      "conditions_count": 6,
+      "depth": 6
+    },
+    {
+      "rule_id": 5,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 zone=221=1 \u2192 booking_type=one_way_trip=0 \u2192 estimated_usage_bins=GT_3_LTE_4_HOURS=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 0 AND zone=221 = 1 AND booking_type=one_way_trip = 0 AND estimated_usage_bins=GT_3_LTE_4_HOURS = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is FALSE AND zone=221 is TRUE AND booking_type=one_way_trip is FALSE AND estimated_usage_bins=GT_3_LTE_4_HOURS is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.7705,
+      "class_counts": [
+        47.0,
+        14.0
+      ],
+      "n_samples": 61.0,
+      "class_probabilities": [
+        0.7705,
+        0.2295
+      ],
+      "conditions_count": 6,
+      "depth": 6
+    },
+    {
+      "rule_id": 6,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 zone=221=1 \u2192 booking_type=one_way_trip=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 0 AND zone=221 = 1 AND booking_type=one_way_trip = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is FALSE AND zone=221 is TRUE AND booking_type=one_way_trip is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.6111,
+      "class_counts": [
+        55.0,
+        35.0
+      ],
+      "n_samples": 90.0,
+      "class_probabilities": [
+        0.6111,
+        0.3889
+      ],
       "conditions_count": 5,
       "depth": 5
     },
     {
-      "rule_id": 9,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=1 \u2192 booking_type=one_way_trip=0 \u2192 estimated_usage_bins=GT_3_LTE_4_HOURS=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 1 AND booking_type=one_way_trip = 0 AND estimated_usage_bins=GT_3_LTE_4_HOURS = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is TRUE AND booking_type=one_way_trip is FALSE AND estimated_usage_bins=GT_3_LTE_4_HOURS is TRUE",
+      "rule_id": 7,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 dayType=NORMAL_WEEKDAY=0 \u2192 zone=217=0 \u2192 city=Mumbai=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 1 AND dayType=NORMAL_WEEKDAY = 0 AND zone=217 = 0 AND city=Mumbai = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is TRUE AND dayType=NORMAL_WEEKDAY is FALSE AND zone=217 is FALSE AND city=Mumbai is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.7581,
+      "confidence": 0.7205,
       "class_counts": [
-        47.0,
-        15.0
+        464.0,
+        180.0
+      ],
+      "n_samples": 644.0,
+      "class_probabilities": [
+        0.7205,
+        0.2795
+      ],
+      "conditions_count": 6,
+      "depth": 6
+    },
+    {
+      "rule_id": 8,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 dayType=NORMAL_WEEKDAY=0 \u2192 zone=217=0 \u2192 city=Mumbai=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 1 AND dayType=NORMAL_WEEKDAY = 0 AND zone=217 = 0 AND city=Mumbai = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is TRUE AND dayType=NORMAL_WEEKDAY is FALSE AND zone=217 is FALSE AND city=Mumbai is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.8391,
+      "class_counts": [
+        193.0,
+        37.0
+      ],
+      "n_samples": 230.0,
+      "class_probabilities": [
+        0.8391,
+        0.1609
+      ],
+      "conditions_count": 6,
+      "depth": 6
+    },
+    {
+      "rule_id": 9,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 dayType=NORMAL_WEEKDAY=0 \u2192 zone=217=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 1 AND dayType=NORMAL_WEEKDAY = 0 AND zone=217 = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is TRUE AND dayType=NORMAL_WEEKDAY is FALSE AND zone=217 is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.9677,
+      "class_counts": [
+        60.0,
+        2.0
       ],
       "n_samples": 62.0,
       "class_probabilities": [
-        0.7581,
-        0.2419
+        0.9677,
+        0.0323
       ],
       "conditions_count": 5,
       "depth": 5
     },
     {
       "rule_id": 10,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 zone=221=1 \u2192 booking_type=one_way_trip=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND zone=221 = 1 AND booking_type=one_way_trip = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND zone=221 is TRUE AND booking_type=one_way_trip is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 dayType=NORMAL_WEEKDAY=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_1=0 \u2192 city=Mumbai=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 1 AND dayType=NORMAL_WEEKDAY = 1 AND zone_demand_popularity=POPULARITY_INDEX_1 = 0 AND city=Mumbai = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is TRUE AND dayType=NORMAL_WEEKDAY is TRUE AND zone_demand_popularity=POPULARITY_INDEX_1 is FALSE AND city=Mumbai is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.6,
+      "confidence": 0.8193,
       "class_counts": [
-        66.0,
-        44.0
+        204.0,
+        45.0
       ],
-      "n_samples": 110.0,
+      "n_samples": 249.0,
       "class_probabilities": [
-        0.6,
-        0.4
+        0.8193,
+        0.1807
       ],
-      "conditions_count": 4,
-      "depth": 4
+      "conditions_count": 6,
+      "depth": 6
     },
     {
       "rule_id": 11,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=0 \u2192 sla=Immediate=0 \u2192 source=android=0 \u2192 booking_type=one_way_trip=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 0 AND sla=Immediate = 0 AND source=android = 0 AND booking_type=one_way_trip = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is FALSE AND sla=Immediate is FALSE AND source=android is FALSE AND booking_type=one_way_trip is FALSE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 dayType=NORMAL_WEEKDAY=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_1=0 \u2192 city=Mumbai=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 1 AND dayType=NORMAL_WEEKDAY = 1 AND zone_demand_popularity=POPULARITY_INDEX_1 = 0 AND city=Mumbai = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is TRUE AND dayType=NORMAL_WEEKDAY is TRUE AND zone_demand_popularity=POPULARITY_INDEX_1 is FALSE AND city=Mumbai is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.8862,
+      "confidence": 0.9655,
       "class_counts": [
-        615.0,
-        79.0
+        112.0,
+        4.0
       ],
-      "n_samples": 694.0,
+      "n_samples": 116.0,
       "class_probabilities": [
-        0.8862,
-        0.1138
+        0.9655,
+        0.0345
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 12,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=0 \u2192 sla=Immediate=0 \u2192 source=android=0 \u2192 booking_type=one_way_trip=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 0 AND sla=Immediate = 0 AND source=android = 0 AND booking_type=one_way_trip = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is FALSE AND sla=Immediate is FALSE AND source=android is FALSE AND booking_type=one_way_trip is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 dayType=NORMAL_WEEKDAY=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_1=1 \u2192 zone=219=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 1 AND dayType=NORMAL_WEEKDAY = 1 AND zone_demand_popularity=POPULARITY_INDEX_1 = 1 AND zone=219 = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is TRUE AND dayType=NORMAL_WEEKDAY is TRUE AND zone_demand_popularity=POPULARITY_INDEX_1 is TRUE AND zone=219 is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.8167,
+      "confidence": 0.9419,
       "class_counts": [
-        254.0,
-        57.0
+        227.0,
+        14.0
       ],
-      "n_samples": 311.0,
+      "n_samples": 241.0,
       "class_probabilities": [
-        0.8167,
-        0.1833
+        0.9419,
+        0.0581
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 13,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=0 \u2192 sla=Immediate=0 \u2192 source=android=1 \u2192 booking_type=one_way_trip=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 0 AND sla=Immediate = 0 AND source=android = 1 AND booking_type=one_way_trip = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is FALSE AND sla=Immediate is FALSE AND source=android is TRUE AND booking_type=one_way_trip is FALSE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 dayType=NORMAL_WEEKDAY=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_1=1 \u2192 zone=219=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND pickUpHourOfDay=LATENIGHT = 1 AND dayType=NORMAL_WEEKDAY = 1 AND zone_demand_popularity=POPULARITY_INDEX_1 = 1 AND zone=219 = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND pickUpHourOfDay=LATENIGHT is TRUE AND dayType=NORMAL_WEEKDAY is TRUE AND zone_demand_popularity=POPULARITY_INDEX_1 is TRUE AND zone=219 is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.8156,
+      "confidence": 0.9688,
       "class_counts": [
-        650.0,
-        147.0
+        93.0,
+        3.0
       ],
-      "n_samples": 797.0,
+      "n_samples": 96.0,
       "class_probabilities": [
-        0.8156,
-        0.1844
+        0.9688,
+        0.0312
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 14,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=0 \u2192 sla=Immediate=0 \u2192 source=android=1 \u2192 booking_type=one_way_trip=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 0 AND sla=Immediate = 0 AND source=android = 1 AND booking_type=one_way_trip = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is FALSE AND sla=Immediate is FALSE AND source=android is TRUE AND booking_type=one_way_trip is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 city=Pune=0 \u2192 city=Mumbai=0 \u2192 city=Hyderabad=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 0 AND city=Pune = 0 AND city=Mumbai = 0 AND city=Hyderabad = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is FALSE AND city=Pune is FALSE AND city=Mumbai is FALSE AND city=Hyderabad is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.7331,
+      "confidence": 0.8905,
       "class_counts": [
-        228.0,
-        83.0
+        1244.0,
+        153.0
       ],
-      "n_samples": 311.0,
+      "n_samples": 1397.0,
       "class_probabilities": [
-        0.7331,
-        0.2669
+        0.8905,
+        0.1095
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 15,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=0 \u2192 sla=Immediate=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 0 AND sla=Immediate = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is FALSE AND sla=Immediate is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 city=Pune=0 \u2192 city=Mumbai=0 \u2192 city=Hyderabad=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 0 AND city=Pune = 0 AND city=Mumbai = 0 AND city=Hyderabad = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is FALSE AND city=Pune is FALSE AND city=Mumbai is FALSE AND city=Hyderabad is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 1.0,
+      "confidence": 0.7174,
       "class_counts": [
-        97.0,
-        0.0
+        66.0,
+        26.0
       ],
-      "n_samples": 97.0,
+      "n_samples": 92.0,
       "class_probabilities": [
-        1.0,
-        0.0
+        0.7174,
+        0.2826
       ],
-      "conditions_count": 4,
-      "depth": 4
+      "conditions_count": 6,
+      "depth": 6
     },
     {
       "rule_id": 16,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=1 \u2192 booking_type=outstation=0 \u2192 source=android=0 \u2192 dayType=NORMAL_WEEKDAY=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 1 AND booking_type=outstation = 0 AND source=android = 0 AND dayType=NORMAL_WEEKDAY = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is TRUE AND booking_type=outstation is FALSE AND source=android is FALSE AND dayType=NORMAL_WEEKDAY is FALSE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 city=Pune=0 \u2192 city=Mumbai=1 \u2192 booking_type=round_trip=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 0 AND city=Pune = 0 AND city=Mumbai = 1 AND booking_type=round_trip = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is FALSE AND city=Pune is FALSE AND city=Mumbai is TRUE AND booking_type=round_trip is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.64,
+      "confidence": 0.8212,
       "class_counts": [
-        32.0,
-        18.0
+        326.0,
+        71.0
       ],
-      "n_samples": 50.0,
+      "n_samples": 397.0,
       "class_probabilities": [
-        0.64,
-        0.36
+        0.8212,
+        0.1788
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 17,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=1 \u2192 booking_type=outstation=0 \u2192 source=android=0 \u2192 dayType=NORMAL_WEEKDAY=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 1 AND booking_type=outstation = 0 AND source=android = 0 AND dayType=NORMAL_WEEKDAY = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is TRUE AND booking_type=outstation is FALSE AND source=android is FALSE AND dayType=NORMAL_WEEKDAY is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 city=Pune=0 \u2192 city=Mumbai=1 \u2192 booking_type=round_trip=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 0 AND city=Pune = 0 AND city=Mumbai = 1 AND booking_type=round_trip = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is FALSE AND city=Pune is FALSE AND city=Mumbai is TRUE AND booking_type=round_trip is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.7586,
+      "confidence": 0.6825,
       "class_counts": [
-        44.0,
-        14.0
+        129.0,
+        60.0
       ],
-      "n_samples": 58.0,
+      "n_samples": 189.0,
       "class_probabilities": [
-        0.7586,
-        0.2414
+        0.6825,
+        0.3175
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 18,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=1 \u2192 booking_type=outstation=0 \u2192 source=android=1 \u2192 estimated_usage_bins=GT_1_LTE_2_HOURS=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 1 AND booking_type=outstation = 0 AND source=android = 1 AND estimated_usage_bins=GT_1_LTE_2_HOURS = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is TRUE AND booking_type=outstation is FALSE AND source=android is TRUE AND estimated_usage_bins=GT_1_LTE_2_HOURS is FALSE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 city=Pune=1 \u2192 booking_type=outstation=0 \u2192 pickUpHourOfDay=MORNING=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 0 AND city=Pune = 1 AND booking_type=outstation = 0 AND pickUpHourOfDay=MORNING = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is FALSE AND city=Pune is TRUE AND booking_type=outstation is FALSE AND pickUpHourOfDay=MORNING is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.6378,
+      "confidence": 0.6119,
       "class_counts": [
-        81.0,
-        46.0
+        123.0,
+        78.0
       ],
-      "n_samples": 127.0,
+      "n_samples": 201.0,
       "class_probabilities": [
-        0.6378,
-        0.3622
+        0.6119,
+        0.3881
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 19,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=1 \u2192 booking_type=outstation=0 \u2192 source=android=1 \u2192 estimated_usage_bins=GT_1_LTE_2_HOURS=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 1 AND booking_type=outstation = 0 AND source=android = 1 AND estimated_usage_bins=GT_1_LTE_2_HOURS = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is TRUE AND booking_type=outstation is FALSE AND source=android is TRUE AND estimated_usage_bins=GT_1_LTE_2_HOURS is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 city=Pune=1 \u2192 booking_type=outstation=0 \u2192 pickUpHourOfDay=MORNING=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 0 AND city=Pune = 1 AND booking_type=outstation = 0 AND pickUpHourOfDay=MORNING = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is FALSE AND city=Pune is TRUE AND booking_type=outstation is FALSE AND pickUpHourOfDay=MORNING is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.678,
+      "confidence": 0.8111,
       "class_counts": [
-        40.0,
-        19.0
+        73.0,
+        17.0
       ],
-      "n_samples": 59.0,
+      "n_samples": 90.0,
       "class_probabilities": [
-        0.678,
-        0.322
+        0.8111,
+        0.1889
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 20,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 city=Pune=1 \u2192 booking_type=outstation=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND city=Pune = 1 AND booking_type=outstation = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND city=Pune is TRUE AND booking_type=outstation is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=0 \u2192 city=Pune=1 \u2192 booking_type=outstation=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 0 AND city=Pune = 1 AND booking_type=outstation = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is FALSE AND city=Pune is TRUE AND booking_type=outstation is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.9048,
+      "confidence": 0.9032,
       "class_counts": [
-        57.0,
+        56.0,
         6.0
       ],
-      "n_samples": 63.0,
+      "n_samples": 62.0,
       "class_probabilities": [
-        0.9048,
-        0.0952
-      ],
-      "conditions_count": 4,
-      "depth": 4
-    },
-    {
-      "rule_id": 21,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 sla=Immediate=0 \u2192 estimated_usage_bins=LTE_1_HOUR=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND sla=Immediate = 0 AND estimated_usage_bins=LTE_1_HOUR = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND sla=Immediate is FALSE AND estimated_usage_bins=LTE_1_HOUR is FALSE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.8347,
-      "class_counts": [
-        101.0,
-        20.0
-      ],
-      "n_samples": 121.0,
-      "class_probabilities": [
-        0.8347,
-        0.1653
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 22,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 sla=Immediate=0 \u2192 estimated_usage_bins=LTE_1_HOUR=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND sla=Immediate = 0 AND estimated_usage_bins=LTE_1_HOUR = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND sla=Immediate is FALSE AND estimated_usage_bins=LTE_1_HOUR is TRUE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.8969,
-      "class_counts": [
-        548.0,
-        63.0
-      ],
-      "n_samples": 611.0,
-      "class_probabilities": [
-        0.8969,
-        0.1031
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 23,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 sla=Immediate=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND sla=Immediate = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND sla=Immediate is TRUE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 1.0,
-      "class_counts": [
-        79.0,
-        0.0
-      ],
-      "n_samples": 79.0,
-      "class_probabilities": [
-        1.0,
-        0.0
+        0.9032,
+        0.0968
       ],
       "conditions_count": 5,
       "depth": 5
     },
     {
+      "rule_id": 21,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 city=Mumbai=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 1 AND city=Mumbai = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is TRUE AND city=Mumbai is FALSE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.5059,
+      "class_counts": [
+        43.0,
+        42.0
+      ],
+      "n_samples": 85.0,
+      "class_probabilities": [
+        0.5059,
+        0.4941
+      ],
+      "conditions_count": 4,
+      "depth": 4
+    },
+    {
+      "rule_id": 22,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1 \u2192 pickUpHourOfDay=LATENIGHT=1 \u2192 city=Mumbai=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1 AND pickUpHourOfDay=LATENIGHT = 1 AND city=Mumbai = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE AND pickUpHourOfDay=LATENIGHT is TRUE AND city=Mumbai is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.7037,
+      "class_counts": [
+        38.0,
+        16.0
+      ],
+      "n_samples": 54.0,
+      "class_probabilities": [
+        0.7037,
+        0.2963
+      ],
+      "conditions_count": 4,
+      "depth": 4
+    },
+    {
+      "rule_id": 23,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 city=Hyderabad=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_1=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND city=Hyderabad = 0 AND zone_demand_popularity=POPULARITY_INDEX_1 = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND city=Hyderabad is FALSE AND zone_demand_popularity=POPULARITY_INDEX_1 is FALSE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.8861,
+      "class_counts": [
+        350.0,
+        45.0
+      ],
+      "n_samples": 395.0,
+      "class_probabilities": [
+        0.8861,
+        0.1139
+      ],
+      "conditions_count": 6,
+      "depth": 6
+    },
+    {
       "rule_id": 24,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 city=Hyderabad=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_1=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND city=Hyderabad = 0 AND zone_demand_popularity=POPULARITY_INDEX_1 = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND city=Hyderabad is FALSE AND zone_demand_popularity=POPULARITY_INDEX_1 is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.954,
+      "class_counts": [
+        311.0,
+        15.0
+      ],
+      "n_samples": 326.0,
+      "class_probabilities": [
+        0.954,
+        0.046
+      ],
+      "conditions_count": 6,
+      "depth": 6
+    },
+    {
+      "rule_id": 25,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=0 \u2192 city=Hyderabad=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 0 AND city=Hyderabad = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is FALSE AND city=Hyderabad is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.7444,
+      "class_counts": [
+        67.0,
+        23.0
+      ],
+      "n_samples": 90.0,
+      "class_probabilities": [
+        0.7444,
+        0.2556
+      ],
+      "conditions_count": 5,
+      "depth": 5
+    },
+    {
+      "rule_id": 26,
       "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_5=1",
       "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 0 AND zone_demand_popularity=POPULARITY_INDEX_5 = 1",
       "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 is TRUE",
@@ -486,90 +526,30 @@
       "depth": 4
     },
     {
-      "rule_id": 25,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 zone=216=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=0 \u2192 source=ios=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND zone=216 = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 0 AND source=ios = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND zone=216 is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is FALSE AND source=ios is FALSE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.7643,
-      "class_counts": [
-        373.0,
-        115.0
-      ],
-      "n_samples": 488.0,
-      "class_probabilities": [
-        0.7643,
-        0.2357
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 26,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 zone=216=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=0 \u2192 source=ios=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND zone=216 = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 0 AND source=ios = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND zone=216 is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is FALSE AND source=ios is TRUE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.7304,
-      "class_counts": [
-        382.0,
-        141.0
-      ],
-      "n_samples": 523.0,
-      "class_probabilities": [
-        0.7304,
-        0.2696
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
       "rule_id": 27,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 zone=216=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=1 \u2192 source=ios=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND zone=216 = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 1 AND source=ios = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND zone=216 is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is TRUE AND source=ios is FALSE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 city=Chennai=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=0 \u2192 zone=216=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND city=Chennai = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 0 AND zone=216 = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND city=Chennai is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is FALSE AND zone=216 is FALSE",
       "prediction": 0,
       "prediction_label": "Negative",
-      "confidence": 0.7143,
+      "confidence": 0.744,
       "class_counts": [
-        65.0,
-        26.0
+        741.0,
+        255.0
       ],
-      "n_samples": 91.0,
+      "n_samples": 996.0,
       "class_probabilities": [
-        0.7143,
-        0.2857
+        0.744,
+        0.256
       ],
       "conditions_count": 6,
       "depth": 6
     },
     {
       "rule_id": 28,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 zone=216=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=1 \u2192 source=ios=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND zone=216 = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 1 AND source=ios = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND zone=216 is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is TRUE AND source=ios is TRUE",
-      "prediction": 0,
-      "prediction_label": "Negative",
-      "confidence": 0.6147,
-      "class_counts": [
-        67.0,
-        42.0
-      ],
-      "n_samples": 109.0,
-      "class_probabilities": [
-        0.6147,
-        0.3853
-      ],
-      "conditions_count": 6,
-      "depth": 6
-    },
-    {
-      "rule_id": 29,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 zone=216=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND zone=216 = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND zone=216 is TRUE",
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 city=Chennai=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=0 \u2192 zone=216=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND city=Chennai = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 0 AND zone=216 = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND city=Chennai is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is FALSE AND zone=216 is TRUE",
       "prediction": 0,
       "prediction_label": "Negative",
       "confidence": 0.9277,
@@ -582,51 +562,111 @@
         0.9277,
         0.0723
       ],
-      "conditions_count": 4,
-      "depth": 4
+      "conditions_count": 6,
+      "depth": 6
+    },
+    {
+      "rule_id": 29,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 city=Chennai=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=1 \u2192 city=Mumbai=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND city=Chennai = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 1 AND city=Mumbai = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND city=Chennai is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is TRUE AND city=Mumbai is FALSE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.6061,
+      "class_counts": [
+        40.0,
+        26.0
+      ],
+      "n_samples": 66.0,
+      "class_probabilities": [
+        0.6061,
+        0.3939
+      ],
+      "conditions_count": 6,
+      "depth": 6
     },
     {
       "rule_id": 30,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_2=0 \u2192 source=android=0",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 1 AND zone_demand_popularity=POPULARITY_INDEX_2 = 0 AND source=android = 0",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is TRUE AND zone_demand_popularity=POPULARITY_INDEX_2 is FALSE AND source=android is FALSE",
-      "prediction": 1,
-      "prediction_label": "Positive",
-      "confidence": 0.5833,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 city=Chennai=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=1 \u2192 city=Mumbai=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND city=Chennai = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 1 AND city=Mumbai = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND city=Chennai is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is TRUE AND city=Mumbai is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.5181,
       "class_counts": [
-        25.0,
-        35.0
+        43.0,
+        40.0
       ],
-      "n_samples": 60.0,
+      "n_samples": 83.0,
       "class_probabilities": [
-        0.4167,
-        0.5833
+        0.5181,
+        0.4819
       ],
-      "conditions_count": 4,
-      "depth": 4
+      "conditions_count": 6,
+      "depth": 6
     },
     {
       "rule_id": 31,
-      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_2=0 \u2192 source=android=1",
-      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 1 AND zone_demand_popularity=POPULARITY_INDEX_2 = 0 AND source=android = 1",
-      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is TRUE AND zone_demand_popularity=POPULARITY_INDEX_2 is FALSE AND source=android is TRUE",
-      "prediction": 1,
-      "prediction_label": "Positive",
-      "confidence": 0.5686,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=0 \u2192 dayType=WEEKEND=1 \u2192 city=Chennai=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 0 AND dayType=WEEKEND = 1 AND city=Chennai = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is FALSE AND dayType=WEEKEND is TRUE AND city=Chennai is TRUE",
+      "prediction": 0,
+      "prediction_label": "Negative",
+      "confidence": 0.9545,
       "class_counts": [
-        22.0,
-        29.0
+        63.0,
+        3.0
       ],
-      "n_samples": 51.0,
+      "n_samples": 66.0,
       "class_probabilities": [
-        0.4314,
-        0.5686
+        0.9545,
+        0.0455
       ],
       "conditions_count": 4,
       "depth": 4
     },
     {
       "rule_id": 32,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_2=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=0",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 1 AND zone_demand_popularity=POPULARITY_INDEX_2 = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 0",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is TRUE AND zone_demand_popularity=POPULARITY_INDEX_2 is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is FALSE",
+      "prediction": 1,
+      "prediction_label": "Positive",
+      "confidence": 0.6333,
+      "class_counts": [
+        22.0,
+        38.0
+      ],
+      "n_samples": 60.0,
+      "class_probabilities": [
+        0.3667,
+        0.6333
+      ],
+      "conditions_count": 4,
+      "depth": 4
+    },
+    {
+      "rule_id": 33,
+      "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_2=0 \u2192 zone_demand_popularity=POPULARITY_INDEX_4=1",
+      "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 1 AND zone_demand_popularity=POPULARITY_INDEX_2 = 0 AND zone_demand_popularity=POPULARITY_INDEX_4 = 1",
+      "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is TRUE AND zone_demand_popularity=POPULARITY_INDEX_2 is FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 is TRUE",
+      "prediction": 1,
+      "prediction_label": "Positive",
+      "confidence": 0.5098,
+      "class_counts": [
+        25.0,
+        26.0
+      ],
+      "n_samples": 51.0,
+      "class_probabilities": [
+        0.4902,
+        0.5098
+      ],
+      "conditions_count": 4,
+      "depth": 4
+    },
+    {
+      "rule_id": 34,
       "node_path": "root \u2192 pickUpHourOfDay=VERYLATE=1 \u2192 city=Delhi NCR=1 \u2192 zone_demand_popularity=POPULARITY_INDEX_2=1",
       "sql_where_clause": "pickUpHourOfDay=VERYLATE = 1 AND city=Delhi NCR = 1 AND zone_demand_popularity=POPULARITY_INDEX_2 = 1",
       "english_rule": "pickUpHourOfDay=VERYLATE is TRUE AND city=Delhi NCR is TRUE AND zone_demand_popularity=POPULARITY_INDEX_2 is TRUE",

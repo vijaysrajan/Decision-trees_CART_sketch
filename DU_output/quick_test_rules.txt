@@ -4,24 +4,24 @@ Source: DU_output/du_model_lg_k_18/3col_sketches_lg_k_18_model_lg_k_18.json
 Table: DU_raw
 Target: tripOutcome
 
-📊 Rule 1: Negative (91.5% confidence)
-   Samples: 8368
-   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND zone=221 = FALSE AND sla=Immediate = FALSE AND booking_type=one_way_trip = FALSE AND city=Pune = FALSE
-   Expected positive rate: 8.5%
+📊 Rule 1: Negative (90.3% confidence)
+   Samples: 12794
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND pickUpHourOfDay=LATENIGHT = FALSE AND zone=221 = FALSE AND zone=194 = FALSE AND sla=Immediate = FALSE
+   Expected positive rate: 9.7%
 
    SQL Test Query:
    SELECT
      COUNT(*) as sample_count,
      ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
    FROM DU_raw
-   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `zone=221` = 0 AND `sla=Immediate` = 0 AND `booking_type=one_way_trip` = 0 AND `city=Pune` = 0;
-   -- Expected: sample_count ≈ 8368, positive_rate ≈ 0.0852
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `pickUpHourOfDay=LATENIGHT` = 0 AND `zone=221` = 0 AND `zone=194` = 0 AND `sla=Immediate` = 0;
+   -- Expected: sample_count ≈ 12794, positive_rate ≈ 0.0965
 
 --------------------------------------------------------------------------------
 
-📊 Rule 2: Negative (89.1% confidence)
-   Samples: 3391
-   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND zone=221 = FALSE AND sla=Immediate = FALSE AND booking_type=one_way_trip = TRUE AND dayType=NORMAL_WEEKDAY = TRUE
+📊 Rule 2: Negative (89.0% confidence)
+   Samples: 1397
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = TRUE AND pickUpHourOfDay=LATENIGHT = FALSE AND city=Pune = FALSE AND city=Mumbai = FALSE AND city=Hyderabad = FALSE
    Expected positive rate: 10.9%
 
    SQL Test Query:
@@ -29,53 +29,53 @@ Target: tripOutcome
      COUNT(*) as sample_count,
      ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
    FROM DU_raw
-   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `zone=221` = 0 AND `sla=Immediate` = 0 AND `booking_type=one_way_trip` = 1 AND `dayType=NORMAL_WEEKDAY` = 1;
-   -- Expected: sample_count ≈ 3391, positive_rate ≈ 0.1094
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 1 AND `pickUpHourOfDay=LATENIGHT` = 0 AND `city=Pune` = 0 AND `city=Mumbai` = 0 AND `city=Hyderabad` = 0;
+   -- Expected: sample_count ≈ 1397, positive_rate ≈ 0.1095
 
 --------------------------------------------------------------------------------
 
-📊 Rule 3: Negative (83.1% confidence)
-   Samples: 2519
-   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND zone=221 = FALSE AND sla=Immediate = FALSE AND booking_type=one_way_trip = TRUE AND dayType=NORMAL_WEEKDAY = FALSE
-   Expected positive rate: 16.9%
+📊 Rule 3: Negative (74.4% confidence)
+   Samples: 996
+   Conditions: pickUpHourOfDay=VERYLATE = TRUE AND city=Delhi NCR = FALSE AND dayType=WEEKEND = TRUE AND city=Chennai = FALSE AND zone_demand_popularity=POPULARITY_INDEX_4 = FALSE AND zone=216 = FALSE
+   Expected positive rate: 25.6%
 
    SQL Test Query:
    SELECT
      COUNT(*) as sample_count,
      ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
    FROM DU_raw
-   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `zone=221` = 0 AND `sla=Immediate` = 0 AND `booking_type=one_way_trip` = 1 AND `dayType=NORMAL_WEEKDAY` = 0;
-   -- Expected: sample_count ≈ 2519, positive_rate ≈ 0.1687
+   WHERE `pickUpHourOfDay=VERYLATE` = 1 AND `city=Delhi NCR` = 0 AND `dayType=WEEKEND` = 1 AND `city=Chennai` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_4` = 0 AND `zone=216` = 0;
+   -- Expected: sample_count ≈ 996, positive_rate ≈ 0.2560
 
 --------------------------------------------------------------------------------
 
-📊 Rule 4: Negative (81.6% confidence)
-   Samples: 797
-   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = TRUE AND city=Pune = FALSE AND sla=Immediate = FALSE AND source=android = TRUE AND booking_type=one_way_trip = FALSE
-   Expected positive rate: 18.4%
+📊 Rule 4: Negative (99.0% confidence)
+   Samples: 697
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND pickUpHourOfDay=LATENIGHT = FALSE AND zone=221 = FALSE AND zone=194 = FALSE AND sla=Immediate = TRUE
+   Expected positive rate: 1.0%
 
    SQL Test Query:
    SELECT
      COUNT(*) as sample_count,
      ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
    FROM DU_raw
-   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 1 AND `city=Pune` = 0 AND `sla=Immediate` = 0 AND `source=android` = 1 AND `booking_type=one_way_trip` = 0;
-   -- Expected: sample_count ≈ 797, positive_rate ≈ 0.1844
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `pickUpHourOfDay=LATENIGHT` = 0 AND `zone=221` = 0 AND `zone=194` = 0 AND `sla=Immediate` = 1;
+   -- Expected: sample_count ≈ 697, positive_rate ≈ 0.0100
 
 --------------------------------------------------------------------------------
 
-📊 Rule 5: Negative (88.6% confidence)
-   Samples: 694
-   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = TRUE AND city=Pune = FALSE AND sla=Immediate = FALSE AND source=android = FALSE AND booking_type=one_way_trip = FALSE
-   Expected positive rate: 11.4%
+📊 Rule 5: Negative (72.0% confidence)
+   Samples: 644
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND pickUpHourOfDay=LATENIGHT = TRUE AND dayType=NORMAL_WEEKDAY = FALSE AND zone=217 = FALSE AND city=Mumbai = FALSE
+   Expected positive rate: 28.0%
 
    SQL Test Query:
    SELECT
      COUNT(*) as sample_count,
      ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
    FROM DU_raw
-   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 1 AND `city=Pune` = 0 AND `sla=Immediate` = 0 AND `source=android` = 0 AND `booking_type=one_way_trip` = 0;
-   -- Expected: sample_count ≈ 694, positive_rate ≈ 0.1138
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `pickUpHourOfDay=LATENIGHT` = 1 AND `dayType=NORMAL_WEEKDAY` = 0 AND `zone=217` = 0 AND `city=Mumbai` = 0;
+   -- Expected: sample_count ≈ 644, positive_rate ≈ 0.2795
 
 --------------------------------------------------------------------------------
 
