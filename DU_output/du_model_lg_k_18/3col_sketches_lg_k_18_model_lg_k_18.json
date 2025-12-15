@@ -1,0 +1,1018 @@
+{
+  "model_type": "ThetaSketchDecisionTree",
+  "lg_k": 18,
+  "hyperparameters": {
+    "criterion": "gini",
+    "max_depth": 6,
+    "min_samples_split": 100,
+    "min_samples_leaf": 50
+  },
+  "tree_structure": {
+    "depth": 0,
+    "n_samples": 20343.0,
+    "class_counts": [
+      17735.0,
+      2608.0
+    ],
+    "impurity": 0.2235,
+    "is_leaf": false,
+    "type": "split",
+    "feature_name": "pickUpHourOfDay=VERYLATE",
+    "feature_idx": 33,
+    "split_condition": "pickUpHourOfDay=VERYLATE == 1",
+    "left_condition": "pickUpHourOfDay=VERYLATE == 0 (FALSE/NOT)",
+    "right_condition": "pickUpHourOfDay=VERYLATE == 1 (TRUE)",
+    "left": {
+      "depth": 1,
+      "n_samples": 18013.0,
+      "class_counts": [
+        15927.0,
+        2086.0
+      ],
+      "impurity": 0.2048,
+      "is_leaf": false,
+      "type": "split",
+      "feature_name": "zone_demand_popularity=POPULARITY_INDEX_5",
+      "feature_idx": 353,
+      "split_condition": "zone_demand_popularity=POPULARITY_INDEX_5 == 1",
+      "left_condition": "zone_demand_popularity=POPULARITY_INDEX_5 == 0 (FALSE/NOT)",
+      "right_condition": "zone_demand_popularity=POPULARITY_INDEX_5 == 1 (TRUE)",
+      "left": {
+        "depth": 2,
+        "n_samples": 15446.0,
+        "class_counts": [
+          13829.0,
+          1617.0
+        ],
+        "impurity": 0.1875,
+        "is_leaf": false,
+        "type": "split",
+        "feature_name": "zone=221",
+        "feature_idx": 92,
+        "split_condition": "zone=221 == 1",
+        "left_condition": "zone=221 == 0 (FALSE/NOT)",
+        "right_condition": "zone=221 == 1 (TRUE)",
+        "left": {
+          "depth": 3,
+          "n_samples": 15177.0,
+          "class_counts": [
+            13634.0,
+            1543.0
+          ],
+          "impurity": 0.1827,
+          "is_leaf": false,
+          "type": "split",
+          "feature_name": "sla=Immediate",
+          "feature_idx": 34,
+          "split_condition": "sla=Immediate == 1",
+          "left_condition": "sla=Immediate == 0 (FALSE/NOT)",
+          "right_condition": "sla=Immediate == 1 (TRUE)",
+          "left": {
+            "depth": 4,
+            "n_samples": 14412.0,
+            "class_counts": [
+              12876.0,
+              1536.0
+            ],
+            "impurity": 0.1904,
+            "is_leaf": false,
+            "type": "split",
+            "feature_name": "booking_type=one_way_trip",
+            "feature_idx": 7,
+            "split_condition": "booking_type=one_way_trip == 1",
+            "left_condition": "booking_type=one_way_trip == 0 (FALSE/NOT)",
+            "right_condition": "booking_type=one_way_trip == 1 (TRUE)",
+            "left": {
+              "depth": 5,
+              "n_samples": 8502.0,
+              "class_counts": [
+                7762.0,
+                740.0
+              ],
+              "impurity": 0.1589,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "city=Pune",
+              "feature_idx": 15,
+              "split_condition": "city=Pune == 1",
+              "left_condition": "city=Pune == 0 (FALSE/NOT)",
+              "right_condition": "city=Pune == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 8368.0,
+                "class_counts": [
+                  7655.0,
+                  713.0
+                ],
+                "impurity": 0.1559,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.9148,
+                  0.0852
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 134.0,
+                "class_counts": [
+                  107.0,
+                  27.0
+                ],
+                "impurity": 0.3218,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.7985,
+                  0.2015
+                ]
+              }
+            },
+            "right": {
+              "depth": 5,
+              "n_samples": 5910.0,
+              "class_counts": [
+                5114.0,
+                796.0
+              ],
+              "impurity": 0.2331,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "dayType=NORMAL_WEEKDAY",
+              "feature_idx": 17,
+              "split_condition": "dayType=NORMAL_WEEKDAY == 1",
+              "left_condition": "dayType=NORMAL_WEEKDAY == 0 (FALSE/NOT)",
+              "right_condition": "dayType=NORMAL_WEEKDAY == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 2519.0,
+                "class_counts": [
+                  2094.0,
+                  425.0
+                ],
+                "impurity": 0.2805,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.8313,
+                  0.1687
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 3391.0,
+                "class_counts": [
+                  3020.0,
+                  371.0
+                ],
+                "impurity": 0.1949,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.8906,
+                  0.1094
+                ]
+              }
+            }
+          },
+          "right": {
+            "depth": 4,
+            "n_samples": 765.0,
+            "class_counts": [
+              758.0,
+              7.0
+            ],
+            "impurity": 0.0181,
+            "is_leaf": false,
+            "type": "split",
+            "feature_name": "city=Chennai",
+            "feature_idx": 11,
+            "split_condition": "city=Chennai == 1",
+            "left_condition": "city=Chennai == 0 (FALSE/NOT)",
+            "right_condition": "city=Chennai == 1 (TRUE)",
+            "left": {
+              "depth": 5,
+              "n_samples": 700.0,
+              "class_counts": [
+                696.0,
+                4.0
+              ],
+              "impurity": 0.0114,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "estimated_usage_bins=LTE_1_HOUR",
+              "feature_idx": 25,
+              "split_condition": "estimated_usage_bins=LTE_1_HOUR == 1",
+              "left_condition": "estimated_usage_bins=LTE_1_HOUR == 0 (FALSE/NOT)",
+              "right_condition": "estimated_usage_bins=LTE_1_HOUR == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 286.0,
+                "class_counts": [
+                  286.0,
+                  0.0
+                ],
+                "impurity": 0.0,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  1.0,
+                  0.0
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 414.0,
+                "class_counts": [
+                  410.0,
+                  4.0
+                ],
+                "impurity": 0.0191,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.9903,
+                  0.0097
+                ]
+              }
+            },
+            "right": {
+              "depth": 5,
+              "n_samples": 65.0,
+              "class_counts": [
+                62.0,
+                3.0
+              ],
+              "impurity": 0.088,
+              "is_leaf": true,
+              "type": "leaf",
+              "prediction": 0,
+              "probabilities": [
+                0.9538,
+                0.0462
+              ]
+            }
+          }
+        },
+        "right": {
+          "depth": 3,
+          "n_samples": 269.0,
+          "class_counts": [
+            195.0,
+            74.0
+          ],
+          "impurity": 0.3988,
+          "is_leaf": false,
+          "type": "split",
+          "feature_name": "booking_type=one_way_trip",
+          "feature_idx": 7,
+          "split_condition": "booking_type=one_way_trip == 1",
+          "left_condition": "booking_type=one_way_trip == 0 (FALSE/NOT)",
+          "right_condition": "booking_type=one_way_trip == 1 (TRUE)",
+          "left": {
+            "depth": 4,
+            "n_samples": 159.0,
+            "class_counts": [
+              129.0,
+              30.0
+            ],
+            "impurity": 0.3062,
+            "is_leaf": false,
+            "type": "split",
+            "feature_name": "estimated_usage_bins=GT_3_LTE_4_HOURS",
+            "feature_idx": 21,
+            "split_condition": "estimated_usage_bins=GT_3_LTE_4_HOURS == 1",
+            "left_condition": "estimated_usage_bins=GT_3_LTE_4_HOURS == 0 (FALSE/NOT)",
+            "right_condition": "estimated_usage_bins=GT_3_LTE_4_HOURS == 1 (TRUE)",
+            "left": {
+              "depth": 5,
+              "n_samples": 97.0,
+              "class_counts": [
+                82.0,
+                15.0
+              ],
+              "impurity": 0.2615,
+              "is_leaf": true,
+              "type": "leaf",
+              "prediction": 0,
+              "probabilities": [
+                0.8454,
+                0.1546
+              ]
+            },
+            "right": {
+              "depth": 5,
+              "n_samples": 62.0,
+              "class_counts": [
+                47.0,
+                15.0
+              ],
+              "impurity": 0.3668,
+              "is_leaf": true,
+              "type": "leaf",
+              "prediction": 0,
+              "probabilities": [
+                0.7581,
+                0.2419
+              ]
+            }
+          },
+          "right": {
+            "depth": 4,
+            "n_samples": 110.0,
+            "class_counts": [
+              66.0,
+              44.0
+            ],
+            "impurity": 0.48,
+            "is_leaf": true,
+            "type": "leaf",
+            "prediction": 0,
+            "probabilities": [
+              0.6,
+              0.4
+            ]
+          }
+        }
+      },
+      "right": {
+        "depth": 2,
+        "n_samples": 2567.0,
+        "class_counts": [
+          2098.0,
+          469.0
+        ],
+        "impurity": 0.2986,
+        "is_leaf": false,
+        "type": "split",
+        "feature_name": "city=Pune",
+        "feature_idx": 15,
+        "split_condition": "city=Pune == 1",
+        "left_condition": "city=Pune == 0 (FALSE/NOT)",
+        "right_condition": "city=Pune == 1 (TRUE)",
+        "left": {
+          "depth": 3,
+          "n_samples": 2210.0,
+          "class_counts": [
+            1844.0,
+            366.0
+          ],
+          "impurity": 0.2764,
+          "is_leaf": false,
+          "type": "split",
+          "feature_name": "sla=Immediate",
+          "feature_idx": 34,
+          "split_condition": "sla=Immediate == 1",
+          "left_condition": "sla=Immediate == 0 (FALSE/NOT)",
+          "right_condition": "sla=Immediate == 1 (TRUE)",
+          "left": {
+            "depth": 4,
+            "n_samples": 2113.0,
+            "class_counts": [
+              1747.0,
+              366.0
+            ],
+            "impurity": 0.2864,
+            "is_leaf": false,
+            "type": "split",
+            "feature_name": "source=android",
+            "feature_idx": 38,
+            "split_condition": "source=android == 1",
+            "left_condition": "source=android == 0 (FALSE/NOT)",
+            "right_condition": "source=android == 1 (TRUE)",
+            "left": {
+              "depth": 5,
+              "n_samples": 1005.0,
+              "class_counts": [
+                869.0,
+                136.0
+              ],
+              "impurity": 0.234,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "booking_type=one_way_trip",
+              "feature_idx": 7,
+              "split_condition": "booking_type=one_way_trip == 1",
+              "left_condition": "booking_type=one_way_trip == 0 (FALSE/NOT)",
+              "right_condition": "booking_type=one_way_trip == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 694.0,
+                "class_counts": [
+                  615.0,
+                  79.0
+                ],
+                "impurity": 0.2017,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.8862,
+                  0.1138
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 311.0,
+                "class_counts": [
+                  254.0,
+                  57.0
+                ],
+                "impurity": 0.2994,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.8167,
+                  0.1833
+                ]
+              }
+            },
+            "right": {
+              "depth": 5,
+              "n_samples": 1108.0,
+              "class_counts": [
+                878.0,
+                230.0
+              ],
+              "impurity": 0.329,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "booking_type=one_way_trip",
+              "feature_idx": 7,
+              "split_condition": "booking_type=one_way_trip == 1",
+              "left_condition": "booking_type=one_way_trip == 0 (FALSE/NOT)",
+              "right_condition": "booking_type=one_way_trip == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 797.0,
+                "class_counts": [
+                  650.0,
+                  147.0
+                ],
+                "impurity": 0.3008,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.8156,
+                  0.1844
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 311.0,
+                "class_counts": [
+                  228.0,
+                  83.0
+                ],
+                "impurity": 0.3913,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.7331,
+                  0.2669
+                ]
+              }
+            }
+          },
+          "right": {
+            "depth": 4,
+            "n_samples": 97.0,
+            "class_counts": [
+              97.0,
+              0.0
+            ],
+            "impurity": 0.0,
+            "is_leaf": true,
+            "type": "leaf",
+            "prediction": 0,
+            "probabilities": [
+              1.0,
+              0.0
+            ]
+          }
+        },
+        "right": {
+          "depth": 3,
+          "n_samples": 357.0,
+          "class_counts": [
+            254.0,
+            103.0
+          ],
+          "impurity": 0.4105,
+          "is_leaf": false,
+          "type": "split",
+          "feature_name": "booking_type=outstation",
+          "feature_idx": 8,
+          "split_condition": "booking_type=outstation == 1",
+          "left_condition": "booking_type=outstation == 0 (FALSE/NOT)",
+          "right_condition": "booking_type=outstation == 1 (TRUE)",
+          "left": {
+            "depth": 4,
+            "n_samples": 294.0,
+            "class_counts": [
+              197.0,
+              97.0
+            ],
+            "impurity": 0.4422,
+            "is_leaf": false,
+            "type": "split",
+            "feature_name": "source=android",
+            "feature_idx": 38,
+            "split_condition": "source=android == 1",
+            "left_condition": "source=android == 0 (FALSE/NOT)",
+            "right_condition": "source=android == 1 (TRUE)",
+            "left": {
+              "depth": 5,
+              "n_samples": 108.0,
+              "class_counts": [
+                76.0,
+                32.0
+              ],
+              "impurity": 0.417,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "dayType=NORMAL_WEEKDAY",
+              "feature_idx": 17,
+              "split_condition": "dayType=NORMAL_WEEKDAY == 1",
+              "left_condition": "dayType=NORMAL_WEEKDAY == 0 (FALSE/NOT)",
+              "right_condition": "dayType=NORMAL_WEEKDAY == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 50.0,
+                "class_counts": [
+                  32.0,
+                  18.0
+                ],
+                "impurity": 0.4608,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.64,
+                  0.36
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 58.0,
+                "class_counts": [
+                  44.0,
+                  14.0
+                ],
+                "impurity": 0.3662,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.7586,
+                  0.2414
+                ]
+              }
+            },
+            "right": {
+              "depth": 5,
+              "n_samples": 186.0,
+              "class_counts": [
+                121.0,
+                65.0
+              ],
+              "impurity": 0.4547,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "estimated_usage_bins=GT_1_LTE_2_HOURS",
+              "feature_idx": 19,
+              "split_condition": "estimated_usage_bins=GT_1_LTE_2_HOURS == 1",
+              "left_condition": "estimated_usage_bins=GT_1_LTE_2_HOURS == 0 (FALSE/NOT)",
+              "right_condition": "estimated_usage_bins=GT_1_LTE_2_HOURS == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 127.0,
+                "class_counts": [
+                  81.0,
+                  46.0
+                ],
+                "impurity": 0.462,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.6378,
+                  0.3622
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 59.0,
+                "class_counts": [
+                  40.0,
+                  19.0
+                ],
+                "impurity": 0.4367,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.678,
+                  0.322
+                ]
+              }
+            }
+          },
+          "right": {
+            "depth": 4,
+            "n_samples": 63.0,
+            "class_counts": [
+              57.0,
+              6.0
+            ],
+            "impurity": 0.1723,
+            "is_leaf": true,
+            "type": "leaf",
+            "prediction": 0,
+            "probabilities": [
+              0.9048,
+              0.0952
+            ]
+          }
+        }
+      }
+    },
+    "right": {
+      "depth": 1,
+      "n_samples": 2330.0,
+      "class_counts": [
+        1808.0,
+        522.0
+      ],
+      "impurity": 0.3477,
+      "is_leaf": false,
+      "type": "split",
+      "feature_name": "city=Delhi NCR",
+      "feature_idx": 12,
+      "split_condition": "city=Delhi NCR == 1",
+      "left_condition": "city=Delhi NCR == 0 (FALSE/NOT)",
+      "right_condition": "city=Delhi NCR == 1 (TRUE)",
+      "left": {
+        "depth": 2,
+        "n_samples": 2162.0,
+        "class_counts": [
+          1731.0,
+          431.0
+        ],
+        "impurity": 0.3192,
+        "is_leaf": false,
+        "type": "split",
+        "feature_name": "dayType=WEEKEND",
+        "feature_idx": 18,
+        "split_condition": "dayType=WEEKEND == 1",
+        "left_condition": "dayType=WEEKEND == 0 (FALSE/NOT)",
+        "right_condition": "dayType=WEEKEND == 1 (TRUE)",
+        "left": {
+          "depth": 3,
+          "n_samples": 868.0,
+          "class_counts": [
+            767.0,
+            101.0
+          ],
+          "impurity": 0.2056,
+          "is_leaf": false,
+          "type": "split",
+          "feature_name": "zone_demand_popularity=POPULARITY_INDEX_5",
+          "feature_idx": 353,
+          "split_condition": "zone_demand_popularity=POPULARITY_INDEX_5 == 1",
+          "left_condition": "zone_demand_popularity=POPULARITY_INDEX_5 == 0 (FALSE/NOT)",
+          "right_condition": "zone_demand_popularity=POPULARITY_INDEX_5 == 1 (TRUE)",
+          "left": {
+            "depth": 4,
+            "n_samples": 811.0,
+            "class_counts": [
+              728.0,
+              83.0
+            ],
+            "impurity": 0.1837,
+            "is_leaf": false,
+            "type": "split",
+            "feature_name": "sla=Immediate",
+            "feature_idx": 34,
+            "split_condition": "sla=Immediate == 1",
+            "left_condition": "sla=Immediate == 0 (FALSE/NOT)",
+            "right_condition": "sla=Immediate == 1 (TRUE)",
+            "left": {
+              "depth": 5,
+              "n_samples": 732.0,
+              "class_counts": [
+                649.0,
+                83.0
+              ],
+              "impurity": 0.2011,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "estimated_usage_bins=LTE_1_HOUR",
+              "feature_idx": 25,
+              "split_condition": "estimated_usage_bins=LTE_1_HOUR == 1",
+              "left_condition": "estimated_usage_bins=LTE_1_HOUR == 0 (FALSE/NOT)",
+              "right_condition": "estimated_usage_bins=LTE_1_HOUR == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 121.0,
+                "class_counts": [
+                  101.0,
+                  20.0
+                ],
+                "impurity": 0.2759,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.8347,
+                  0.1653
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 611.0,
+                "class_counts": [
+                  548.0,
+                  63.0
+                ],
+                "impurity": 0.185,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.8969,
+                  0.1031
+                ]
+              }
+            },
+            "right": {
+              "depth": 5,
+              "n_samples": 79.0,
+              "class_counts": [
+                79.0,
+                0.0
+              ],
+              "impurity": 0.0,
+              "is_leaf": true,
+              "type": "leaf",
+              "prediction": 0,
+              "probabilities": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          "right": {
+            "depth": 4,
+            "n_samples": 57.0,
+            "class_counts": [
+              39.0,
+              18.0
+            ],
+            "impurity": 0.4321,
+            "is_leaf": true,
+            "type": "leaf",
+            "prediction": 0,
+            "probabilities": [
+              0.6842,
+              0.3158
+            ]
+          }
+        },
+        "right": {
+          "depth": 3,
+          "n_samples": 1294.0,
+          "class_counts": [
+            964.0,
+            330.0
+          ],
+          "impurity": 0.38,
+          "is_leaf": false,
+          "type": "split",
+          "feature_name": "zone=216",
+          "feature_idx": 87,
+          "split_condition": "zone=216 == 1",
+          "left_condition": "zone=216 == 0 (FALSE/NOT)",
+          "right_condition": "zone=216 == 1 (TRUE)",
+          "left": {
+            "depth": 4,
+            "n_samples": 1211.0,
+            "class_counts": [
+              887.0,
+              324.0
+            ],
+            "impurity": 0.3919,
+            "is_leaf": false,
+            "type": "split",
+            "feature_name": "zone_demand_popularity=POPULARITY_INDEX_4",
+            "feature_idx": 352,
+            "split_condition": "zone_demand_popularity=POPULARITY_INDEX_4 == 1",
+            "left_condition": "zone_demand_popularity=POPULARITY_INDEX_4 == 0 (FALSE/NOT)",
+            "right_condition": "zone_demand_popularity=POPULARITY_INDEX_4 == 1 (TRUE)",
+            "left": {
+              "depth": 5,
+              "n_samples": 1011.0,
+              "class_counts": [
+                755.0,
+                256.0
+              ],
+              "impurity": 0.3782,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "source=ios",
+              "feature_idx": 39,
+              "split_condition": "source=ios == 1",
+              "left_condition": "source=ios == 0 (FALSE/NOT)",
+              "right_condition": "source=ios == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 488.0,
+                "class_counts": [
+                  373.0,
+                  115.0
+                ],
+                "impurity": 0.3602,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.7643,
+                  0.2357
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 523.0,
+                "class_counts": [
+                  382.0,
+                  141.0
+                ],
+                "impurity": 0.3938,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.7304,
+                  0.2696
+                ]
+              }
+            },
+            "right": {
+              "depth": 5,
+              "n_samples": 200.0,
+              "class_counts": [
+                132.0,
+                68.0
+              ],
+              "impurity": 0.4488,
+              "is_leaf": false,
+              "type": "split",
+              "feature_name": "source=ios",
+              "feature_idx": 39,
+              "split_condition": "source=ios == 1",
+              "left_condition": "source=ios == 0 (FALSE/NOT)",
+              "right_condition": "source=ios == 1 (TRUE)",
+              "left": {
+                "depth": 6,
+                "n_samples": 91.0,
+                "class_counts": [
+                  65.0,
+                  26.0
+                ],
+                "impurity": 0.4082,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.7143,
+                  0.2857
+                ]
+              },
+              "right": {
+                "depth": 6,
+                "n_samples": 109.0,
+                "class_counts": [
+                  67.0,
+                  42.0
+                ],
+                "impurity": 0.4737,
+                "is_leaf": true,
+                "type": "leaf",
+                "prediction": 0,
+                "probabilities": [
+                  0.6147,
+                  0.3853
+                ]
+              }
+            }
+          },
+          "right": {
+            "depth": 4,
+            "n_samples": 83.0,
+            "class_counts": [
+              77.0,
+              6.0
+            ],
+            "impurity": 0.1341,
+            "is_leaf": true,
+            "type": "leaf",
+            "prediction": 0,
+            "probabilities": [
+              0.9277,
+              0.0723
+            ]
+          }
+        }
+      },
+      "right": {
+        "depth": 2,
+        "n_samples": 168.0,
+        "class_counts": [
+          77.0,
+          91.0
+        ],
+        "impurity": 0.4965,
+        "is_leaf": false,
+        "type": "split",
+        "feature_name": "zone_demand_popularity=POPULARITY_INDEX_2",
+        "feature_idx": 350,
+        "split_condition": "zone_demand_popularity=POPULARITY_INDEX_2 == 1",
+        "left_condition": "zone_demand_popularity=POPULARITY_INDEX_2 == 0 (FALSE/NOT)",
+        "right_condition": "zone_demand_popularity=POPULARITY_INDEX_2 == 1 (TRUE)",
+        "left": {
+          "depth": 3,
+          "n_samples": 111.0,
+          "class_counts": [
+            47.0,
+            64.0
+          ],
+          "impurity": 0.4883,
+          "is_leaf": false,
+          "type": "split",
+          "feature_name": "source=android",
+          "feature_idx": 38,
+          "split_condition": "source=android == 1",
+          "left_condition": "source=android == 0 (FALSE/NOT)",
+          "right_condition": "source=android == 1 (TRUE)",
+          "left": {
+            "depth": 4,
+            "n_samples": 60.0,
+            "class_counts": [
+              25.0,
+              35.0
+            ],
+            "impurity": 0.4861,
+            "is_leaf": true,
+            "type": "leaf",
+            "prediction": 1,
+            "probabilities": [
+              0.4167,
+              0.5833
+            ]
+          },
+          "right": {
+            "depth": 4,
+            "n_samples": 51.0,
+            "class_counts": [
+              22.0,
+              29.0
+            ],
+            "impurity": 0.4906,
+            "is_leaf": true,
+            "type": "leaf",
+            "prediction": 1,
+            "probabilities": [
+              0.4314,
+              0.5686
+            ]
+          }
+        },
+        "right": {
+          "depth": 3,
+          "n_samples": 57.0,
+          "class_counts": [
+            30.0,
+            27.0
+          ],
+          "impurity": 0.4986,
+          "is_leaf": true,
+          "type": "leaf",
+          "prediction": 0,
+          "probabilities": [
+            0.5263,
+            0.4737
+          ]
+        }
+      }
+    }
+  }
+}

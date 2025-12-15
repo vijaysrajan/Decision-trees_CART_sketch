@@ -93,8 +93,8 @@ FUNCTION find_best_split(node, pos_sketches, neg_sketches, features):
             log_warning("Sketch count inconsistency detected")
 
         # Child node class distributions
-        left_counts = [neg_present_count, pos_present_count]   # feature=1
-        right_counts = [neg_absent_count, pos_absent_count]    # feature=0
+        left_counts = [neg_absent_count, pos_absent_count]    # feature=0 (absent/FALSE)
+        right_counts = [neg_present_count, pos_present_count] # feature=1 (present/TRUE)
         parent_counts = [node.negative_count, node.positive_count]
 
         # Evaluate split quality
@@ -109,8 +109,8 @@ FUNCTION find_best_split(node, pos_sketches, neg_sketches, features):
                 score=split_score,
                 left_counts=left_counts,
                 right_counts=right_counts,
-                left_sketches=(pos_present_sketch, neg_present_sketch),
-                right_sketches=(pos_absent_sketch, neg_absent_sketch)
+                left_sketches=(pos_absent_sketch, neg_absent_sketch),    # feature=0 (absent/FALSE)
+                right_sketches=(pos_present_sketch, neg_present_sketch) # feature=1 (present/TRUE)
             )
 
     return best_split
@@ -419,8 +419,8 @@ FUNCTION majority_vote_for_missing(node):
     left_samples = sum(node.left_child.class_counts) if node.left_child else 0
     right_samples = sum(node.right_child.class_counts) if node.right_child else 0
 
-    # Return majority path (1 for left/present, 0 for right/absent)
-    return 1 if left_samples >= right_samples else 0
+    # Return majority path (0 for left/absent, 1 for right/present)
+    return 0 if left_samples >= right_samples else 1
 ```
 
 ## Pruning Algorithms

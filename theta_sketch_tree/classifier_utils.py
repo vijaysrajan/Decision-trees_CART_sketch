@@ -62,21 +62,21 @@ class ClassifierUtils:
         # Load data
         if csv_path:
             config = load_config(config_path)
-            sketch_data = load_sketches(
+            sketch_data, feature_mapping = load_sketches(
                 csv_path=csv_path,
                 target_positive=config["targets"]["positive"],
                 target_negative=config["targets"]["negative"],
             )
         else:
-            sketch_data = load_sketches(positive_csv, negative_csv)
+            sketch_data, feature_mapping = load_sketches(positive_csv, negative_csv)
 
         config = load_config(config_path)
 
         # Initialize with hyperparameters
         clf = classifier_class(**config["hyperparameters"])
 
-        # Fit model
-        clf.fit(sketch_data, config["feature_mapping"])
+        # Fit model - use auto-generated feature mapping
+        clf.fit(sketch_data, feature_mapping)
 
         return clf
 

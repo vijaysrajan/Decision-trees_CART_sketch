@@ -49,7 +49,7 @@ def load_sketches(
     target_positive: Optional[str] = None,
     target_negative: Optional[str] = None,
     encoding: str = "base64",
-) -> Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]]:
+) -> Tuple[Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]], Dict[str, int]]:
     """
     Load theta sketches from CSV file(s).
 
@@ -74,17 +74,19 @@ def load_sketches(
     -------
     sketch_data : dict
         Dictionary with 'positive' and 'negative' keys containing sketch data.
+    feature_mapping : dict
+        Auto-generated mapping from feature names to column indices.
 
     Examples
     --------
     >>> from theta_sketch_tree import load_sketches
     >>> # Mode 2: Dual CSV (recommended)
-    >>> sketch_data = load_sketches(
+    >>> sketch_data, feature_mapping = load_sketches(
     ...     positive_csv='target_yes.csv',
     ...     negative_csv='target_no.csv'
     ... )
     >>> # Mode 1: Single CSV
-    >>> sketch_data = load_sketches(
+    >>> sketch_data, feature_mapping = load_sketches(
     ...     csv_path='features.csv',
     ...     target_positive='target_yes',
     ...     target_negative='target_no'

@@ -34,6 +34,7 @@ class SplitFinder:
     - Sketch intersection computation
     - Split quality evaluation
     - Minimum samples constraint validation
+    - Categorical mutual exclusivity constraints
     """
 
     def __init__(
@@ -136,6 +137,9 @@ class SplitFinder:
         """
         Filter features to only those available and not already used.
 
+        Handles mutual exclusivity ONLY for 'variable=value' format features.
+        Standalone features (like ICD codes) are treated as independent.
+
         Parameters
         ----------
         feature_names : list
@@ -150,12 +154,22 @@ class SplitFinder:
         available_features : list
             List of available feature names
         """
-        return [
-            f for f in feature_names
-            if f not in already_used
-            and f in sketch_dict.get('positive', {})
-            and f in sketch_dict.get('negative', {})
-        ]
+        # Filter available features
+        available_features = []
+        for feature_name in feature_names:
+            # Skip if feature not in sketch data
+            if (feature_name not in sketch_dict.get('positive', {}) or
+                feature_name not in sketch_dict.get('negative', {})):
+                continue
+
+            # Skip if exact feature already used
+            if feature_name in already_used:
+                continue
+
+            # Feature is available
+            available_features.append(feature_name)
+
+        return available_features
 
     def _evaluate_feature_split(
         self,

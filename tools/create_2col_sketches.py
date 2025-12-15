@@ -1,490 +1,242 @@
 #!/usr/bin/env python3
 """
-Generic 2-Column Sketch Generator
+Create 2-column theta sketches from CSV data.
 
-Creates 2-column theta sketches from any CSV dataset for conversion to 3-column format.
-This script generates sketches that can then be converted using convert_2col_to_3col_sketches.py
+This script creates a 2-column CSV file with:
+1. First row: feature_name="" (empty string), sketch=sketch_of_all_records
+2. Subsequent rows: feature_name=column=value, sketch=sketch_of_records_with_that_feature
 
 Usage:
-    python tools/create_2col_sketches.py dataset.csv target_column [--lg_k LG_K] [--id_column ID_COL]
+    python tools/create_2col_sketches.py \
+        --input data.csv \
+        --output output_dir \
+        --lg_k 12 \
+        --target_column class \
+        --skip_columns col1,col2 \
+        --id_columns id,uuid
 
-Examples:
-    # Generate mushroom sketches
-    python tools/create_2col_sketches.py tests/resources/agaricus-lepiota.csv class --lg_k 12
-
-    # Generate DU sketches with trip IDs
-    python tools/create_2col_sketches.py tests/resources/DU_raw.csv tripOutcome --lg_k 16 --id_column tripId
-
-    # Generate any dataset sketches
-    python tools/create_2col_sketches.py data.csv target_col --lg_k 14
+Example:
+    python tools/create_2col_sketches.py \
+        --input tests/resources/agaricus-lepiota.csv \
+        --output sketches/ \
+        --lg_k 12 \
+        --target_column class \
+        --skip_columns id \
+        --id_columns sample_id
 """
 
-import pandas as pd
-import numpy as np
 import argparse
+import csv
 import sys
 import os
-from pathlib import Path
-from typing import Dict, Any, List, Tuple, Set
-import json
-import hashlib
 import base64
+import hashlib
+from pathlib import Path
+from typing import Dict, Set, List
+import pandas as pd
 
-# Add project root to path for imports
+# Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 try:
-    from datasketches import update_theta_sketch, theta_intersection, theta_union
-    DATASKETCHES_AVAILABLE = True
+    from datasketches import update_theta_sketch
 except ImportError:
-    DATASKETCHES_AVAILABLE = False
     raise ImportError("Apache DataSketches library required. Install with: pip install datasketches")
-
-from tests.test_binary_classification_sketches import ThetaSketchWrapper
-
-# Configuration
-DEFAULT_LG_K = 16
 
 
 def hash_identifier(identifier: str) -> int:
-    """
-    Create a consistent hash of identifier for sketch updates.
-
-    Parameters
-    ----------
-    identifier : str
-        Identifier string (row ID, trip ID, etc.)
-
-    Returns
-    -------
-    int
-        Hash value suitable for sketch updates
-    """
+    """Create a consistent hash of identifier for sketch updates."""
     return int(hashlib.md5(str(identifier).encode()).hexdigest()[:8], 16)
 
 
-def create_decision_tree_sketches(df: pd.DataFrame, target_column: str, feature_columns: List[str],
-                                 id_column: str = None, lg_k: int = DEFAULT_LG_K) -> Dict[str, Dict[str, Any]]:
-    """
-    Create theta sketches for any dataset optimized for decision tree classification.
+def load_csv_data(csv_file: str) -> pd.DataFrame:
+    """Load CSV data with increased field size limit."""
+    # Increase CSV field size limit to handle large data
+    csv.field_size_limit(10000000)  # 10MB limit
 
-    Each feature=value sketch contains identifiers that have that feature value,
-    allowing the decision tree to split based on feature presence while
-    maintaining identifier-level cardinality estimates.
-
-    Parameters
-    ----------
-    df : DataFrame
-        Dataset with features and target column
-    target_column : str
-        Name of the target column
-    feature_columns : List[str]
-        List of feature column names
-    id_column : str, optional
-        Name of identifier column (uses row index if None)
-    lg_k : int, default=DEFAULT_LG_K
-        Log-base-2 of nominal entries (k = 2^lg_k)
-
-    Returns
-    -------
-    sketch_data : dict
-        Format: {'positive': {...}, 'negative': {...}}
-        Each contains 'total' sketch and feature=value sketches
-        All sketches contain hashed identifiers for cardinality estimation
-    """
-    print(f"📊 Creating decision tree sketches with lg_k={lg_k} (size={2**lg_k})")
-
-    # Validate dataset structure
-    required_columns = [target_column] + feature_columns
-    if id_column:
-        required_columns.append(id_column)
-
-    missing_columns = set(required_columns) - set(df.columns)
-    if missing_columns:
-        raise ValueError(f"Missing required columns: {missing_columns}")
-
-    # Identify class values
-    class_values = sorted(df[target_column].unique())
-    if len(class_values) != 2:
-        raise ValueError(f"Expected exactly 2 class values, found {len(class_values)}: {class_values}")
-
-    negative_class, positive_class = class_values
-    positive_df = df[df[target_column] == positive_class].copy()
-    negative_df = df[df[target_column] == negative_class].copy()
-
-    print(f"📊 Dataset Analysis:")
-    print(f"  Total samples: {len(df):,}")
-    print(f"  Positive class ('{positive_class}'): {len(positive_df):,} samples ({len(positive_df)/len(df)*100:.1f}%)")
-    print(f"  Negative class ('{negative_class}'): {len(negative_df):,} samples ({len(negative_df)/len(df)*100:.1f}%)")
-    print(f"  Features: {len(feature_columns)}")
-
-    def create_class_sketches(class_df: pd.DataFrame, class_name: str) -> Dict[str, Any]:
-        """Create sketches for one class with identifier hashing."""
-        print(f"  Processing {class_name} class...")
-
-        # Create total sketch for all samples in this class
-        total_sketch = ThetaSketchWrapper(update_theta_sketch(lg_k))
-
-        # Add all identifiers to total sketch
-        if id_column:
-            for identifier in class_df[id_column]:
-                total_sketch.update(hash_identifier(str(identifier)))
-        else:
-            for idx in class_df.index:
-                total_sketch.update(hash_identifier(str(idx)))
-
-        print(f"    Total sketch: {total_sketch.get_estimate():.0f} estimated samples")
-
-        # Create feature=value sketches
-        feature_sketches = {}
-
-        for feature in feature_columns:
-            feature_values = sorted(class_df[feature].unique())
-            print(f"    Feature '{feature}': {len(feature_values)} unique values")
-
-            for value in feature_values:
-                feature_key = f"{feature}={value}"
-                feature_sketch = ThetaSketchWrapper(update_theta_sketch(lg_k))
-
-                # Add identifiers that have this feature=value combination
-                matching_samples = class_df[class_df[feature] == value]
-
-                if id_column:
-                    for identifier in matching_samples[id_column]:
-                        feature_sketch.update(hash_identifier(str(identifier)))
-                else:
-                    for idx in matching_samples.index:
-                        feature_sketch.update(hash_identifier(str(idx)))
-
-                feature_sketches[feature_key] = feature_sketch
-
-                # Log significant features
-                estimate = feature_sketch.get_estimate()
-                if estimate > len(matching_samples) * 0.1:  # Log if >10% of expected
-                    print(f"      {feature_key}: {estimate:.0f} estimated samples ({len(matching_samples)} actual)")
-
-        return {
-            'total': total_sketch,
-            **feature_sketches
-        }
-
-    # Create sketches for both classes
-    sketch_data = {
-        'positive': create_class_sketches(positive_df, positive_class),
-        'negative': create_class_sketches(negative_df, negative_class)
-    }
-
-    # Summary statistics
-    total_features = len([k for k in sketch_data['positive'].keys() if k != 'total'])
-    print(f"✅ Created {total_features} feature=value sketches per class")
-    print(f"🎯 Ready for decision tree training!")
-
-    return sketch_data
+    try:
+        df = pd.read_csv(csv_file)
+        print(f"📁 Loaded CSV: {df.shape[0]:,} rows, {df.shape[1]} columns")
+        return df
+    except Exception as e:
+        raise ValueError(f"Error loading CSV file: {e}")
 
 
-def create_apriori_sketches(df: pd.DataFrame, feature_columns: List[str], id_column: str = None, lg_k: int = DEFAULT_LG_K) -> Dict[str, Any]:
-    """
-    Create theta sketches for any dataset optimized for apriori frequent itemset mining.
+def get_feature_columns(df: pd.DataFrame, skip_columns: Set[str], id_columns: Set[str]) -> List[str]:
+    """Get columns that should be processed as features."""
+    all_columns = set(df.columns)
+    excluded_columns = skip_columns | id_columns
+    feature_columns = [col for col in df.columns if col not in excluded_columns]
 
-    Each sketch represents an itemset (combination of feature values) and contains
-    identifiers that contain that itemset, enabling support calculation for frequent
-    itemset mining algorithms.
+    print(f"📊 Total columns: {len(all_columns)}")
+    print(f"🚫 Excluded columns: {excluded_columns}")
+    print(f"✅ Feature columns: {len(feature_columns)} ({feature_columns})")
 
-    Parameters
-    ----------
-    df : DataFrame
-        Dataset with features
-    feature_columns : List[str]
-        List of feature column names
-    id_column : str, optional
-        Name of identifier column (uses row index if None)
-    lg_k : int, default=DEFAULT_LG_K
-        Log-base-2 of nominal entries (k = 2^lg_k)
-
-    Returns
-    -------
-    itemset_sketches : dict
-        Format: {'1-itemsets': {...}, '2-itemsets': {...}, 'transactions': sketch}
-        Contains sketches for frequent itemset mining
-    """
-    print(f"🛒 Creating apriori sketches with lg_k={lg_k} (size={2**lg_k})")
-
-    # Create transaction sketch (all unique identifiers)
-    transaction_sketch = ThetaSketchWrapper(update_theta_sketch(lg_k))
-    if id_column:
-        for identifier in df[id_column]:
-            transaction_sketch.update(hash_identifier(str(identifier)))
-    else:
-        for idx in df.index:
-            transaction_sketch.update(hash_identifier(str(idx)))
-
-    total_transactions = transaction_sketch.get_estimate()
-    print(f"📦 Total transactions: {total_transactions:.0f} samples")
-
-    # Create 1-itemsets (individual feature values)
-    itemset_1_sketches = {}
-
-    for feature in feature_columns:
-        feature_values = df[feature].unique()
-        print(f"  Feature '{feature}': {len(feature_values)} unique values")
-
-        for value in feature_values:
-            itemset_key = f"{feature}={value}"
-            itemset_sketch = ThetaSketchWrapper(update_theta_sketch(lg_k))
-
-            # Add identifiers that contain this item
-            matching_samples = df[df[feature] == value]
-            if id_column:
-                for identifier in matching_samples[id_column]:
-                    itemset_sketch.update(hash_identifier(str(identifier)))
-            else:
-                for idx in matching_samples.index:
-                    itemset_sketch.update(hash_identifier(str(idx)))
-
-            support = itemset_sketch.get_estimate() / total_transactions
-            itemset_1_sketches[itemset_key] = {
-                'sketch': itemset_sketch,
-                'support': support,
-                'count': len(matching_samples)
-            }
-
-    # Filter frequent 1-itemsets (support > 1%)
-    min_support = 0.01
-    frequent_1_itemsets = {k: v for k, v in itemset_1_sketches.items() if v['support'] > min_support}
-
-    print(f"📈 Frequent 1-itemsets: {len(frequent_1_itemsets)} (support > {min_support:.1%})")
-
-    # Create 2-itemsets from frequent 1-itemsets
-    itemset_2_sketches = {}
-    frequent_items = list(frequent_1_itemsets.keys())
-
-    print(f"🔗 Generating 2-itemsets from {len(frequent_items)} frequent items...")
-
-    for i in range(len(frequent_items)):
-        for j in range(i + 1, len(frequent_items)):
-            item1, item2 = frequent_items[i], frequent_items[j]
-
-            # Skip if same feature (can't have source=ios AND source=android)
-            feature1 = item1.split('=')[0]
-            feature2 = item2.split('=')[0]
-            if feature1 == feature2:
-                continue
-
-            # Create 2-itemset sketch using intersection
-            sketch1 = frequent_1_itemsets[item1]['sketch']
-            sketch2 = frequent_1_itemsets[item2]['sketch']
-
-            intersection_sketch = sketch1.intersection(sketch2)
-            support = intersection_sketch.get_estimate() / total_transactions
-
-            if support > min_support:  # Only keep frequent 2-itemsets
-                itemset_key = f"{item1},{item2}"
-                itemset_2_sketches[itemset_key] = {
-                    'sketch': ThetaSketchWrapper(intersection_sketch),
-                    'support': support,
-                    'items': [item1, item2]
-                }
-
-    print(f"📈 Frequent 2-itemsets: {len(itemset_2_sketches)} (support > {min_support:.1%})")
-
-    return {
-        'transactions': transaction_sketch,
-        '1-itemsets': {k: v['sketch'] for k, v in frequent_1_itemsets.items()},
-        '2-itemsets': {k: v['sketch'] for k, v in itemset_2_sketches.items()},
-        'support_stats': {
-            'total_transactions': total_transactions,
-            'min_support': min_support,
-            'frequent_1_count': len(frequent_1_itemsets),
-            'frequent_2_count': len(itemset_2_sketches)
-        }
-    }
+    return feature_columns
 
 
-def create_feature_mapping(sketch_data: Dict[str, Dict[str, Any]]) -> Dict[str, int]:
-    """
-    Create feature mapping for decision tree classifier from sketch data.
+def create_sketches(df: pd.DataFrame, feature_columns: List[str], lg_k: int) -> Dict[str, update_theta_sketch]:
+    """Create theta sketches for all records and each feature."""
+    sketches = {}
 
-    Parameters
-    ----------
-    sketch_data : dict
-        Output from create_decision_tree_sketches()
+    # Create sketch for ALL records (empty string key)
+    print("🔧 Creating sketch for all records...")
+    all_records_sketch = update_theta_sketch(lg_k)
+    for idx in df.index:
+        all_records_sketch.update(hash_identifier(str(idx)))
+    sketches[""] = all_records_sketch
+    print(f"   Total records sketch: {all_records_sketch.get_estimate():,.0f} estimated items")
 
-    Returns
-    -------
-    feature_mapping : dict
-        Maps feature=value strings to column indices for binary matrix
-    """
-    # Get all feature names (excluding 'total')
-    feature_names = [k for k in sketch_data['positive'].keys() if k != 'total']
-    feature_names.sort()  # Consistent ordering
+    # Create sketches for each feature=value combination
+    print("🔧 Creating feature sketches...")
+    feature_count = 0
 
-    # Create mapping
-    feature_mapping = {name: idx for idx, name in enumerate(feature_names)}
+    for col in feature_columns:
+        unique_values = df[col].unique()
+        print(f"   Processing column '{col}': {len(unique_values)} unique values")
 
-    print(f"🗺️ Created feature mapping for {len(feature_mapping)} features")
-    return feature_mapping
+        for value in unique_values:
+            # Convert value to string (treat everything as categorical)
+            value_str = str(value)
+            feature_key = f"{col}={value_str}"
+
+            # Create sketch for records with this feature=value
+            feature_sketch = update_theta_sketch(lg_k)
+            matching_rows = df[df[col] == value]
+
+            for idx in matching_rows.index:
+                feature_sketch.update(hash_identifier(str(idx)))
+
+            sketches[feature_key] = feature_sketch
+            feature_count += 1
+
+            if feature_count % 50 == 0:  # Progress indicator
+                print(f"   Created {feature_count} feature sketches...")
+
+    print(f"✅ Created {len(sketches)} total sketches (1 all-records + {feature_count} features)")
+    return sketches
 
 
-def save_sketches_to_2col_csv(sketch_data: Dict[str, Dict[str, Any]], output_dir: str,
-                             dataset_name: str, lg_k: int) -> None:
-    """Save sketch data to 2-column CSV files for conversion pipeline."""
+def save_2col_csv(sketches: Dict[str, update_theta_sketch], output_dir: str, input_filename: str, lg_k: int):
+    """Save sketches to 2-column CSV format."""
     output_path = Path(output_dir)
-    output_path.mkdir(exist_ok=True)
+    output_path.mkdir(parents=True, exist_ok=True)
 
-    print(f"💾 Saving 2-column sketches to {output_path}/")
+    # Generate output filename
+    dataset_name = Path(input_filename).stem
+    output_filename = f"{dataset_name}_2col_sketches_lg_k_{lg_k}.csv"
+    output_filepath = output_path / output_filename
 
-    for class_name, class_sketches in sketch_data.items():
-        # Create CSV data for 2-column format
-        csv_data = []
+    print(f"💾 Saving to: {output_filepath}")
 
-        for feature_name, sketch in class_sketches.items():
-            if feature_name != 'total':  # Skip total sketch for 2-column format
-                # Serialize sketch to base64 (need to compact first)
-                compact_sketch = sketch._sketch.compact()
-                sketch_bytes = compact_sketch.serialize()
-                sketch_base64 = base64.b64encode(sketch_bytes).decode('utf-8')
+    # Prepare CSV data
+    csv_data = []
 
-                csv_data.append({
-                    'feature': feature_name,
-                    'sketch': sketch_base64
-                })
+    # First add the all-records sketch (empty string feature name)
+    if "" in sketches:
+        all_sketch = sketches[""]
+        compact_sketch = all_sketch.compact()
+        sketch_b64 = base64.b64encode(compact_sketch.serialize()).decode('utf-8')
+        csv_data.append({"feature": "", "sketch": sketch_b64})
 
-        # Save to CSV file
-        csv_filename = f"{dataset_name}_{class_name}_2col_sketches_lg_k_{lg_k}.csv"
-        csv_filepath = output_path / csv_filename
+    # Then add all feature sketches in sorted order
+    feature_keys = [key for key in sketches.keys() if key != ""]
+    for feature_key in sorted(feature_keys):
+        feature_sketch = sketches[feature_key]
+        compact_sketch = feature_sketch.compact()
+        sketch_b64 = base64.b64encode(compact_sketch.serialize()).decode('utf-8')
+        csv_data.append({"feature": feature_key, "sketch": sketch_b64})
 
-        df_out = pd.DataFrame(csv_data)
-        df_out.to_csv(csv_filepath, index=False)
+    # Write CSV file
+    with open(output_filepath, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['feature', 'sketch'])
+        writer.writeheader()
+        writer.writerows(csv_data)
 
-        print(f"  📄 {csv_filename} ({len(csv_data)} features)")
-
-    # Also save feature mapping as JSON
-    feature_mapping = create_feature_mapping(sketch_data)
-    mapping_filename = f"{dataset_name}_feature_mapping.json"
-    mapping_filepath = output_path / mapping_filename
-
-    with open(mapping_filepath, 'w') as f:
-        json.dump(feature_mapping, f, indent=2)
-
-    print(f"  🗺️ {mapping_filename}")
+    print(f"✅ Saved {len(csv_data)} sketches to {output_filename}")
+    return output_filepath
 
 
 def main():
-    """Main function with command-line interface."""
     parser = argparse.ArgumentParser(
-        description='Generate 2-column theta sketches from any CSV dataset',
+        description='Create 2-column theta sketches from CSV data',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Mushroom dataset
-  python tools/create_2col_sketches.py tests/resources/agaricus-lepiota.csv class --lg_k 12
+  # Basic usage
+  python tools/create_2col_sketches.py \\
+      --input data.csv \\
+      --output sketches/ \\
+      --lg_k 12
 
-  # DU dataset with ID column
-  python tools/create_2col_sketches.py tests/resources/DU_raw.csv tripOutcome --lg_k 16 --id_column tripId
-
-  # Any dataset with auto-detection
-  python tools/create_2col_sketches.py data.csv target_column --lg_k 14
+  # With exclusions
+  python tools/create_2col_sketches.py \\
+      --input tests/resources/agaricus-lepiota.csv \\
+      --output mushroom_sketches/ \\
+      --lg_k 12 \\
+      --skip_columns id,timestamp \\
+      --id_columns sample_id,uuid
         """)
 
-    # Positional arguments
-    parser.add_argument('dataset_path', type=str,
-                       help='Path to CSV dataset file')
-    parser.add_argument('target_column', type=str,
-                       help='Name of target column (must be binary classification)')
-
-    # Optional arguments
-    parser.add_argument('--lg_k', type=int, default=DEFAULT_LG_K,
-                       help=f'Log-base-2 of sketch size (default: {DEFAULT_LG_K})')
-    parser.add_argument('--id_column', type=str, default=None,
-                       help='Name of ID column (uses row index if not specified)')
-    parser.add_argument('--output_dir', type=str, default=None,
-                       help='Output directory for sketch files (default: auto-generated)')
-    parser.add_argument('--mode', choices=['decision_tree', 'apriori', 'both'], default='decision_tree',
-                       help='Type of sketches to generate (default: decision_tree)')
+    parser.add_argument('--input', type=str, required=True, help='Input CSV file path')
+    parser.add_argument('--output', type=str, required=True, help='Output directory path')
+    parser.add_argument('--lg_k', type=int, required=True, help='Theta sketch lg_k parameter (sketch size)')
+    parser.add_argument('--skip_columns', type=str, help='Comma-separated list of columns to skip')
+    parser.add_argument('--id_columns', type=str, help='Comma-separated list of ID columns to exclude')
 
     args = parser.parse_args()
 
-    print("📊 Generic 2-Column Sketch Generator")
+    print("🎯 Theta Sketch 2-Column Generator")
     print("=" * 50)
 
-    # Load dataset
+    # Validate input file
+    if not os.path.exists(args.input):
+        print(f"❌ Input file not found: {args.input}")
+        return 1
+
+    # Parse column exclusions
+    skip_columns = set()
+    if args.skip_columns:
+        skip_columns = set(col.strip() for col in args.skip_columns.split(','))
+
+    id_columns = set()
+    if args.id_columns:
+        id_columns = set(col.strip() for col in args.id_columns.split(','))
+
+    print(f"📋 Configuration:")
+    print(f"   Input: {args.input}")
+    print(f"   Output: {args.output}")
+    print(f"   lg_k: {args.lg_k}")
+    print(f"   Skip columns: {skip_columns or 'None'}")
+    print(f"   ID columns: {id_columns or 'None'}")
+
     try:
-        df = pd.read_csv(args.dataset_path)
-        print(f"📁 Loaded dataset: {args.dataset_path}")
-        print(f"   Shape: {df.shape[0]:,} rows × {df.shape[1]} columns")
-    except FileNotFoundError:
-        print(f"❌ Error: Dataset not found at {args.dataset_path}")
-        return 1
-    except Exception as e:
-        print(f"❌ Error loading dataset: {e}")
-        return 1
+        # Load data
+        df = load_csv_data(args.input)
 
-    # Validate target column
-    if args.target_column not in df.columns:
-        print(f"❌ Error: Target column '{args.target_column}' not found")
-        print(f"Available columns: {list(df.columns)}")
-        return 1
+        # Get feature columns
+        feature_columns = get_feature_columns(df, skip_columns, id_columns)
 
-    # Auto-detect feature columns (exclude target and ID columns)
-    exclude_columns = [args.target_column]
-    if args.id_column:
-        if args.id_column not in df.columns:
-            print(f"❌ Error: ID column '{args.id_column}' not found")
+        if not feature_columns:
+            print("❌ No feature columns found after exclusions!")
             return 1
-        exclude_columns.append(args.id_column)
 
-    feature_columns = [col for col in df.columns if col not in exclude_columns]
-    print(f"🔍 Auto-detected {len(feature_columns)} feature columns")
-    print(f"   Features: {feature_columns[:5]}{'...' if len(feature_columns) > 5 else ''}")
+        # Create sketches
+        sketches = create_sketches(df, feature_columns, args.lg_k)
 
-    # Generate output directory name
-    if args.output_dir is None:
-        dataset_name = Path(args.dataset_path).stem.lower().replace('-', '_')
-        args.output_dir = f"{dataset_name}_sketches"
+        # Save output
+        output_file = save_2col_csv(sketches, args.output, args.input, args.lg_k)
 
-    print(f"📂 Output directory: {args.output_dir}")
+        print(f"\n🎉 Success!")
+        print(f"📄 Generated: {output_file}")
 
-    try:
-        if args.mode in ['decision_tree', 'both']:
-            print(f"\n🌳 Generating decision tree sketches...")
-            dt_sketches = create_decision_tree_sketches(
-                df=df,
-                target_column=args.target_column,
-                feature_columns=feature_columns,
-                id_column=args.id_column,
-                lg_k=args.lg_k
-            )
-
-            dataset_name = Path(args.dataset_path).stem.lower().replace('-', '_')
-            save_sketches_to_2col_csv(dt_sketches, args.output_dir, dataset_name, args.lg_k)
-
-            feature_mapping = create_feature_mapping(dt_sketches)
-            print(f"✅ Decision tree sketches ready!")
-            print(f"   Features: {len(feature_mapping)} binary features")
-            print(f"   Next: python tools/convert_2col_to_3col_sketches.py {args.output_dir}/*.csv")
-
-        if args.mode in ['apriori', 'both']:
-            print(f"\n🛒 Generating apriori sketches...")
-            apriori_sketches = create_apriori_sketches(
-                df=df,
-                feature_columns=feature_columns,
-                id_column=args.id_column,
-                lg_k=args.lg_k
-            )
-
-            print(f"✅ Apriori sketches ready!")
-            print(f"   1-itemsets: {len(apriori_sketches['1-itemsets'])}")
-            print(f"   2-itemsets: {len(apriori_sketches['2-itemsets'])}")
-
-        print(f"\n🎉 Sketch generation complete!")
+        return 0
 
     except Exception as e:
-        print(f"❌ Error during sketch generation: {e}")
+        print(f"❌ Error: {e}")
         import traceback
         traceback.print_exc()
         return 1
-
-    return 0
 
 
 if __name__ == "__main__":

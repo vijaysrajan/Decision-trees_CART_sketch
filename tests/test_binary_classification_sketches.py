@@ -325,8 +325,8 @@ def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
             "feature_name": str(node.feature_name) if hasattr(node, 'feature_name') and node.feature_name is not None else None,
             "feature_idx": int(node.feature_idx) if hasattr(node, 'feature_idx') and node.feature_idx is not None else None,
             "split_condition": f"{node.feature_name} == 1" if hasattr(node, 'feature_name') and node.feature_name else "Unknown",
-            "left_condition": f"{node.feature_name} == 1 (TRUE)" if hasattr(node, 'feature_name') and node.feature_name else "TRUE",
-            "right_condition": f"{node.feature_name} == 0 (FALSE/NOT)" if hasattr(node, 'feature_name') and node.feature_name else "FALSE",
+            "left_condition": f"{node.feature_name} == 0 (FALSE/NOT)" if hasattr(node, 'feature_name') and node.feature_name else "FALSE",
+            "right_condition": f"{node.feature_name} == 1 (TRUE)" if hasattr(node, 'feature_name') and node.feature_name else "TRUE",
             "left": tree_to_json(node.left, max_depth, current_depth + 1) if node.left else None,
             "right": tree_to_json(node.right, max_depth, current_depth + 1) if node.right else None
         })

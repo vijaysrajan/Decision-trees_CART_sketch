@@ -514,9 +514,14 @@ FUNCTION _compute_child_sketches(parent_sketch, feature_sketch_tuple, feature_na
     CRITICAL: Uses PRE-COMPUTED absent sketches to eliminate a_not_b operations,
     achieving 29% error reduction compared to computing left child via set subtraction.
 
-    Binary split:
-        - Left child (feature = False): parent ∩ sketch_feature_absent  [intersection ONLY]
-        - Right child (feature = True): parent ∩ sketch_feature_present [intersection ONLY]
+    Binary split convention:
+        - **Left child (feature = False/0)**: parent ∩ sketch_feature_absent  [intersection ONLY]
+        - **Right child (feature = True/1)**: parent ∩ sketch_feature_present [intersection ONLY]
+
+    **IMPORTANT**: This convention is consistently applied throughout the codebase:
+        - Tree building (split_finder.py): left=absent, right=present
+        - JSON serialization: left_condition="feature == 0 (FALSE/NOT)", right_condition="feature == 1 (TRUE)"
+        - Inference logic: prediction follows left=0, right=1 path
 
     Parameters:
         parent_sketch: ThetaSketch for parent node

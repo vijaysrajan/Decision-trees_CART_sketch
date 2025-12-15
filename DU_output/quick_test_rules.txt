@@ -1,0 +1,81 @@
+🔍 Top 5 Decision Tree Rules for Manual Testing
+================================================================================
+Source: DU_output/du_model_lg_k_18/3col_sketches_lg_k_18_model_lg_k_18.json
+Table: DU_raw
+Target: tripOutcome
+
+📊 Rule 1: Negative (91.5% confidence)
+   Samples: 8368
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND zone=221 = FALSE AND sla=Immediate = FALSE AND booking_type=one_way_trip = FALSE AND city=Pune = FALSE
+   Expected positive rate: 8.5%
+
+   SQL Test Query:
+   SELECT
+     COUNT(*) as sample_count,
+     ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
+   FROM DU_raw
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `zone=221` = 0 AND `sla=Immediate` = 0 AND `booking_type=one_way_trip` = 0 AND `city=Pune` = 0;
+   -- Expected: sample_count ≈ 8368, positive_rate ≈ 0.0852
+
+--------------------------------------------------------------------------------
+
+📊 Rule 2: Negative (89.1% confidence)
+   Samples: 3391
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND zone=221 = FALSE AND sla=Immediate = FALSE AND booking_type=one_way_trip = TRUE AND dayType=NORMAL_WEEKDAY = TRUE
+   Expected positive rate: 10.9%
+
+   SQL Test Query:
+   SELECT
+     COUNT(*) as sample_count,
+     ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
+   FROM DU_raw
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `zone=221` = 0 AND `sla=Immediate` = 0 AND `booking_type=one_way_trip` = 1 AND `dayType=NORMAL_WEEKDAY` = 1;
+   -- Expected: sample_count ≈ 3391, positive_rate ≈ 0.1094
+
+--------------------------------------------------------------------------------
+
+📊 Rule 3: Negative (83.1% confidence)
+   Samples: 2519
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = FALSE AND zone=221 = FALSE AND sla=Immediate = FALSE AND booking_type=one_way_trip = TRUE AND dayType=NORMAL_WEEKDAY = FALSE
+   Expected positive rate: 16.9%
+
+   SQL Test Query:
+   SELECT
+     COUNT(*) as sample_count,
+     ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
+   FROM DU_raw
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 0 AND `zone=221` = 0 AND `sla=Immediate` = 0 AND `booking_type=one_way_trip` = 1 AND `dayType=NORMAL_WEEKDAY` = 0;
+   -- Expected: sample_count ≈ 2519, positive_rate ≈ 0.1687
+
+--------------------------------------------------------------------------------
+
+📊 Rule 4: Negative (81.6% confidence)
+   Samples: 797
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = TRUE AND city=Pune = FALSE AND sla=Immediate = FALSE AND source=android = TRUE AND booking_type=one_way_trip = FALSE
+   Expected positive rate: 18.4%
+
+   SQL Test Query:
+   SELECT
+     COUNT(*) as sample_count,
+     ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
+   FROM DU_raw
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 1 AND `city=Pune` = 0 AND `sla=Immediate` = 0 AND `source=android` = 1 AND `booking_type=one_way_trip` = 0;
+   -- Expected: sample_count ≈ 797, positive_rate ≈ 0.1844
+
+--------------------------------------------------------------------------------
+
+📊 Rule 5: Negative (88.6% confidence)
+   Samples: 694
+   Conditions: pickUpHourOfDay=VERYLATE = FALSE AND zone_demand_popularity=POPULARITY_INDEX_5 = TRUE AND city=Pune = FALSE AND sla=Immediate = FALSE AND source=android = FALSE AND booking_type=one_way_trip = FALSE
+   Expected positive rate: 11.4%
+
+   SQL Test Query:
+   SELECT
+     COUNT(*) as sample_count,
+     ROUND(AVG(CASE WHEN tripOutcome = 1 THEN 1.0 ELSE 0.0 END), 4) as positive_rate
+   FROM DU_raw
+   WHERE `pickUpHourOfDay=VERYLATE` = 0 AND `zone_demand_popularity=POPULARITY_INDEX_5` = 1 AND `city=Pune` = 0 AND `sla=Immediate` = 0 AND `source=android` = 0 AND `booking_type=one_way_trip` = 0;
+   -- Expected: sample_count ≈ 694, positive_rate ≈ 0.1138
+
+--------------------------------------------------------------------------------
+

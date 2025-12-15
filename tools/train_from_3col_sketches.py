@@ -1,206 +1,220 @@
 #!/usr/bin/env python3
 """
-Train decision tree from 3-column sketch CSV file.
+Train decision tree from 3-column sketch CSV files.
+
+This script trains a decision tree classifier using positive and negative
+3-column CSV files and saves the model in both PKL and JSON formats.
 
 Usage:
-    python tools/train_from_3col_sketches.py sketches_3col.csv feature_mapping.json config.yaml
+    python tools/train_from_3col_sketches.py \
+        --lg_k 16 \
+        --positive positive_3col_sketches.csv \
+        --negative negative_3col_sketches.csv \
+        --config config.yaml \
+        --output output_dir/
 
 Example:
     python tools/train_from_3col_sketches.py \
-        agaricus_lepiota_sketches/agaricus_lepiota_3col_sketches.csv \
-        agaricus_lepiota_sketches/agaricus_lepiota_feature_mapping.json \
-        agaricus_lepiota_sketches/mushroom_training_config.yaml
+        --lg_k 16 \
+        --positive DU_output/positive_3col_sketches.csv \
+        --negative DU_output/negative_3col_sketches.csv \
+        --config configs/du_config.yaml \
+        --output DU_output/
 """
 
+import argparse
 import sys
-import json
 import os
+import json
+import pickle
 import csv
-import base64
-import yaml
 from pathlib import Path
 
 # Add project root to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 try:
-    from datasketches import compact_theta_sketch
-    from tests.test_binary_classification_sketches import ThetaSketchWrapper
-    from theta_sketch_tree import ThetaSketchDecisionTreeClassifier
+    from theta_sketch_tree.classifier_utils import ClassifierUtils
     from tests.test_binary_classification_sketches import tree_to_json
 except ImportError as e:
-    print(f"Error importing required modules: {e}")
-    print("Make sure you're running from the project root directory")
-    sys.exit(1)
+    raise ImportError(f"Required modules not found: {e}")
 
 
-def load_3col_sketches(csv_file: str) -> dict:
-    """Load 3-column sketch CSV into sketch_data format."""
-    from datasketches import update_theta_sketch, theta_a_not_b
+def validate_input_files(positive_csv: str, negative_csv: str, config_yaml: str):
+    """Validate that all input files exist."""
+    files_to_check = [
+        (positive_csv, "Positive CSV"),
+        (negative_csv, "Negative CSV"),
+        (config_yaml, "Config YAML")
+    ]
 
-    sketch_data = {'positive': {}, 'negative': {}}
-
-    # First pass: collect all feature sketches
-    temp_sketches = {'positive': {}, 'negative': {}}
-
-    with open(csv_file, 'r') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            feature_name = row['identifier']
-
-            # Load positive sketch if present
-            if row['sketch_feature_present_positive']:
-                sketch_bytes = base64.b64decode(row['sketch_feature_present_positive'])
-                compact_sketch = compact_theta_sketch.deserialize(sketch_bytes)
-                temp_sketches['positive'][feature_name] = ThetaSketchWrapper(compact_sketch)
-
-            # Load negative sketch if present
-            if row['sketch_feature_present_negative']:
-                sketch_bytes = base64.b64decode(row['sketch_feature_present_negative'])
-                compact_sketch = compact_theta_sketch.deserialize(sketch_bytes)
-                temp_sketches['negative'][feature_name] = ThetaSketchWrapper(compact_sketch)
-
-    # Create dummy 'total' sketches for compatibility
-    for class_name in ['positive', 'negative']:
-        total_sketch = ThetaSketchWrapper(update_theta_sketch(19))  # Use lg_k=19 to match config
-        # Add some dummy data to make it non-empty
-        for i in range(1000):  # Larger dummy dataset
-            total_sketch.update(i)
-        sketch_data[class_name] = {'total': total_sketch}
-
-    # Second pass: convert each feature to (present, absent) tuple format
-    all_features = set(temp_sketches['positive'].keys()) | set(temp_sketches['negative'].keys())
-
-    for feature_name in all_features:
-        for class_name in ['positive', 'negative']:
-            present_sketch = temp_sketches[class_name].get(feature_name)
-
-            if present_sketch is None:
-                # Create empty sketch if feature not present in this class
-                present_sketch = ThetaSketchWrapper(update_theta_sketch(19))
-
-            # Create dummy absent sketch as complement
-            # In real implementation, this would be computed as total - present
-            absent_sketch = ThetaSketchWrapper(update_theta_sketch(19))
-            for i in range(500):  # Dummy absent data
-                absent_sketch.update(i + 10000)  # Different hash space
-
-            # Store as tuple: (present_sketch, absent_sketch)
-            sketch_data[class_name][feature_name] = (present_sketch, absent_sketch)
-
-    return sketch_data
-
-
-def load_feature_mapping(json_file: str) -> dict:
-    """Load feature mapping from JSON file."""
-    with open(json_file, 'r') as f:
-        return json.load(f)
-
-
-def load_config(yaml_file: str) -> dict:
-    """Load configuration from YAML file."""
-    with open(yaml_file, 'r') as f:
-        return yaml.safe_load(f)
-
-
-def main():
-    if len(sys.argv) != 4:
-        print(__doc__)
-        sys.exit(1)
-
-    sketches_csv = sys.argv[1]
-    feature_mapping_json = sys.argv[2]
-    config_yaml = sys.argv[3]
-
-    print("🌳 Theta Sketch Decision Tree Trainer (3-Column)")
-    print("=" * 50)
-
-    # Validate input files
-    for file_path, file_type in [(sketches_csv, "Sketches CSV"),
-                                 (feature_mapping_json, "Feature mapping JSON"),
-                                 (config_yaml, "Config YAML")]:
+    for file_path, file_type in files_to_check:
         if not os.path.exists(file_path):
-            print(f"❌ {file_type} not found: {file_path}")
-            sys.exit(1)
+            raise FileNotFoundError(f"{file_type} not found: {file_path}")
+
+    print(f"✅ All input files validated")
+
+
+def save_model_outputs(classifier, output_dir: str, lg_k: int, positive_file: str):
+    """Save the trained model in PKL and JSON formats."""
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Generate base filename from positive file
+    base_name = Path(positive_file).stem.replace('positive_', '').replace('_3col_sketches', '')
+    model_base = f"{base_name}_model_lg_k_{lg_k}"
+
+    # Save PKL format
+    pkl_path = output_path / f"{model_base}.pkl"
+    print(f"💾 Saving model to: {pkl_path}")
 
     try:
-        # Load sketches, feature mapping, and config
-        print(f"📊 Loading 3-column sketches: {sketches_csv}")
-        sketch_data = load_3col_sketches(sketches_csv)
+        with open(pkl_path, 'wb') as f:
+            pickle.dump(classifier, f)
+        print(f"✅ Saved PKL model: {pkl_path}")
+    except Exception as e:
+        print(f"❌ Error saving PKL model: {e}")
 
-        print(f"🗺️ Loading feature mapping: {feature_mapping_json}")
-        feature_mapping = load_feature_mapping(feature_mapping_json)
+    # Save JSON format
+    json_path = output_path / f"{model_base}.json"
+    print(f"💾 Saving tree JSON to: {json_path}")
 
-        print(f"⚙️ Loading config: {config_yaml}")
-        config = load_config(config_yaml)
+    try:
+        if hasattr(classifier, 'tree_') and classifier.tree_ is not None:
+            tree_json = tree_to_json(classifier.tree_)
 
-        # Print dataset information
-        print("\n" + "=" * 50)
-        print("DATASET INFORMATION")
-        print("=" * 50)
+            # Add model metadata
+            model_data = {
+                "model_type": "ThetaSketchDecisionTree",
+                "lg_k": lg_k,
+                "hyperparameters": {
+                    "criterion": getattr(classifier, 'criterion', 'unknown'),
+                    "max_depth": getattr(classifier, 'max_depth', 'unknown'),
+                    "min_samples_split": getattr(classifier, 'min_samples_split', 'unknown'),
+                    "min_samples_leaf": getattr(classifier, 'min_samples_leaf', 'unknown')
+                },
+                "tree_structure": tree_json
+            }
 
-        positive_features = len(sketch_data.get('positive', {}))
-        negative_features = len(sketch_data.get('negative', {}))
+            with open(json_path, 'w') as f:
+                json.dump(model_data, f, indent=2, default=str)
+            print(f"✅ Saved JSON tree: {json_path}")
+        else:
+            print(f"⚠️  No tree found in classifier, skipping JSON save")
+    except Exception as e:
+        print(f"❌ Error saving JSON tree: {e}")
 
-        print(f"Positive class features: {positive_features}")
-        print(f"Negative class features: {negative_features}")
-        print(f"Total unique features: {len(feature_mapping)}")
+    return pkl_path, json_path
 
-        # Create and fit classifier
-        print("\n" + "=" * 50)
-        print("MODEL TRAINING")
-        print("=" * 50)
 
-        hyperparams = config['hyperparameters']
-        print(f"Hyperparameters: {hyperparams}")
+def print_model_stats(classifier):
+    """Print model statistics and tree structure."""
+    print("\n" + "=" * 50)
+    print("MODEL STATISTICS")
+    print("=" * 50)
 
-        clf = ThetaSketchDecisionTreeClassifier(**hyperparams)
+    if hasattr(classifier, 'tree_') and classifier.tree_ is not None:
+        tree = classifier.tree_
+        print(f"🌳 Tree depth: {tree.depth}")
 
-        print("🚀 Fitting model...")
-        clf.fit(sketch_data, feature_mapping)
+        if hasattr(tree, 'node_count'):
+            print(f"📊 Number of nodes: {tree.node_count}")
+        if hasattr(tree, 'leaf_count'):
+            print(f"🍃 Number of leaves: {tree.leaf_count}")
 
-        print("✅ Training completed!")
+        # Print feature importances if available
+        if hasattr(classifier, 'feature_importances_') and classifier.feature_importances_ is not None:
+            print(f"\n📈 Feature importances computed: {len(classifier.feature_importances_)} features")
 
-        # Print model statistics
-        if hasattr(clf, 'tree_') and clf.tree_ is not None:
-            print(f"📈 Tree depth: {clf.tree_.depth}")
-
-            # Count nodes manually if node_count attribute doesn't exist
-            if hasattr(clf.tree_, 'node_count'):
-                print(f"📊 Number of nodes: {clf.tree_.node_count}")
-
-            if hasattr(clf.tree_, 'leaf_count'):
-                print(f"🍃 Number of leaves: {clf.tree_.leaf_count}")
-
-            # Output tree as JSON
-            tree_json = tree_to_json(clf.tree_)
+        # Print tree JSON
+        try:
+            tree_json = tree_to_json(tree)
             print("\n" + "=" * 80)
             print("DECISION TREE JSON")
             print("=" * 80)
-            print(json.dumps(tree_json, indent=2))
+            print(json.dumps(tree_json, indent=2, default=str))
+        except Exception as e:
+            print(f"⚠️  Could not generate tree JSON: {e}")
+    else:
+        print("❌ No tree found in classifier")
 
-        # Generate model filename
-        lg_k = config.get('lg_k', 'unknown')
-        criterion = hyperparams.get('criterion', 'gini')
-        max_depth = hyperparams.get('max_depth', 'unlimited')
 
-        dataset_name = Path(sketches_csv).stem.replace('_3col_sketches', '')
-        model_filename = f"{dataset_name}_model_lg_k_{lg_k}_{criterion}_depth_{max_depth}.pkl"
+def main():
+    parser = argparse.ArgumentParser(
+        description='Train decision tree from 3-column sketch CSV files',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Basic usage
+  python tools/train_from_3col_sketches.py \\
+      --lg_k 16 \\
+      --positive positive_3col_sketches.csv \\
+      --negative negative_3col_sketches.csv \\
+      --config config.yaml \\
+      --output output_dir/
 
-        # Save model (temporarily disabled due to import issue)
-        print(f"\n💾 Model would be saved to: {model_filename}")
-        # clf.save_model(model_filename)  # Commented out due to ModelPersistence import issue
+  # With DU dataset
+  python tools/train_from_3col_sketches.py \\
+      --lg_k 16 \\
+      --positive DU_output/positive_3col_sketches.csv \\
+      --negative DU_output/negative_3col_sketches.csv \\
+      --config configs/du_config.yaml \\
+      --output DU_output/
+        """)
 
-        print("\n🎉 Training completed successfully!")
-        print(f"📁 Model ready for saving: {model_filename}")
+    parser.add_argument('--lg_k', type=int, required=True,
+                       help='Theta sketch lg_k parameter used for generation')
+    parser.add_argument('--positive', type=str, required=True,
+                       help='Positive class 3-column CSV file')
+    parser.add_argument('--negative', type=str, required=True,
+                       help='Negative class 3-column CSV file')
+    parser.add_argument('--config', type=str, required=True,
+                       help='Configuration YAML file')
+    parser.add_argument('--output', type=str, required=True,
+                       help='Output directory for model files')
+
+    args = parser.parse_args()
+
+    print("🌳 Theta Sketch Decision Tree Trainer")
+    print("=" * 50)
+
+    print(f"📋 Configuration:")
+    print(f"   lg_k: {args.lg_k}")
+    print(f"   Positive CSV: {args.positive}")
+    print(f"   Negative CSV: {args.negative}")
+    print(f"   Config YAML: {args.config}")
+    print(f"   Output directory: {args.output}")
+
+    try:
+        # Validate input files
+        validate_input_files(args.positive, args.negative, args.config)
+
+        # Increase CSV field size limit for large theta sketches
+        csv.field_size_limit(5000000)  # 5MB limit
+
+        # Train model using ClassifierUtils
+        print("\n🚀 Training decision tree using ClassifierUtils.fit_from_csv...")
+        classifier = ClassifierUtils.fit_from_csv(args.positive, args.negative, args.config)
+
+        print("✅ Training completed successfully!")
+
+        # Print model statistics
+        print_model_stats(classifier)
+
+        # Save model outputs
+        pkl_path, json_path = save_model_outputs(classifier, args.output, args.lg_k, args.positive)
+
+        print(f"\n🎉 Training complete!")
+        print(f"📄 PKL model: {pkl_path}")
+        print(f"📄 JSON tree: {json_path}")
+
+        return 0
 
     except Exception as e:
-        print(f"❌ Error during training: {e}")
+        print(f"❌ Error: {e}")
         import traceback
         traceback.print_exc()
-        sys.exit(1)
-
-    return 0
+        return 1
 
 
 if __name__ == "__main__":

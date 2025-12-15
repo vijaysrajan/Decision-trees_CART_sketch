@@ -64,8 +64,8 @@ def serialize_tree_node(node, feature_mapping, depth=0):
             "feature_name": feature_name,
             "feature_idx": node.feature_idx,
             "split_condition": f"{feature_name} == 1",
-            "left_condition": f"{feature_name} == 1 (TRUE)",
-            "right_condition": f"{feature_name} == 0 (FALSE/NOT)"
+            "left_condition": f"{feature_name} == 0 (FALSE/NOT)",
+            "right_condition": f"{feature_name} == 1 (TRUE)"
         })
 
         # Recursively serialize children

@@ -5,7 +5,7 @@ This module provides high-level orchestration of tree building,
 pruning, and post-processing operations.
 """
 
-from typing import Dict, Set, List, Any, Optional
+from typing import Dict, Set, List, Any, Optional, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
@@ -316,9 +316,11 @@ class TreeOrchestrator:
         # Step 4: Configure split and build children
         self.node_builder.configure_split_node(node, split_result, self.feature_mapping)
 
-        # Update already_used set for children
-        already_used_for_children = already_used.copy()
-        already_used_for_children.add(split_result.feature_name)
+        # Create different already_used sets for left and right children
+        # For categorical features (variable=value), handle mutual exclusivity correctly
+        already_used_left, already_used_right = self._create_child_already_used_sets(
+            already_used, split_result.feature_name, feature_names
+        )
 
         # Recursively build children
         node.left = self.build_tree(
@@ -326,7 +328,7 @@ class TreeOrchestrator:
             split_result.left_sketch_neg,
             sketch_dict,
             feature_names,
-            already_used_for_children,
+            already_used_left,
             depth + 1
         )
 
@@ -335,7 +337,7 @@ class TreeOrchestrator:
             split_result.right_sketch_neg,
             sketch_dict,
             feature_names,
-            already_used_for_children,
+            already_used_right,
             depth + 1
         )
 
@@ -344,6 +346,68 @@ class TreeOrchestrator:
         node.right.parent = node
 
         return node
+
+    def _create_child_already_used_sets(
+        self,
+        parent_already_used: Set[str],
+        split_feature: str,
+        all_features: List[str]
+    ) -> Tuple[Set[str], Set[str]]:
+        """
+        Create appropriate already_used sets for left and right children.
+
+        For categorical features (variable=value format):
+        - Left child (absent): Can still use other values of same categorical variable
+        - Right child (present): Cannot use ANY value of same categorical variable
+
+        For standalone features:
+        - Both children: Just add the current feature to already_used
+
+        Parameters
+        ----------
+        parent_already_used : set
+            Features already used in parent path
+        split_feature : str
+            Feature used for current split
+        all_features : list
+            All available feature names
+
+        Returns
+        -------
+        already_used_left : set
+            Features to exclude for left child (absent)
+        already_used_right : set
+            Features to exclude for right child (present)
+        """
+        # Start with parent's already_used for both children
+        already_used_left = parent_already_used.copy()
+        already_used_right = parent_already_used.copy()
+
+        # Add the current split feature to both
+        already_used_left.add(split_feature)
+        already_used_right.add(split_feature)
+
+        # For categorical features (variable=value), handle mutual exclusivity
+        if '=' in split_feature:
+            categorical_var = split_feature.split('=')[0]
+
+            # For RIGHT child (present): exclude ALL other values of same categorical variable
+            # This ensures mutual exclusivity: if city=Bangalore is TRUE,
+            # then city=Mumbai, city=Delhi, etc. are impossible
+            for feature in all_features:
+                if ('=' in feature and
+                    feature.split('=')[0] == categorical_var and
+                    feature != split_feature):
+                    already_used_right.add(feature)
+
+            # For LEFT child (absent): only exclude the current feature
+            # The left child can still use other values of the same categorical variable
+            # because if city≠Bangalore, it could still be Mumbai, Delhi, etc.
+
+        # For standalone features (no '='), both children just exclude the current feature
+        # No additional exclusions needed
+
+        return already_used_left, already_used_right
 
     def build_tree_with_postprocessing(
         self,

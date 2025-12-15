@@ -223,7 +223,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             - Eliminates a_not_b operations within features → 29% error reduction at all depths
             - Critical for imbalanced datasets (CTR, fraud) and deep trees (depth ≥3)
             - Loaded via SketchLoader.load() from dual CSV files
-            - Once a feature is selected to be split on, the left split will use sketch for feature absent while the right split will use the feature present. The left or right could be swapped at a later point in time. The sketch with feature present for target=yes will be intersected with the yes sketch of the current tree node to be populated in the left child node's yes_accumulated whereas the sketch with feature present for target=no will be intersected with the no sketch of the current tree node to be populated in the right child's no_accumulated. For the right child node, the above statement is similar except that the feature present will be replaced with feature absent.
+            - Once a feature is selected to be split on, the left split will use sketch for feature absent (feature=0/FALSE) while the right split will use the feature present (feature=1/TRUE). The sketch with feature absent for target=yes will be intersected with the yes sketch of the current tree node to be populated in the left child node's yes_accumulated whereas the sketch with feature absent for target=no will be intersected with the no sketch of the current tree node to be populated in the left child's no_accumulated. For the right child node, the feature present sketches are used instead of feature absent.
 
         feature_mapping : dict
             Maps feature names to column indices for inference.

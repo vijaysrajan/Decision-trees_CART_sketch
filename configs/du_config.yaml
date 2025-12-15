@@ -8,7 +8,7 @@
 # Features: 354 binary features from 9 categorical dimensions
 
 # Sketch parameters
-lg_k: 16  # Sketch size = 2^16 = 65,536 entries
+lg_k: 18  # Sketch size = 2^18 = 262,144 entries
 
 # Target class mapping
 targets:
@@ -22,7 +22,6 @@ hyperparameters:
   min_samples_split: 100      # Minimum samples required to split internal node
   min_samples_leaf: 50        # Minimum samples required in leaf node
   min_impurity_decrease: 0.0  # Minimum impurity decrease for split
-  class_weight: balanced      # Handle class imbalance automatically
   verbose: 2                  # Verbosity: 0=silent, 1=basic, 2=detailed
 
 # Feature mapping: Maps feature=value combinations to column indices (0-353)

@@ -16,6 +16,7 @@ import base64
 from pathlib import Path
 from typing import Optional, Dict, Union, Tuple, Any
 from datasketches import compact_theta_sketch
+from .sketch_wrapper import ThetaSketchWrapper
 
 
 class SketchLoader:
@@ -31,9 +32,9 @@ class SketchLoader:
         """Initialize loader."""
         self.encoding = encoding
 
-    def _deserialize_sketch(self, sketch_bytes: str) -> compact_theta_sketch:
+    def _deserialize_sketch(self, sketch_bytes: str) -> ThetaSketchWrapper:
         """
-        Deserialize a theta sketch from encoded bytes.
+        Deserialize a theta sketch from encoded bytes and wrap it for compatibility.
 
         Parameters
         ----------
@@ -42,8 +43,8 @@ class SketchLoader:
 
         Returns
         -------
-        compact_theta_sketch
-            Deserialized theta sketch.
+        ThetaSketchWrapper
+            Wrapped deserialized theta sketch with intersection method.
         """
         if self.encoding == "base64":
             decoded = base64.b64decode(sketch_bytes)
@@ -52,11 +53,47 @@ class SketchLoader:
         else:
             raise ValueError(f"Unsupported encoding: {self.encoding}")
 
-        return compact_theta_sketch.deserialize(decoded)
+        raw_sketch = compact_theta_sketch.deserialize(decoded)
+        return ThetaSketchWrapper(raw_sketch)
+
+    def _generate_feature_mapping(
+        self,
+        positive_data: Dict[str, Union[Any, Tuple[Any, Any]]],
+        negative_data: Dict[str, Union[Any, Tuple[Any, Any]]]
+    ) -> Dict[str, int]:
+        """
+        Auto-generate feature mapping from positive and negative data feature names.
+
+        Parameters
+        ----------
+        positive_data : dict
+            Positive class sketch data
+        negative_data : dict
+            Negative class sketch data
+
+        Returns
+        -------
+        feature_mapping : dict
+            Maps feature names to column indices
+        """
+        # Collect all feature names (exclude 'total')
+        all_features = set()
+        for data in [positive_data, negative_data]:
+            for feature_name in data.keys():
+                if feature_name != "total":
+                    all_features.add(feature_name)
+
+        # Sort features for consistent ordering
+        sorted_features = sorted(all_features)
+
+        # Create mapping: feature_name -> column_index
+        feature_mapping = {feature: idx for idx, feature in enumerate(sorted_features)}
+
+        return feature_mapping
 
     def _parse_csv_file(
         self, csv_path: str, target_identifier: Optional[str] = None
-    ) -> Dict[str, Union[compact_theta_sketch, Tuple[compact_theta_sketch, compact_theta_sketch]]]:
+    ) -> Dict[str, Union[ThetaSketchWrapper, Tuple[ThetaSketchWrapper, ThetaSketchWrapper]]]:
         """
         Parse a single CSV file and return sketch data.
 
@@ -135,7 +172,7 @@ class SketchLoader:
         csv_path: Optional[str] = None,
         target_positive: Optional[str] = None,
         target_negative: Optional[str] = None,
-    ) -> Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]]:
+    ) -> Tuple[Dict[str, Dict[str, Union[Any, Tuple[Any, Any]]]], Dict[str, int]]:
         """
         Load sketches from CSV file(s) into unified data structure.
 
@@ -161,16 +198,9 @@ class SketchLoader:
             Dictionary with 'positive' and 'negative' keys, each containing:
             - 'total': ThetaSketch for class population
             - '<feature>': Tuple (sketch_feature_present, sketch_feature_absent) or single ThetaSketch
-
-            Example:
-            {
-                'positive': {
-                    'total': <ThetaSketch>,
-                    'age>30': (<sketch_feature_present>, <sketch_feature_absent>),
-                    'income>50k': (<sketch_feature_present>, <sketch_feature_absent>)
-                },
-                'negative': { ... }
-            }
+        feature_mapping : dict
+            Auto-generated mapping from feature names to column indices.
+            Example: {'age>30': 0, 'income>50k': 1, 'has_diabetes': 2}
 
         Raises
         ------
@@ -224,7 +254,10 @@ class SketchLoader:
                     f"'total' key not found in negative CSV: {negative_csv}"
                 )
 
-            return {"positive": positive_data, "negative": negative_data}
+            # Auto-generate feature mapping from feature names
+            feature_mapping = self._generate_feature_mapping(positive_data, negative_data)
+
+            return {"positive": positive_data, "negative": negative_data}, feature_mapping
 
         # Mode 1: Single CSV
         else:
@@ -252,4 +285,7 @@ class SketchLoader:
                     f"in CSV: {csv_path}"
                 )
 
-            return {"positive": positive_data, "negative": negative_data}
+            # Auto-generate feature mapping from feature names
+            feature_mapping = self._generate_feature_mapping(positive_data, negative_data)
+
+            return {"positive": positive_data, "negative": negative_data}, feature_mapping
