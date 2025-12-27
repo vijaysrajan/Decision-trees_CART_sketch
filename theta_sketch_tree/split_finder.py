@@ -5,8 +5,10 @@ This module provides clean separation of split finding logic
 from the main tree builder class.
 """
 
-from typing import Dict, Set, List, Any, Optional, Tuple, NamedTuple
+from typing import Dict, Set, List, Any, Optional, Tuple, NamedTuple, Union
 import numpy as np
+import math
+import random
 from numpy.typing import NDArray
 from .logging_utils import TreeLogger
 
@@ -68,7 +70,9 @@ class SplitFinder:
         parent_impurity: float,
         sketch_dict: Dict[str, Dict[str, Any]],
         feature_names: List[str],
-        already_used: Set[str]
+        already_used: Set[str],
+        max_features: Optional[Union[int, float, str]] = None,
+        random_state: Optional[int] = None
     ) -> Optional[SplitResult]:
         """
         Find the best split for the current node.
@@ -89,6 +93,10 @@ class SplitFinder:
             Available feature names
         already_used : set
             Features already used in this path
+        max_features : int, float, str, or None, optional
+            Number of features to consider for each split
+        random_state : int, optional
+            Random seed for feature subsampling
 
         Returns
         -------
@@ -108,8 +116,16 @@ class SplitFinder:
                 self.logger.info("No features available for splitting", level=2)
             return None
 
-        # Evaluate each feature
-        for feature_name in available_features:
+        # Apply feature subsampling if max_features is specified
+        features_to_evaluate = self._subsample_features(
+            available_features, max_features, random_state
+        )
+
+        if self.verbose >= 3 and max_features is not None:
+            self.logger.debug(f"Subsampled {len(features_to_evaluate)} features from {len(available_features)} available")
+
+        # Evaluate each selected feature
+        for feature_name in features_to_evaluate:
             split_result = self._evaluate_feature_split(
                 feature_name,
                 parent_sketch_pos,
@@ -285,6 +301,64 @@ class SplitFinder:
         return (left_total >= self.min_samples_leaf and
                 right_total >= self.min_samples_leaf)
 
+    def _subsample_features(
+        self,
+        available_features: List[str],
+        max_features: Optional[Union[int, float, str]],
+        random_state: Optional[int] = None
+    ) -> List[str]:
+        """
+        Subsample features for Random Forest compatibility.
+
+        Parameters
+        ----------
+        available_features : list
+            List of available feature names
+        max_features : int, float, str, or None
+            Number of features to consider for each split:
+            - If int, use exactly this many features
+            - If float, use int(max_features * n_features) features
+            - If 'sqrt', use int(sqrt(n_features)) features
+            - If 'log2', use int(log2(n_features)) features
+            - If None, use all features
+        random_state : int, optional
+            Random seed for reproducible subsampling
+
+        Returns
+        -------
+        subsampled_features : list
+            Subsampled feature names
+        """
+        n_features = len(available_features)
+
+        if max_features is None:
+            return available_features
+
+        # Calculate number of features to sample
+        if isinstance(max_features, str):
+            if max_features == 'sqrt':
+                n_to_sample = max(1, int(math.sqrt(n_features)))
+            elif max_features == 'log2':
+                n_to_sample = max(1, int(math.log2(n_features)))
+            else:
+                raise ValueError(f"Unknown max_features string option: {max_features}")
+        elif isinstance(max_features, float):
+            n_to_sample = max(1, int(max_features * n_features))
+        elif isinstance(max_features, int):
+            n_to_sample = max_features
+        else:
+            raise ValueError(f"max_features must be int, float, str or None, got {type(max_features)}")
+
+        # Ensure we don't sample more features than available
+        n_to_sample = min(n_to_sample, n_features)
+
+        # Set random seed if provided for reproducible results
+        if random_state is not None:
+            random.seed(random_state)
+
+        # Randomly sample features without replacement
+        return random.sample(available_features, n_to_sample)
+
 
 # Convenience function for backward compatibility
 def find_best_split(
@@ -297,7 +371,9 @@ def find_best_split(
     already_used: Set[str],
     criterion: Any,
     min_samples_leaf: int = 1,
-    verbose: int = 0
+    verbose: int = 0,
+    max_features: Optional[Union[int, float, str]] = None,
+    random_state: Optional[int] = None
 ) -> Optional[SplitResult]:
     """
     Convenience function to find best split.
@@ -324,6 +400,10 @@ def find_best_split(
         Minimum samples in leaf nodes
     verbose : int
         Verbosity level
+    max_features : int, float, str, or None, optional
+        Number of features to consider for each split
+    random_state : int, optional
+        Random seed for feature subsampling
 
     Returns
     -------
@@ -338,5 +418,7 @@ def find_best_split(
         parent_impurity,
         sketch_dict,
         feature_names,
-        already_used
+        already_used,
+        max_features=max_features,
+        random_state=random_state
     )

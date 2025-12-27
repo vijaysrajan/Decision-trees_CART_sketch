@@ -216,6 +216,8 @@ class TreeOrchestrator:
         min_samples_split: int = 2,
         min_samples_leaf: int = 1,
         feature_mapping: Optional[Dict[str, int]] = None,
+        max_features: Optional[Any] = None,
+        random_state: Optional[int] = None,
         verbose: int = 0
     ):
         """
@@ -233,6 +235,10 @@ class TreeOrchestrator:
             Minimum samples in leaf node
         feature_mapping : dict, optional
             Maps feature names to indices
+        max_features : int, float, str, or None, optional
+            Number of features to consider for each split
+        random_state : int, optional
+            Random seed for feature subsampling
         verbose : int
             Verbosity level
         """
@@ -243,6 +249,8 @@ class TreeOrchestrator:
         self.split_finder = SplitFinder(criterion, min_samples_leaf, verbose)
         self.node_builder = NodeBuilder(criterion, self.logger)
         self.feature_mapping = feature_mapping or {}
+        self.max_features = max_features
+        self.random_state = random_state
         self.verbose = verbose
 
     def build_tree(
@@ -306,7 +314,9 @@ class TreeOrchestrator:
             node.impurity,
             sketch_dict,
             feature_names,
-            already_used
+            already_used,
+            max_features=self.max_features,
+            random_state=self.random_state
         )
 
         if split_result is None:

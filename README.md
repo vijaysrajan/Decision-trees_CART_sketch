@@ -14,8 +14,13 @@ import numpy as np
 sketch_data = load_sketches('positive_class.csv', 'negative_class.csv')
 config = load_config('config.yaml')
 
-# Train classifier
-clf = ThetaSketchDecisionTreeClassifier(criterion='gini', max_depth=10)
+# Train classifier (Random Forest compatible)
+clf = ThetaSketchDecisionTreeClassifier(
+    criterion='gini',
+    max_depth=10,
+    max_features='sqrt',  # Feature subsampling for ensemble methods
+    random_state=42
+)
 clf.fit(sketch_data, config['feature_mapping'])
 
 # Make predictions on raw binary data
@@ -107,6 +112,77 @@ Showcases business-ready classification strategies:
 ./demo_advanced_classification.sh                                    # Use defaults (DU model)
 ./demo_advanced_classification.sh model.pkl data.csv class_weightage demo/
 ./demo_advanced_classification.sh model.pkl data.csv all output/     # Test all strategies
+```
+
+## 🌲 Random Forest Compatibility
+
+**Feature Subsampling** for ensemble methods (bootstrap sampling not possible with pre-aggregated sketches):
+
+### Supported Subsampling Strategies
+
+```python
+from theta_sketch_tree import ThetaSketchDecisionTreeClassifier
+
+# Different feature subsampling strategies
+trees = [
+    ThetaSketchDecisionTreeClassifier(max_features='sqrt', random_state=i),    # √n features
+    ThetaSketchDecisionTreeClassifier(max_features='log2', random_state=i),    # log₂(n) features
+    ThetaSketchDecisionTreeClassifier(max_features=0.3, random_state=i),       # 30% of features
+    ThetaSketchDecisionTreeClassifier(max_features=15, random_state=i),        # Exactly 15 features
+    ThetaSketchDecisionTreeClassifier(max_features=None, random_state=i),      # All features
+]
+
+# Train ensemble with different feature subsets
+for i, tree in enumerate(trees):
+    tree.fit(sketch_data, feature_mapping)
+    print(f"Tree {i}: {tree.n_features_in_} total, ~{tree.max_features} subsampled")
+```
+
+### Random Forest Simulation
+
+```python
+# Simulate Random Forest with sketch-based trees
+class SketchRandomForest:
+    def __init__(self, n_estimators=100, max_features='sqrt', random_state=None):
+        self.trees = [
+            ThetaSketchDecisionTreeClassifier(
+                max_features=max_features,
+                random_state=random_state + i if random_state else i
+            ) for i in range(n_estimators)
+        ]
+
+    def fit(self, sketch_data, feature_mapping):
+        for tree in self.trees:
+            tree.fit(sketch_data, feature_mapping)
+
+    def predict(self, X):
+        # Majority voting across trees
+        predictions = np.array([tree.predict(X) for tree in self.trees])
+        return np.round(np.mean(predictions, axis=0)).astype(int)
+
+# Usage
+rf = SketchRandomForest(n_estimators=50, max_features='sqrt', random_state=42)
+rf.fit(sketch_data, feature_mapping)
+ensemble_predictions = rf.predict(X_test)
+```
+
+### Why Feature Subsampling Only?
+
+🔍 **Technical Limitation**: Bootstrap sampling requires access to individual data rows, but theta sketches are pre-aggregated summary statistics. The original data rows are no longer available.
+
+✅ **Solution**: Feature subsampling provides the diversity needed for ensemble methods while working within sketch constraints.
+
+🎯 **Benefits**:
+- Reduces overfitting through feature diversity
+- Enables ensemble methods (Random Forest, Extra Trees)
+- Maintains computational efficiency
+- Full sklearn API compatibility
+
+### Demo
+
+```bash
+# See comprehensive feature subsampling demo
+python demo_feature_subsampling.py
 ```
 
 ## 🎯 Advanced Classification Strategies

@@ -49,6 +49,13 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         Minimum impurity decrease required to keep a split (for min_impurity pruning)
     validation_fraction : float, default=0.2
         Fraction of training data to use for validation-based pruning
+    max_features : int, float, str, or None, default=None
+        Number of features to consider for each split:
+        - If int, use exactly this many features
+        - If float, use int(max_features * n_features) features
+        - If 'sqrt', use int(sqrt(n_features)) features
+        - If 'log2', use int(log2(n_features)) features
+        - If None, use all features
     verbose : int, default=0
         Verbosity level
     random_state : int, default=None
@@ -79,6 +86,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         pruning="none",
         min_impurity_decrease=0.0,
         validation_fraction=0.2,
+        max_features=None,
         verbose=0,
         random_state=None,
     ):
@@ -99,6 +107,7 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         self.pruning = pruning
         self.min_impurity_decrease = min_impurity_decrease
         self.validation_fraction = validation_fraction
+        self.max_features = max_features
         self.verbose = verbose
         self.random_state = random_state
 
@@ -169,6 +178,8 @@ class ThetaSketchDecisionTreeClassifier(BaseEstimator, ClassifierMixin):
             min_samples_split=self.min_samples_split,
             min_samples_leaf=self.min_samples_leaf,
             feature_mapping=feature_mapping,
+            max_features=self.max_features,
+            random_state=self.random_state,
             verbose=self.verbose
         )
 
