@@ -385,7 +385,7 @@ All nodes, splits, and impurities match within tolerance
 
         # Train classifier
         clf = ThetaSketchDecisionTreeClassifier(
-            criterion="gini", max_depth=5, verbose=0
+            criterion="gini", max_depth=5, random_state=42, verbose=0
         )
         clf.fit(sketches, feature_mapping)
 
