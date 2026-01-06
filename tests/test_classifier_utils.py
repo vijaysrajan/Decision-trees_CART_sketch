@@ -81,7 +81,7 @@ class TestClassifierUtils:
         """Test fit_from_csv with dual CSV mode."""
         # Setup mocks
         mock_load_config.return_value = mock_config
-        mock_load_sketches.return_value = mock_sketch_data
+        mock_load_sketches.return_value = (mock_sketch_data, mock_config["feature_mapping"])
 
         # Create mock classifier class
         mock_classifier_class = Mock()
@@ -109,7 +109,7 @@ class TestClassifierUtils:
         """Test fit_from_csv with single CSV mode."""
         # Setup mocks
         mock_load_config.return_value = mock_config
-        mock_load_sketches.return_value = mock_sketch_data
+        mock_load_sketches.return_value = (mock_sketch_data, mock_config["feature_mapping"])
 
         # Create mock classifier class
         mock_classifier_class = Mock()
@@ -138,7 +138,7 @@ class TestClassifierUtils:
     def test_fit_from_csv_default_classifier_class(self, mock_default_class, mock_load_config, mock_load_sketches, temp_csv_file, mock_config, mock_sketch_data):
         """Test fit_from_csv with default classifier class."""
         mock_load_config.return_value = mock_config
-        mock_load_sketches.return_value = mock_sketch_data
+        mock_load_sketches.return_value = (mock_sketch_data, mock_config["feature_mapping"])
 
         mock_classifier = Mock()
         mock_default_class.return_value = mock_classifier
@@ -344,7 +344,7 @@ class TestEdgeCases:
             'feature_mapping': {'f1': 0}
         }
         mock_load_config.return_value = mock_config
-        mock_load_sketches.return_value = {'positive': {}, 'negative': {}}
+        mock_load_sketches.return_value = ({'positive': {}, 'negative': {}}, {})
 
         mock_classifier = Mock()
         mock_cls.return_value = mock_classifier
@@ -402,7 +402,7 @@ class TestIntegration:
         mock_sketch_data = {'positive': {}, 'negative': {}}
 
         mock_load_config.return_value = mock_config
-        mock_load_sketches.return_value = mock_sketch_data
+        mock_load_sketches.return_value = (mock_sketch_data, mock_config["feature_mapping"])
 
         mock_classifier = Mock()
         mock_cls.return_value = mock_classifier

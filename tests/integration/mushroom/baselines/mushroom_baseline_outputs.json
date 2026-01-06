@@ -14,8 +14,8 @@
       "feature_name": "odor=n",
       "feature_idx": 25,
       "split_condition": "odor=n == 1",
-      "left_condition": "odor=n == 1 (TRUE)",
-      "right_condition": "odor=n == 0 (FALSE/NOT)",
+      "left_condition": "odor=n == 0 (FALSE/NOT)",
+      "right_condition": "odor=n == 1 (TRUE)",
       "left": {
         "depth": 1,
         "n_samples": 4596.0,
@@ -29,8 +29,8 @@
         "feature_name": "stalk_root=c",
         "feature_idx": 52,
         "split_condition": "stalk_root=c == 1",
-        "left_condition": "stalk_root=c == 1 (TRUE)",
-        "right_condition": "stalk_root=c == 0 (FALSE/NOT)",
+        "left_condition": "stalk_root=c == 0 (FALSE/NOT)",
+        "right_condition": "stalk_root=c == 1 (TRUE)",
         "left": {
           "depth": 2,
           "n_samples": 4048.0,
@@ -44,8 +44,8 @@
           "feature_name": "stalk_root=r",
           "feature_idx": 54,
           "split_condition": "stalk_root=r == 1",
-          "left_condition": "stalk_root=r == 1 (TRUE)",
-          "right_condition": "stalk_root=r == 0 (FALSE/NOT)",
+          "left_condition": "stalk_root=r == 0 (FALSE/NOT)",
+          "right_condition": "stalk_root=r == 1 (TRUE)",
           "left": {
             "depth": 3,
             "n_samples": 3856.0,
@@ -57,10 +57,10 @@
             "is_leaf": false,
             "type": "split",
             "feature_name": "odor=a",
-            "feature_idx": 23,
+            "feature_idx": 21,
             "split_condition": "odor=a == 1",
-            "left_condition": "odor=a == 1 (TRUE)",
-            "right_condition": "odor=a == 0 (FALSE/NOT)",
+            "left_condition": "odor=a == 0 (FALSE/NOT)",
+            "right_condition": "odor=a == 1 (TRUE)",
             "left": {
               "depth": 4,
               "n_samples": 3808.0,
@@ -74,8 +74,8 @@
               "feature_name": "odor=l",
               "feature_idx": 24,
               "split_condition": "odor=l == 1",
-              "left_condition": "odor=l == 1 (TRUE)",
-              "right_condition": "odor=l == 0 (FALSE/NOT)",
+              "left_condition": "odor=l == 0 (FALSE/NOT)",
+              "right_condition": "odor=l == 1 (TRUE)",
               "left": {
                 "depth": 5,
                 "n_samples": 3760.0,
@@ -154,10 +154,10 @@
           "is_leaf": false,
           "type": "split",
           "feature_name": "bruises=t",
-          "feature_idx": 20,
+          "feature_idx": 1,
           "split_condition": "bruises=t == 1",
-          "left_condition": "bruises=t == 1 (TRUE)",
-          "right_condition": "bruises=t == 0 (FALSE/NOT)",
+          "left_condition": "bruises=t == 0 (FALSE/NOT)",
+          "right_condition": "bruises=t == 1 (TRUE)",
           "left": {
             "depth": 3,
             "n_samples": 36.0,
@@ -203,10 +203,10 @@
         "is_leaf": false,
         "type": "split",
         "feature_name": "spore_print_color=r",
-        "feature_idx": 100,
+        "feature_idx": 75,
         "split_condition": "spore_print_color=r == 1",
-        "left_condition": "spore_print_color=r == 1 (TRUE)",
-        "right_condition": "spore_print_color=r == 0 (FALSE/NOT)",
+        "left_condition": "spore_print_color=r == 0 (FALSE/NOT)",
+        "right_condition": "spore_print_color=r == 1 (TRUE)",
         "left": {
           "depth": 2,
           "n_samples": 3456.0,
@@ -218,10 +218,10 @@
           "is_leaf": false,
           "type": "split",
           "feature_name": "stalk_surface_below_ring=y",
-          "feature_idx": 62,
+          "feature_idx": 111,
           "split_condition": "stalk_surface_below_ring=y == 1",
-          "left_condition": "stalk_surface_below_ring=y == 1 (TRUE)",
-          "right_condition": "stalk_surface_below_ring=y == 0 (FALSE/NOT)",
+          "left_condition": "stalk_surface_below_ring=y == 0 (FALSE/NOT)",
+          "right_condition": "stalk_surface_below_ring=y == 1 (TRUE)",
           "left": {
             "depth": 3,
             "n_samples": 3400.0,
@@ -233,10 +233,10 @@
             "is_leaf": false,
             "type": "split",
             "feature_name": "cap_surface=g",
-            "feature_idx": 9,
+            "feature_idx": 19,
             "split_condition": "cap_surface=g == 1",
-            "left_condition": "cap_surface=g == 1 (TRUE)",
-            "right_condition": "cap_surface=g == 0 (FALSE/NOT)",
+            "left_condition": "cap_surface=g == 0 (FALSE/NOT)",
+            "right_condition": "cap_surface=g == 1 (TRUE)",
             "left": {
               "depth": 4,
               "n_samples": 3396.0,
@@ -248,10 +248,10 @@
               "is_leaf": false,
               "type": "split",
               "feature_name": "cap_shape=c",
-              "feature_idx": 5,
+              "feature_idx": 13,
               "split_condition": "cap_shape=c == 1",
-              "left_condition": "cap_shape=c == 1 (TRUE)",
-              "right_condition": "cap_shape=c == 0 (FALSE/NOT)",
+              "left_condition": "cap_shape=c == 0 (FALSE/NOT)",
+              "right_condition": "cap_shape=c == 1 (TRUE)",
               "left": {
                 "depth": 5,
                 "n_samples": 3395.0,
@@ -313,10 +313,10 @@
             "is_leaf": false,
             "type": "split",
             "feature_name": "gill_size=n",
-            "feature_idx": 35,
+            "feature_idx": 37,
             "split_condition": "gill_size=n == 1",
-            "left_condition": "gill_size=n == 1 (TRUE)",
-            "right_condition": "gill_size=n == 0 (FALSE/NOT)",
+            "left_condition": "gill_size=n == 0 (FALSE/NOT)",
+            "right_condition": "gill_size=n == 1 (TRUE)",
             "left": {
               "depth": 4,
               "n_samples": 16.0,
@@ -369,8 +369,48 @@
         }
       }
     },
-    "tree_depth": 0,
-    "n_samples": 8124.0,
+    "top_features": [
+      [
+        "odor=n",
+        0.6180124490914335
+      ],
+      [
+        "stalk_root=c",
+        0.17754879008670973
+      ],
+      [
+        "stalk_root=r",
+        0.08586044307908622
+      ],
+      [
+        "spore_print_color=r",
+        0.033862817822082295
+      ],
+      [
+        "odor=l",
+        0.023400539942164695
+      ],
+      [
+        "odor=a",
+        0.022817953885513623
+      ],
+      [
+        "bruises=t",
+        0.016606787904910155
+      ],
+      [
+        "stalk_surface_below_ring=y",
+        0.013786845776138033
+      ],
+      [
+        "gill_size=n",
+        0.005642683390309253
+      ],
+      [
+        "cap_surface=g",
+        0.001967971549707893
+      ]
+    ],
     "feature_importances": [
       0.0,
       0.0,
@@ -472,6 +512,23 @@
       0.0,
       0.0,
       0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
       0.033862817822082295,
       0.0,
       0.0,
@@ -490,1280 +547,10 @@
       0.0,
       0.0
     ],
-    "top_features": [
-      [
-        "odor=n",
-        0.6180124490914335
-      ],
-      [
-        "stalk_root=c",
-        0.17754879008670973
-      ],
-      [
-        "stalk_root=r",
-        0.08586044307908622
-      ],
-      [
-        "spore_print_color=r",
-        0.033862817822082295
-      ],
-      [
-        "odor=l",
-        0.023400539942164695
-      ],
-      [
-        "odor=a",
-        0.022817953885513623
-      ],
-      [
-        "bruises=t",
-        0.016606787904910155
-      ],
-      [
-        "stalk_surface_below_ring=y",
-        0.013786845776138033
-      ],
-      [
-        "gill_size=n",
-        0.005642683390309253
-      ],
-      [
-        "cap_surface=g",
-        0.001967971549707893
-      ]
-    ],
-    "n_features": 117,
     "classes": [
       0,
       1
-    ]
-  },
-  "entropy_shallow": {
-    "description": "entropy_shallow configuration",
-    "tree_structure": {
-      "depth": 0,
-      "n_samples": 8124.0,
-      "class_counts": [
-        4208.0,
-        3916.0
-      ],
-      "impurity": 0.9991,
-      "is_leaf": false,
-      "type": "split",
-      "feature_name": "odor=n",
-      "feature_idx": 25,
-      "split_condition": "odor=n == 1",
-      "left_condition": "odor=n == 1 (TRUE)",
-      "right_condition": "odor=n == 0 (FALSE/NOT)",
-      "left": {
-        "depth": 1,
-        "n_samples": 4596.0,
-        "class_counts": [
-          800.0,
-          3796.0
-        ],
-        "impurity": 0.6669,
-        "is_leaf": false,
-        "type": "split",
-        "feature_name": "bruises=t",
-        "feature_idx": 20,
-        "split_condition": "bruises=t == 1",
-        "left_condition": "bruises=t == 1 (TRUE)",
-        "right_condition": "bruises=t == 0 (FALSE/NOT)",
-        "left": {
-          "depth": 2,
-          "n_samples": 3252.0,
-          "class_counts": [
-            0.0,
-            3252.0
-          ],
-          "impurity": -0.0,
-          "is_leaf": true,
-          "type": "leaf",
-          "prediction": 1,
-          "probabilities": [
-            0.0,
-            1.0
-          ]
-        },
-        "right": {
-          "depth": 2,
-          "n_samples": 1344.0,
-          "class_counts": [
-            800.0,
-            544.0
-          ],
-          "impurity": 0.9737,
-          "is_leaf": false,
-          "type": "split",
-          "feature_name": "stalk_root=c",
-          "feature_idx": 52,
-          "split_condition": "stalk_root=c == 1",
-          "left_condition": "stalk_root=c == 1 (TRUE)",
-          "right_condition": "stalk_root=c == 0 (FALSE/NOT)",
-          "left": {
-            "depth": 3,
-            "n_samples": 832.0,
-            "class_counts": [
-              288.0,
-              544.0
-            ],
-            "impurity": 0.9306,
-            "is_leaf": true,
-            "type": "leaf",
-            "prediction": 1,
-            "probabilities": [
-              0.3462,
-              0.6538
-            ]
-          },
-          "right": {
-            "depth": 3,
-            "n_samples": 512.0,
-            "class_counts": [
-              512.0,
-              0.0
-            ],
-            "impurity": -0.0,
-            "is_leaf": true,
-            "type": "leaf",
-            "prediction": 0,
-            "probabilities": [
-              1.0,
-              0.0
-            ]
-          }
-        }
-      },
-      "right": {
-        "depth": 1,
-        "n_samples": 3528.0,
-        "class_counts": [
-          3408.0,
-          120.0
-        ],
-        "impurity": 0.2141,
-        "is_leaf": false,
-        "type": "split",
-        "feature_name": "spore_print_color=r",
-        "feature_idx": 100,
-        "split_condition": "spore_print_color=r == 1",
-        "left_condition": "spore_print_color=r == 1 (TRUE)",
-        "right_condition": "spore_print_color=r == 0 (FALSE/NOT)",
-        "left": {
-          "depth": 2,
-          "n_samples": 3456.0,
-          "class_counts": [
-            3408.0,
-            48.0
-          ],
-          "impurity": 0.1056,
-          "is_leaf": false,
-          "type": "split",
-          "feature_name": "stalk_surface_below_ring=y",
-          "feature_idx": 62,
-          "split_condition": "stalk_surface_below_ring=y == 1",
-          "left_condition": "stalk_surface_below_ring=y == 1 (TRUE)",
-          "right_condition": "stalk_surface_below_ring=y == 0 (FALSE/NOT)",
-          "left": {
-            "depth": 3,
-            "n_samples": 3400.0,
-            "class_counts": [
-              3392.0,
-              8.0
-            ],
-            "impurity": 0.0239,
-            "is_leaf": true,
-            "type": "leaf",
-            "prediction": 0,
-            "probabilities": [
-              0.9976,
-              0.0024
-            ]
-          },
-          "right": {
-            "depth": 3,
-            "n_samples": 56.0,
-            "class_counts": [
-              16.0,
-              40.0
-            ],
-            "impurity": 0.8631,
-            "is_leaf": true,
-            "type": "leaf",
-            "prediction": 1,
-            "probabilities": [
-              0.2857,
-              0.7143
-            ]
-          }
-        },
-        "right": {
-          "depth": 2,
-          "n_samples": 72.0,
-          "class_counts": [
-            0.0,
-            72.0
-          ],
-          "impurity": -0.0,
-          "is_leaf": true,
-          "type": "leaf",
-          "prediction": 1,
-          "probabilities": [
-            0.0,
-            1.0
-          ]
-        }
-      }
-    },
-    "tree_depth": 0,
-    "n_samples": 8124.0,
-    "feature_importances": [
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.24354324042914843,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.595607014733911,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.07408869178303831,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.03261149858662663,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.054149554467275575,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0
     ],
-    "top_features": [
-      [
-        "odor=n",
-        0.595607014733911
-      ],
-      [
-        "bruises=t",
-        0.24354324042914843
-      ],
-      [
-        "stalk_root=c",
-        0.07408869178303831
-      ],
-      [
-        "spore_print_color=r",
-        0.054149554467275575
-      ],
-      [
-        "stalk_surface_below_ring=y",
-        0.03261149858662663
-      ],
-      [
-        "cap_shape=x",
-        0.0
-      ],
-      [
-        "cap_shape=b",
-        0.0
-      ],
-      [
-        "cap_shape=s",
-        0.0
-      ],
-      [
-        "cap_shape=f",
-        0.0
-      ],
-      [
-        "cap_shape=k",
-        0.0
-      ]
-    ],
-    "n_features": 117,
-    "classes": [
-      0,
-      1
-    ]
-  },
-  "gain_ratio_medium": {
-    "description": "gain_ratio_medium configuration",
-    "tree_structure": {
-      "depth": 0,
-      "n_samples": 8124.0,
-      "class_counts": [
-        4208.0,
-        3916.0
-      ],
-      "impurity": 0.9991,
-      "is_leaf": false,
-      "type": "split",
-      "feature_name": "odor=n",
-      "feature_idx": 25,
-      "split_condition": "odor=n == 1",
-      "left_condition": "odor=n == 1 (TRUE)",
-      "right_condition": "odor=n == 0 (FALSE/NOT)",
-      "left": {
-        "depth": 1,
-        "n_samples": 4596.0,
-        "class_counts": [
-          800.0,
-          3796.0
-        ],
-        "impurity": 0.6669,
-        "is_leaf": false,
-        "type": "split",
-        "feature_name": "odor=a",
-        "feature_idx": 23,
-        "split_condition": "odor=a == 1",
-        "left_condition": "odor=a == 1 (TRUE)",
-        "right_condition": "odor=a == 0 (FALSE/NOT)",
-        "left": {
-          "depth": 2,
-          "n_samples": 4196.0,
-          "class_counts": [
-            400.0,
-            3796.0
-          ],
-          "impurity": 0.454,
-          "is_leaf": false,
-          "type": "split",
-          "feature_name": "odor=l",
-          "feature_idx": 24,
-          "split_condition": "odor=l == 1",
-          "left_condition": "odor=l == 1 (TRUE)",
-          "right_condition": "odor=l == 0 (FALSE/NOT)",
-          "left": {
-            "depth": 3,
-            "n_samples": 3796.0,
-            "class_counts": [
-              0.0,
-              3796.0
-            ],
-            "impurity": -0.0,
-            "is_leaf": true,
-            "type": "leaf",
-            "prediction": 1,
-            "probabilities": [
-              0.0,
-              1.0
-            ]
-          },
-          "right": {
-            "depth": 3,
-            "n_samples": 400.0,
-            "class_counts": [
-              400.0,
-              0.0
-            ],
-            "impurity": -0.0,
-            "is_leaf": true,
-            "type": "leaf",
-            "prediction": 0,
-            "probabilities": [
-              1.0,
-              0.0
-            ]
-          }
-        },
-        "right": {
-          "depth": 2,
-          "n_samples": 400.0,
-          "class_counts": [
-            400.0,
-            0.0
-          ],
-          "impurity": -0.0,
-          "is_leaf": true,
-          "type": "leaf",
-          "prediction": 0,
-          "probabilities": [
-            1.0,
-            0.0
-          ]
-        }
-      },
-      "right": {
-        "depth": 1,
-        "n_samples": 3528.0,
-        "class_counts": [
-          3408.0,
-          120.0
-        ],
-        "impurity": 0.2141,
-        "is_leaf": false,
-        "type": "split",
-        "feature_name": "spore_print_color=r",
-        "feature_idx": 100,
-        "split_condition": "spore_print_color=r == 1",
-        "left_condition": "spore_print_color=r == 1 (TRUE)",
-        "right_condition": "spore_print_color=r == 0 (FALSE/NOT)",
-        "left": {
-          "depth": 2,
-          "n_samples": 3456.0,
-          "class_counts": [
-            3408.0,
-            48.0
-          ],
-          "impurity": 0.1056,
-          "is_leaf": false,
-          "type": "split",
-          "feature_name": "cap_color=y",
-          "feature_idx": 11,
-          "split_condition": "cap_color=y == 1",
-          "left_condition": "cap_color=y == 1 (TRUE)",
-          "right_condition": "cap_color=y == 0 (FALSE/NOT)",
-          "left": {
-            "depth": 3,
-            "n_samples": 3432.0,
-            "class_counts": [
-              3408.0,
-              24.0
-            ],
-            "impurity": 0.0601,
-            "is_leaf": false,
-            "type": "split",
-            "feature_name": "stalk_color_below_ring=y",
-            "feature_idx": 79,
-            "split_condition": "stalk_color_below_ring=y == 1",
-            "left_condition": "stalk_color_below_ring=y == 1 (TRUE)",
-            "right_condition": "stalk_color_below_ring=y == 0 (FALSE/NOT)",
-            "left": {
-              "depth": 4,
-              "n_samples": 3424.0,
-              "class_counts": [
-                3408.0,
-                16.0
-              ],
-              "impurity": 0.0429,
-              "is_leaf": false,
-              "type": "split",
-              "feature_name": "cap_surface=g",
-              "feature_idx": 9,
-              "split_condition": "cap_surface=g == 1",
-              "left_condition": "cap_surface=g == 1 (TRUE)",
-              "right_condition": "cap_surface=g == 0 (FALSE/NOT)",
-              "left": {
-                "depth": 5,
-                "n_samples": 3420.0,
-                "class_counts": [
-                  3408.0,
-                  12.0
-                ],
-                "impurity": 0.0337,
-                "is_leaf": false,
-                "type": "split",
-                "feature_name": "cap_shape=c",
-                "feature_idx": 5,
-                "split_condition": "cap_shape=c == 1",
-                "left_condition": "cap_shape=c == 1 (TRUE)",
-                "right_condition": "cap_shape=c == 0 (FALSE/NOT)",
-                "left": {
-                  "depth": 6,
-                  "n_samples": 3419.0,
-                  "class_counts": [
-                    3408.0,
-                    11.0
-                  ],
-                  "impurity": 0.0313,
-                  "is_leaf": false,
-                  "type": "split",
-                  "feature_name": "stalk_surface_below_ring=y",
-                  "feature_idx": 62,
-                  "split_condition": "stalk_surface_below_ring=y == 1",
-                  "left_condition": "stalk_surface_below_ring=y == 1 (TRUE)",
-                  "right_condition": "stalk_surface_below_ring=y == 0 (FALSE/NOT)",
-                  "left": {
-                    "depth": 7,
-                    "n_samples": 3395.0,
-                    "class_counts": [
-                      3392.0,
-                      3.0
-                    ],
-                    "impurity": 0.0102,
-                    "is_leaf": true,
-                    "type": "leaf",
-                    "prediction": 0,
-                    "probabilities": [
-                      0.9991,
-                      0.0009
-                    ]
-                  },
-                  "right": {
-                    "depth": 7,
-                    "n_samples": 24.0,
-                    "class_counts": [
-                      16.0,
-                      8.0
-                    ],
-                    "impurity": 0.9183,
-                    "is_leaf": true,
-                    "type": "leaf",
-                    "prediction": 0,
-                    "probabilities": [
-                      0.6667,
-                      0.3333
-                    ]
-                  }
-                },
-                "right": {
-                  "depth": 6,
-                  "n_samples": 1.0,
-                  "class_counts": [
-                    0.0,
-                    1.0
-                  ],
-                  "impurity": -0.0,
-                  "is_leaf": true,
-                  "type": "leaf",
-                  "prediction": 1,
-                  "probabilities": [
-                    0.0,
-                    1.0
-                  ]
-                }
-              },
-              "right": {
-                "depth": 5,
-                "n_samples": 4.0,
-                "class_counts": [
-                  0.0,
-                  4.0
-                ],
-                "impurity": -0.0,
-                "is_leaf": true,
-                "type": "leaf",
-                "prediction": 1,
-                "probabilities": [
-                  0.0,
-                  1.0
-                ]
-              }
-            },
-            "right": {
-              "depth": 4,
-              "n_samples": 8.0,
-              "class_counts": [
-                0.0,
-                8.0
-              ],
-              "impurity": -0.0,
-              "is_leaf": true,
-              "type": "leaf",
-              "prediction": 1,
-              "probabilities": [
-                0.0,
-                1.0
-              ]
-            }
-          },
-          "right": {
-            "depth": 3,
-            "n_samples": 24.0,
-            "class_counts": [
-              0.0,
-              24.0
-            ],
-            "impurity": -0.0,
-            "is_leaf": true,
-            "type": "leaf",
-            "prediction": 1,
-            "probabilities": [
-              0.0,
-              1.0
-            ]
-          }
-        },
-        "right": {
-          "depth": 2,
-          "n_samples": 72.0,
-          "class_counts": [
-            0.0,
-            72.0
-          ],
-          "impurity": -0.0,
-          "is_leaf": true,
-          "type": "leaf",
-          "prediction": 1,
-          "probabilities": [
-            0.0,
-            1.0
-          ]
-        }
-      }
-    },
-    "tree_depth": 0,
-    "n_samples": 8124.0,
-    "feature_importances": [
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.001019459068429718,
-      0.0,
-      0.0,
-      0.0,
-      0.00393973761967151,
-      0.0,
-      0.019676137068659696,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.14394291790025204,
-      0.23636703730640496,
-      0.5330016312657445,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0062193074796248185,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.007375980241424168,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.048457792049788485,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0
-    ],
-    "top_features": [
-      [
-        "odor=n",
-        0.5330016312657445
-      ],
-      [
-        "odor=l",
-        0.23636703730640496
-      ],
-      [
-        "odor=a",
-        0.14394291790025204
-      ],
-      [
-        "spore_print_color=r",
-        0.048457792049788485
-      ],
-      [
-        "cap_color=y",
-        0.019676137068659696
-      ],
-      [
-        "stalk_color_below_ring=y",
-        0.007375980241424168
-      ],
-      [
-        "stalk_surface_below_ring=y",
-        0.0062193074796248185
-      ],
-      [
-        "cap_surface=g",
-        0.00393973761967151
-      ],
-      [
-        "cap_shape=c",
-        0.001019459068429718
-      ],
-      [
-        "cap_shape=x",
-        0.0
-      ]
-    ],
-    "n_features": 117,
-    "classes": [
-      0,
-      1
-    ]
-  },
-  "binomial_deep": {
-    "description": "binomial_deep configuration",
-    "tree_structure": {
-      "depth": 0,
-      "n_samples": 8124.0,
-      "class_counts": [
-        4208.0,
-        3916.0
-      ],
-      "impurity": 0.0012,
-      "is_leaf": false,
-      "type": "split",
-      "feature_name": "odor=n",
-      "feature_idx": 25,
-      "split_condition": "odor=n == 1",
-      "left_condition": "odor=n == 1 (TRUE)",
-      "right_condition": "odor=n == 0 (FALSE/NOT)",
-      "left": {
-        "depth": 1,
-        "n_samples": 4596.0,
-        "class_counts": [
-          800.0,
-          3796.0
-        ],
-        "impurity": 0.0,
-        "is_leaf": true,
-        "type": "leaf",
-        "prediction": 1,
-        "probabilities": [
-          0.1741,
-          0.8259
-        ]
-      },
-      "right": {
-        "depth": 1,
-        "n_samples": 3528.0,
-        "class_counts": [
-          3408.0,
-          120.0
-        ],
-        "impurity": 0.0,
-        "is_leaf": true,
-        "type": "leaf",
-        "prediction": 0,
-        "probabilities": [
-          0.966,
-          0.034
-        ]
-      }
-    },
-    "tree_depth": 0,
-    "n_samples": 8124.0,
-    "feature_importances": [
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      1.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0
-    ],
-    "top_features": [
-      [
-        "odor=n",
-        1.0
-      ],
-      [
-        "cap_shape=x",
-        0.0
-      ],
-      [
-        "cap_shape=b",
-        0.0
-      ],
-      [
-        "cap_shape=s",
-        0.0
-      ],
-      [
-        "cap_shape=f",
-        0.0
-      ],
-      [
-        "cap_shape=k",
-        0.0
-      ],
-      [
-        "cap_shape=c",
-        0.0
-      ],
-      [
-        "cap_surface=s",
-        0.0
-      ],
-      [
-        "cap_surface=y",
-        0.0
-      ],
-      [
-        "cap_surface=f",
-        0.0
-      ]
-    ],
-    "n_features": 117,
-    "classes": [
-      0,
-      1
-    ]
-  },
-  "chi_square_default": {
-    "description": "chi_square_default configuration",
-    "tree_structure": {
-      "depth": 0,
-      "n_samples": 8124.0,
-      "class_counts": [
-        4208.0,
-        3916.0
-      ],
-      "impurity": 0.0,
-      "is_leaf": true,
-      "type": "leaf",
-      "prediction": 0,
-      "probabilities": [
-        0.518,
-        0.482
-      ]
-    },
-    "tree_depth": 0,
-    "n_samples": 8124.0,
-    "feature_importances": [
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548,
-      0.008547008547008548
-    ],
-    "top_features": [
-      [
-        "cap_shape=x",
-        0.008547008547008548
-      ],
-      [
-        "cap_shape=b",
-        0.008547008547008548
-      ],
-      [
-        "cap_shape=s",
-        0.008547008547008548
-      ],
-      [
-        "cap_shape=f",
-        0.008547008547008548
-      ],
-      [
-        "cap_shape=k",
-        0.008547008547008548
-      ],
-      [
-        "cap_shape=c",
-        0.008547008547008548
-      ],
-      [
-        "cap_surface=s",
-        0.008547008547008548
-      ],
-      [
-        "cap_surface=y",
-        0.008547008547008548
-      ],
-      [
-        "cap_surface=f",
-        0.008547008547008548
-      ],
-      [
-        "cap_surface=g",
-        0.008547008547008548
-      ]
-    ],
-    "n_features": 117,
-    "classes": [
-      0,
-      1
-    ]
+    "n_features": 117
   }
 }

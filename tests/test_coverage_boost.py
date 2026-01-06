@@ -18,7 +18,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the sketch loading function
-from create_mushroom_sketch_files import load_sketches_from_csv, create_feature_mapping_from_sketches
+from tools.sketch_generation.create_mushroom_sketch_files import load_sketches_from_csv, create_feature_mapping_from_sketches
 
 # Import modules to test
 from theta_sketch_tree.criteria import (
@@ -601,7 +601,7 @@ class TestSketchLoaderComprehensive:
         negative_file = "tests/fixtures/target_no_2col.csv"
 
         # Test with default base64 encoding (which should work with existing fixtures)
-        sketch_data = load_sketches(
+        sketch_data, feature_mapping = load_sketches(
             positive_csv=positive_file,
             negative_csv=negative_file,
             encoding='base64'
@@ -639,7 +639,7 @@ class TestSketchLoaderComprehensive:
 
         # Test with different encoding parameter paths
         try:
-            sketch_data = load_sketches(
+            sketch_data, feature_mapping = load_sketches(
                 positive_csv=positive_file,
                 negative_csv=negative_file,
                 encoding='hex'  # Different encoding parameter
@@ -649,7 +649,7 @@ class TestSketchLoaderComprehensive:
             pass  # Expected if data isn't in hex format
 
         # Test the SketchLoader instantiation and load method paths without specifying encoding
-        sketch_data = load_sketches(
+        sketch_data, feature_mapping = load_sketches(
             positive_csv=positive_file,
             negative_csv=negative_file
             # No encoding specified - tests default
@@ -666,7 +666,7 @@ class TestSketchLoaderComprehensive:
 
         # Test single CSV mode with target identifiers
         try:
-            sketch_data = load_sketches(
+            sketch_data, feature_mapping = load_sketches(
                 csv_path=single_csv_file,
                 target_positive="target_yes",
                 target_negative="target_no",

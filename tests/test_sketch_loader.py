@@ -198,7 +198,7 @@ class TestSketchLoader:
     def test_mode2_3column_csv(self, csv_3column_positive, csv_3column_negative):
         """Test Mode 2: Dual CSV with 3-column format (RECOMMENDED)."""
         loader = SketchLoader(encoding="base64")
-        sketch_data = loader.load(
+        sketch_data, feature_mapping = loader.load(
             positive_csv=csv_3column_positive, negative_csv=csv_3column_negative
         )
 
@@ -223,7 +223,7 @@ class TestSketchLoader:
     def test_mode2_2column_csv(self, csv_2column_positive, csv_2column_negative):
         """Test Mode 2: Dual CSV with 2-column format (legacy)."""
         loader = SketchLoader(encoding="base64")
-        sketch_data = loader.load(
+        sketch_data, feature_mapping = loader.load(
             positive_csv=csv_2column_positive, negative_csv=csv_2column_negative
         )
 
@@ -240,7 +240,7 @@ class TestSketchLoader:
     def test_mode1_single_csv(self, csv_single_file):
         """Test Mode 1: Single CSV with both classes."""
         loader = SketchLoader(encoding="base64")
-        sketch_data = loader.load(
+        sketch_data, feature_mapping = loader.load(
             csv_path=csv_single_file,
             target_positive="target_yes",
             target_negative="target_no",
@@ -347,7 +347,7 @@ class TestSketchLoader:
             writer.writerow(["total", sketch_hex])
 
         loader = SketchLoader(encoding="hex")
-        sketch_data = loader.load(
+        sketch_data, feature_mapping = loader.load(
             positive_csv=str(csv_file), negative_csv=str(csv_file)
         )
 
@@ -392,7 +392,7 @@ class TestSketchLoader:
             ])
 
         loader = SketchLoader()
-        sketch_data = loader.load(
+        sketch_data, feature_mapping = loader.load(
             positive_csv=str(csv_file), negative_csv=str(csv_file)
         )
 
