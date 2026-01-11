@@ -4,6 +4,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -19,6 +20,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -34,6 +36,7 @@
         "left": {
           "depth": 2,
           "n_samples": 4028.5370599430976,
+          "ancestry": "odor=n!=1 and stalk_root=c!=1",
           "class_counts": [
             295.63590238745047,
             3732.901157555647
@@ -49,6 +52,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3824.713549601439,
+            "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1",
             "class_counts": [
               91.81239204579207,
               3732.901157555647
@@ -64,6 +68,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3773.2986100557955,
+              "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1",
               "class_counts": [
                 40.39745250014851,
                 3732.901157555647
@@ -79,6 +84,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 3732.901157555647,
+                "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1 and odor=a!=1",
                 "class_counts": [
                   0.0,
                   3732.901157555647
@@ -95,6 +101,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 40.39745250014851,
+                "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1 and odor=a==1",
                 "class_counts": [
                   40.39745250014851,
                   0.0
@@ -112,6 +119,7 @@
             "right": {
               "depth": 4,
               "n_samples": 51.41493954564356,
+              "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l==1",
               "class_counts": [
                 51.41493954564356,
                 0.0
@@ -129,6 +137,7 @@
           "right": {
             "depth": 3,
             "n_samples": 203.8235103416584,
+            "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r==1",
             "class_counts": [
               203.8235103416584,
               0.0
@@ -146,6 +155,7 @@
         "right": {
           "depth": 2,
           "n_samples": 524.0237736716213,
+          "ancestry": "odor=n!=1 and stalk_root=c==1",
           "class_counts": [
             484.76943000178215,
             39.25434366983905
@@ -161,6 +171,7 @@
           "left": {
             "depth": 3,
             "n_samples": 39.25434366983905,
+            "ancestry": "odor=n!=1 and stalk_root=c==1 and bruises=t!=1",
             "class_counts": [
               0.0,
               39.25434366983905
@@ -177,6 +188,7 @@
           "right": {
             "depth": 3,
             "n_samples": 484.76943000178215,
+            "ancestry": "odor=n!=1 and stalk_root=c==1 and bruises=t==1",
             "class_counts": [
               484.76943000178215,
               0.0
@@ -195,6 +207,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -210,6 +223,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3396.113436581313,
+          "ancestry": "odor=n==1 and spore_print_color=r!=1",
           "class_counts": [
             3345.643566148663,
             50.46987043265021
@@ -225,6 +239,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3343.939344785958,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1",
             "class_counts": [
               3336.462326944084,
               7.477017841874106
@@ -240,6 +255,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3338.3315814045527,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1",
               "class_counts": [
                 3336.462326944084,
                 1.8692544604685264
@@ -255,6 +271,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 3336.462326944084,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c!=1",
                 "class_counts": [
                   3336.462326944084,
                   0.0
@@ -271,6 +288,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 1.8692544604685264,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c==1",
                 "class_counts": [
                   0.0,
                   1.8692544604685264
@@ -288,6 +306,7 @@
             "right": {
               "depth": 4,
               "n_samples": 5.6077633814055785,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g==1",
               "class_counts": [
                 0.0,
                 5.6077633814055785
@@ -305,6 +324,7 @@
           "right": {
             "depth": 3,
             "n_samples": 52.17409179535531,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1",
             "class_counts": [
               9.181239204579207,
               42.9928525907761
@@ -320,6 +340,7 @@
             "left": {
               "depth": 4,
               "n_samples": 9.22462305734185,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1 and gill_size=n!=1",
               "class_counts": [
                 9.22462305734185,
                 0.0
@@ -336,6 +357,7 @@
             "right": {
               "depth": 4,
               "n_samples": 42.9928525907761,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1 and gill_size=n==1",
               "class_counts": [
                 0.0,
                 42.9928525907761
@@ -354,6 +376,7 @@
         "right": {
           "depth": 2,
           "n_samples": 72.90092395827253,
+          "ancestry": "odor=n==1 and spore_print_color=r==1",
           "class_counts": [
             0.0,
             72.90092395827253
@@ -543,6 +566,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -558,6 +582,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -573,6 +598,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3241.2872344524244,
+          "ancestry": "odor=n!=1 and bruises=t!=1",
           "class_counts": [
             0.0,
             3241.2872344524244
@@ -589,6 +615,7 @@
         "right": {
           "depth": 2,
           "n_samples": 1311.273599162294,
+          "ancestry": "odor=n!=1 and bruises=t==1",
           "class_counts": [
             780.4053323892326,
             530.8682667730615
@@ -604,6 +631,7 @@
           "left": {
             "depth": 3,
             "n_samples": 826.504169160512,
+            "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c!=1",
             "class_counts": [
               295.63590238745047,
               530.8682667730615
@@ -620,6 +648,7 @@
           "right": {
             "depth": 3,
             "n_samples": 484.76943000178215,
+            "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c==1",
             "class_counts": [
               484.76943000178215,
               0.0
@@ -638,6 +667,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -653,6 +683,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3396.113436581313,
+          "ancestry": "odor=n==1 and spore_print_color=r!=1",
           "class_counts": [
             3345.643566148663,
             50.46987043265021
@@ -668,6 +699,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3343.939344785958,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1",
             "class_counts": [
               3336.462326944084,
               7.477017841874106
@@ -684,6 +716,7 @@
           "right": {
             "depth": 3,
             "n_samples": 52.17409179535531,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1",
             "class_counts": [
               9.181239204579207,
               42.9928525907761
@@ -701,6 +734,7 @@
         "right": {
           "depth": 2,
           "n_samples": 72.90092395827253,
+          "ancestry": "odor=n==1 and spore_print_color=r==1",
           "class_counts": [
             0.0,
             72.90092395827253
@@ -890,6 +924,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -905,6 +940,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -920,6 +956,7 @@
         "left": {
           "depth": 2,
           "n_samples": 4150.422556454149,
+          "ancestry": "odor=n!=1 and odor=l!=1",
           "class_counts": [
             378.2670552286633,
             3772.155501225486
@@ -935,6 +972,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3772.155501225486,
+            "ancestry": "odor=n!=1 and odor=l!=1 and odor=a!=1",
             "class_counts": [
               0.0,
               3772.155501225486
@@ -951,6 +989,7 @@
           "right": {
             "depth": 3,
             "n_samples": 378.2670552286633,
+            "ancestry": "odor=n!=1 and odor=l!=1 and odor=a==1",
             "class_counts": [
               378.2670552286633,
               0.0
@@ -968,6 +1007,7 @@
         "right": {
           "depth": 2,
           "n_samples": 402.13827716056926,
+          "ancestry": "odor=n!=1 and odor=l==1",
           "class_counts": [
             402.13827716056926,
             0.0
@@ -985,6 +1025,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -1000,6 +1041,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3396.113436581313,
+          "ancestry": "odor=n==1 and spore_print_color=r!=1",
           "class_counts": [
             3345.643566148663,
             50.46987043265021
@@ -1015,6 +1057,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3369.943874134754,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1",
             "class_counts": [
               3345.643566148663,
               24.300307986090843
@@ -1030,6 +1073,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3362.4668562928796,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y!=1",
               "class_counts": [
                 3345.643566148663,
                 16.823290144216738
@@ -1045,6 +1089,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 3356.8590929114744,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y!=1 and cap_surface=g!=1",
                 "class_counts": [
                   3345.643566148663,
                   11.215526762811157
@@ -1060,6 +1105,7 @@
                 "left": {
                   "depth": 6,
                   "n_samples": 3354.9898384510057,
+                  "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c!=1",
                   "class_counts": [
                     3345.643566148663,
                     9.346272302342632
@@ -1075,6 +1121,7 @@
                   "left": {
                     "depth": 7,
                     "n_samples": 3336.462326944084,
+                    "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c!=1 and stalk_surface_below_ring=y!=1",
                     "class_counts": [
                       3336.462326944084,
                       0.0
@@ -1091,6 +1138,7 @@
                   "right": {
                     "depth": 7,
                     "n_samples": 18.52751150692184,
+                    "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c!=1 and stalk_surface_below_ring=y==1",
                     "class_counts": [
                       9.181239204579207,
                       9.346272302342632
@@ -1108,6 +1156,7 @@
                 "right": {
                   "depth": 6,
                   "n_samples": 1.8692544604685264,
+                  "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c==1",
                   "class_counts": [
                     0.0,
                     1.8692544604685264
@@ -1125,6 +1174,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 5.6077633814055785,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y!=1 and cap_surface=g==1",
                 "class_counts": [
                   0.0,
                   5.6077633814055785
@@ -1142,6 +1192,7 @@
             "right": {
               "depth": 4,
               "n_samples": 7.477017841874106,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y!=1 and stalk_color_below_ring=y==1",
               "class_counts": [
                 0.0,
                 7.477017841874106
@@ -1159,6 +1210,7 @@
           "right": {
             "depth": 3,
             "n_samples": 26.169562446559368,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and cap_color=y==1",
             "class_counts": [
               0.0,
               26.169562446559368
@@ -1176,6 +1228,7 @@
         "right": {
           "depth": 2,
           "n_samples": 72.90092395827253,
+          "ancestry": "odor=n==1 and spore_print_color=r==1",
           "class_counts": [
             0.0,
             72.90092395827253
@@ -1365,6 +1418,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -1380,6 +1434,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -1396,6 +1451,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -1584,6 +1640,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -1771,6 +1828,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -1786,6 +1844,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -1801,6 +1860,7 @@
         "left": {
           "depth": 2,
           "n_samples": 4028.5370599430976,
+          "ancestry": "odor=n!=1 and stalk_root=c!=1",
           "class_counts": [
             295.63590238745047,
             3732.901157555647
@@ -1816,6 +1876,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3824.713549601439,
+            "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1",
             "class_counts": [
               91.81239204579207,
               3732.901157555647
@@ -1831,6 +1892,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3773.2986100557955,
+              "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1",
               "class_counts": [
                 40.39745250014851,
                 3732.901157555647
@@ -1846,6 +1908,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 3732.901157555647,
+                "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1 and odor=a!=1",
                 "class_counts": [
                   0.0,
                   3732.901157555647
@@ -1862,6 +1925,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 40.39745250014851,
+                "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1 and odor=a==1",
                 "class_counts": [
                   40.39745250014851,
                   0.0
@@ -1879,6 +1943,7 @@
             "right": {
               "depth": 4,
               "n_samples": 51.41493954564356,
+              "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l==1",
               "class_counts": [
                 51.41493954564356,
                 0.0
@@ -1896,6 +1961,7 @@
           "right": {
             "depth": 3,
             "n_samples": 203.8235103416584,
+            "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r==1",
             "class_counts": [
               203.8235103416584,
               0.0
@@ -1913,6 +1979,7 @@
         "right": {
           "depth": 2,
           "n_samples": 524.0237736716213,
+          "ancestry": "odor=n!=1 and stalk_root=c==1",
           "class_counts": [
             484.76943000178215,
             39.25434366983905
@@ -1928,6 +1995,7 @@
           "left": {
             "depth": 3,
             "n_samples": 39.25434366983905,
+            "ancestry": "odor=n!=1 and stalk_root=c==1 and bruises=t!=1",
             "class_counts": [
               0.0,
               39.25434366983905
@@ -1944,6 +2012,7 @@
           "right": {
             "depth": 3,
             "n_samples": 484.76943000178215,
+            "ancestry": "odor=n!=1 and stalk_root=c==1 and bruises=t==1",
             "class_counts": [
               484.76943000178215,
               0.0
@@ -1962,6 +2031,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -1977,6 +2047,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3396.113436581313,
+          "ancestry": "odor=n==1 and spore_print_color=r!=1",
           "class_counts": [
             3345.643566148663,
             50.46987043265021
@@ -1992,6 +2063,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3343.939344785958,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1",
             "class_counts": [
               3336.462326944084,
               7.477017841874106
@@ -2007,6 +2079,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3338.3315814045527,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1",
               "class_counts": [
                 3336.462326944084,
                 1.8692544604685264
@@ -2022,6 +2095,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 3336.462326944084,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c!=1",
                 "class_counts": [
                   3336.462326944084,
                   0.0
@@ -2038,6 +2112,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 1.8692544604685264,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c==1",
                 "class_counts": [
                   0.0,
                   1.8692544604685264
@@ -2055,6 +2130,7 @@
             "right": {
               "depth": 4,
               "n_samples": 5.6077633814055785,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g==1",
               "class_counts": [
                 0.0,
                 5.6077633814055785
@@ -2072,6 +2148,7 @@
           "right": {
             "depth": 3,
             "n_samples": 52.17409179535531,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1",
             "class_counts": [
               9.181239204579207,
               42.9928525907761
@@ -2087,6 +2164,7 @@
             "left": {
               "depth": 4,
               "n_samples": 9.22462305734185,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1 and gill_size=n!=1",
               "class_counts": [
                 9.22462305734185,
                 0.0
@@ -2103,6 +2181,7 @@
             "right": {
               "depth": 4,
               "n_samples": 42.9928525907761,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1 and gill_size=n==1",
               "class_counts": [
                 0.0,
                 42.9928525907761
@@ -2121,6 +2200,7 @@
         "right": {
           "depth": 2,
           "n_samples": 72.90092395827253,
+          "ancestry": "odor=n==1 and spore_print_color=r==1",
           "class_counts": [
             0.0,
             72.90092395827253
@@ -2310,6 +2390,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -2325,6 +2406,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -2340,6 +2422,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3241.2872344524244,
+          "ancestry": "odor=n!=1 and bruises=t!=1",
           "class_counts": [
             0.0,
             3241.2872344524244
@@ -2356,6 +2439,7 @@
         "right": {
           "depth": 2,
           "n_samples": 1311.273599162294,
+          "ancestry": "odor=n!=1 and bruises=t==1",
           "class_counts": [
             780.4053323892326,
             530.8682667730615
@@ -2371,6 +2455,7 @@
           "left": {
             "depth": 3,
             "n_samples": 826.504169160512,
+            "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c!=1",
             "class_counts": [
               295.63590238745047,
               530.8682667730615
@@ -2386,6 +2471,7 @@
             "left": {
               "depth": 4,
               "n_samples": 622.6806588188535,
+              "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c!=1 and stalk_root=r!=1",
               "class_counts": [
                 91.81239204579207,
                 530.8682667730615
@@ -2401,6 +2487,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 91.81239204579207,
+                "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c!=1 and stalk_root=r!=1 and gill_spacing=c!=1",
                 "class_counts": [
                   91.81239204579207,
                   0.0
@@ -2417,6 +2504,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 530.8682667730615,
+                "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c!=1 and stalk_root=r!=1 and gill_spacing=c==1",
                 "class_counts": [
                   0.0,
                   530.8682667730615
@@ -2434,6 +2522,7 @@
             "right": {
               "depth": 4,
               "n_samples": 203.8235103416584,
+              "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c!=1 and stalk_root=r==1",
               "class_counts": [
                 203.8235103416584,
                 0.0
@@ -2451,6 +2540,7 @@
           "right": {
             "depth": 3,
             "n_samples": 484.76943000178215,
+            "ancestry": "odor=n!=1 and bruises=t==1 and stalk_root=c==1",
             "class_counts": [
               484.76943000178215,
               0.0
@@ -2469,6 +2559,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -2484,6 +2575,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3396.113436581313,
+          "ancestry": "odor=n==1 and spore_print_color=r!=1",
           "class_counts": [
             3345.643566148663,
             50.46987043265021
@@ -2499,6 +2591,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3343.939344785958,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1",
             "class_counts": [
               3336.462326944084,
               7.477017841874106
@@ -2514,6 +2607,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3338.3315814045527,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1",
               "class_counts": [
                 3336.462326944084,
                 1.8692544604685264
@@ -2529,6 +2623,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 3336.462326944084,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c!=1",
                 "class_counts": [
                   3336.462326944084,
                   0.0
@@ -2545,6 +2640,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 1.8692544604685264,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g!=1 and cap_shape=c==1",
                 "class_counts": [
                   0.0,
                   1.8692544604685264
@@ -2562,6 +2658,7 @@
             "right": {
               "depth": 4,
               "n_samples": 5.6077633814055785,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and cap_surface=g==1",
               "class_counts": [
                 0.0,
                 5.6077633814055785
@@ -2579,6 +2676,7 @@
           "right": {
             "depth": 3,
             "n_samples": 52.17409179535531,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1",
             "class_counts": [
               9.181239204579207,
               42.9928525907761
@@ -2594,6 +2692,7 @@
             "left": {
               "depth": 4,
               "n_samples": 9.22462305734185,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1 and gill_size=n!=1",
               "class_counts": [
                 9.22462305734185,
                 0.0
@@ -2610,6 +2709,7 @@
             "right": {
               "depth": 4,
               "n_samples": 42.9928525907761,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1 and gill_size=n==1",
               "class_counts": [
                 0.0,
                 42.9928525907761
@@ -2628,6 +2728,7 @@
         "right": {
           "depth": 2,
           "n_samples": 72.90092395827253,
+          "ancestry": "odor=n==1 and spore_print_color=r==1",
           "class_counts": [
             0.0,
             72.90092395827253
@@ -2817,6 +2918,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -2832,6 +2934,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -2848,6 +2951,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -3036,6 +3140,7 @@
     "tree_structure": {
       "depth": 0,
       "n_samples": 8021.575194154304,
+      "ancestry": "root",
       "class_counts": [
         4126.048898537895,
         3895.526295616409
@@ -3051,6 +3156,7 @@
       "left": {
         "depth": 1,
         "n_samples": 4552.560833614719,
+        "ancestry": "odor=n!=1",
         "class_counts": [
           780.4053323892326,
           3772.155501225486
@@ -3066,6 +3172,7 @@
         "left": {
           "depth": 2,
           "n_samples": 4028.5370599430976,
+          "ancestry": "odor=n!=1 and stalk_root=c!=1",
           "class_counts": [
             295.63590238745047,
             3732.901157555647
@@ -3081,6 +3188,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3824.713549601439,
+            "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1",
             "class_counts": [
               91.81239204579207,
               3732.901157555647
@@ -3096,6 +3204,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3773.2986100557955,
+              "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1",
               "class_counts": [
                 40.39745250014851,
                 3732.901157555647
@@ -3111,6 +3220,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 154.4219745887286,
+                "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1 and gill_spacing=c!=1",
                 "class_counts": [
                   40.39745250014851,
                   114.0245220885801
@@ -3127,6 +3237,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 3618.876635467067,
+                "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l!=1 and gill_spacing=c==1",
                 "class_counts": [
                   0.0,
                   3618.876635467067
@@ -3144,6 +3255,7 @@
             "right": {
               "depth": 4,
               "n_samples": 51.41493954564356,
+              "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r!=1 and odor=l==1",
               "class_counts": [
                 51.41493954564356,
                 0.0
@@ -3161,6 +3273,7 @@
           "right": {
             "depth": 3,
             "n_samples": 203.8235103416584,
+            "ancestry": "odor=n!=1 and stalk_root=c!=1 and stalk_root=r==1",
             "class_counts": [
               203.8235103416584,
               0.0
@@ -3178,6 +3291,7 @@
         "right": {
           "depth": 2,
           "n_samples": 524.0237736716213,
+          "ancestry": "odor=n!=1 and stalk_root=c==1",
           "class_counts": [
             484.76943000178215,
             39.25434366983905
@@ -3193,6 +3307,7 @@
           "left": {
             "depth": 3,
             "n_samples": 246.75034969332913,
+            "ancestry": "odor=n!=1 and stalk_root=c==1 and cap_color=w!=1",
             "class_counts": [
               207.49600602349008,
               39.25434366983905
@@ -3208,6 +3323,7 @@
             "left": {
               "depth": 4,
               "n_samples": 138.7744393747001,
+              "ancestry": "odor=n!=1 and stalk_root=c==1 and cap_color=w!=1 and habitat=m!=1",
               "class_counts": [
                 99.42586999115186,
                 39.34856938354825
@@ -3223,6 +3339,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 85.37906474982226,
+                "ancestry": "odor=n!=1 and stalk_root=c==1 and cap_color=w!=1 and habitat=m!=1 and spore_print_color=n!=1",
                 "class_counts": [
                   46.03049536627401,
                   39.34856938354825
@@ -3239,6 +3356,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 53.395374624877846,
+                "ancestry": "odor=n!=1 and stalk_root=c==1 and cap_color=w!=1 and habitat=m!=1 and spore_print_color=n==1",
                 "class_counts": [
                   53.395374624877846,
                   0.0
@@ -3256,6 +3374,7 @@
             "right": {
               "depth": 4,
               "n_samples": 108.33862261403465,
+              "ancestry": "odor=n!=1 and stalk_root=c==1 and cap_color=w!=1 and habitat=m==1",
               "class_counts": [
                 108.33862261403465,
                 0.0
@@ -3273,6 +3392,7 @@
           "right": {
             "depth": 3,
             "n_samples": 277.27342397829204,
+            "ancestry": "odor=n!=1 and stalk_root=c==1 and cap_color=w==1",
             "class_counts": [
               277.27342397829204,
               0.0
@@ -3291,6 +3411,7 @@
       "right": {
         "depth": 1,
         "n_samples": 3469.0143605395856,
+        "ancestry": "odor=n==1",
         "class_counts": [
           3345.643566148663,
           123.37079439092274
@@ -3306,6 +3427,7 @@
         "left": {
           "depth": 2,
           "n_samples": 3396.113436581313,
+          "ancestry": "odor=n==1 and spore_print_color=r!=1",
           "class_counts": [
             3345.643566148663,
             50.46987043265021
@@ -3321,6 +3443,7 @@
           "left": {
             "depth": 3,
             "n_samples": 3343.939344785958,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1",
             "class_counts": [
               3336.462326944084,
               7.477017841874106
@@ -3336,6 +3459,7 @@
             "left": {
               "depth": 4,
               "n_samples": 3152.976160999444,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and gill_size=n!=1",
               "class_counts": [
                 3152.976160999444,
                 0.0
@@ -3352,6 +3476,7 @@
             "right": {
               "depth": 4,
               "n_samples": 196.61054545620576,
+              "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and gill_size=n==1",
               "class_counts": [
                 189.13352761433165,
                 7.477017841874106
@@ -3367,6 +3492,7 @@
               "left": {
                 "depth": 5,
                 "n_samples": 58.89195738751767,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and gill_size=n==1 and gill_spacing=c!=1",
                 "class_counts": [
                   51.41493954564356,
                   7.477017841874106
@@ -3383,6 +3509,7 @@
               "right": {
                 "depth": 5,
                 "n_samples": 137.7185880686881,
+                "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y!=1 and gill_size=n==1 and gill_spacing=c==1",
                 "class_counts": [
                   137.7185880686881,
                   0.0
@@ -3401,6 +3528,7 @@
           "right": {
             "depth": 3,
             "n_samples": 52.17409179535531,
+            "ancestry": "odor=n==1 and spore_print_color=r!=1 and stalk_surface_below_ring=y==1",
             "class_counts": [
               9.181239204579207,
               42.9928525907761
@@ -3418,6 +3546,7 @@
         "right": {
           "depth": 2,
           "n_samples": 72.90092395827253,
+          "ancestry": "odor=n==1 and spore_print_color=r==1",
           "class_counts": [
             0.0,
             72.90092395827253

@@ -41,7 +41,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-def serialize_tree_node(node, feature_mapping, depth=0):
+def serialize_tree_node(node, feature_mapping, depth=0, ancestry=""):
     """
     Serialize a tree node to JSON format matching the baseline structure.
     """
@@ -51,6 +51,7 @@ def serialize_tree_node(node, feature_mapping, depth=0):
     node_data = {
         "depth": depth,
         "n_samples": float(node.n_samples),
+        "ancestry": ancestry if ancestry else "root",
         "class_counts": [float(count) for count in node.class_counts],
         "impurity": round(node.impurity, 4)
     }
@@ -68,12 +69,18 @@ def serialize_tree_node(node, feature_mapping, depth=0):
             "right_condition": f"{feature_name} == 1 (TRUE)"
         })
 
+        # Build ancestry strings for children
+        # For left child (FALSE/NOT condition): use !=
+        left_ancestry = f"{ancestry} and {feature_name}!=1" if ancestry and ancestry != "root" else f"{feature_name}!=1"
+        # For right child (TRUE condition): use ==
+        right_ancestry = f"{ancestry} and {feature_name}==1" if ancestry and ancestry != "root" else f"{feature_name}==1"
+
         # Recursively serialize children
         if hasattr(node, 'left') and node.left is not None:
-            node_data["left"] = serialize_tree_node(node.left, feature_mapping, depth + 1)
+            node_data["left"] = serialize_tree_node(node.left, feature_mapping, depth + 1, left_ancestry)
 
         if hasattr(node, 'right') and node.right is not None:
-            node_data["right"] = serialize_tree_node(node.right, feature_mapping, depth + 1)
+            node_data["right"] = serialize_tree_node(node.right, feature_mapping, depth + 1, right_ancestry)
 
     else:  # Leaf node
         node_data.update({

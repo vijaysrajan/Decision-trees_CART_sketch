@@ -10,6 +10,7 @@
   "tree_structure": {
     "depth": 0,
     "n_samples": 20343.0,
+    "ancestry": "root",
     "class_counts": [
       17735.0,
       2608.0
@@ -25,6 +26,7 @@
     "left": {
       "depth": 1,
       "n_samples": 18013.0,
+      "ancestry": "pickUpHourOfDay=VERYLATE!=1",
       "class_counts": [
         15927.0,
         2086.0
@@ -40,6 +42,7 @@
       "left": {
         "depth": 2,
         "n_samples": 15446.0,
+        "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1",
         "class_counts": [
           13829.0,
           1617.0
@@ -55,6 +58,7 @@
         "left": {
           "depth": 3,
           "n_samples": 13808.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1",
           "class_counts": [
             12476.0,
             1332.0
@@ -70,6 +74,7 @@
           "left": {
             "depth": 4,
             "n_samples": 13560.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221!=1",
             "class_counts": [
               12292.0,
               1268.0
@@ -85,6 +90,7 @@
             "left": {
               "depth": 5,
               "n_samples": 13491.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221!=1 and zone=194!=1",
               "class_counts": [
                 12250.0,
                 1241.0
@@ -100,6 +106,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 12794.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221!=1 and zone=194!=1 and sla=Immediate!=1",
                 "class_counts": [
                   11560.0,
                   1234.0
@@ -116,6 +123,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 697.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221!=1 and zone=194!=1 and sla=Immediate==1",
                 "class_counts": [
                   690.0,
                   7.0
@@ -133,6 +141,7 @@
             "right": {
               "depth": 5,
               "n_samples": 69.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221!=1 and zone=194==1",
               "class_counts": [
                 42.0,
                 27.0
@@ -150,6 +159,7 @@
           "right": {
             "depth": 4,
             "n_samples": 248.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221==1",
             "class_counts": [
               184.0,
               64.0
@@ -165,6 +175,7 @@
             "left": {
               "depth": 5,
               "n_samples": 158.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221==1 and booking_type=one_way_trip!=1",
               "class_counts": [
                 129.0,
                 29.0
@@ -180,6 +191,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 97.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221==1 and booking_type=one_way_trip!=1 and estimated_usage_bins=GT_3_LTE_4_HOURS!=1",
                 "class_counts": [
                   82.0,
                   15.0
@@ -196,6 +208,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 61.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221==1 and booking_type=one_way_trip!=1 and estimated_usage_bins=GT_3_LTE_4_HOURS==1",
                 "class_counts": [
                   47.0,
                   14.0
@@ -213,6 +226,7 @@
             "right": {
               "depth": 5,
               "n_samples": 90.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT!=1 and zone=221==1 and booking_type=one_way_trip==1",
               "class_counts": [
                 55.0,
                 35.0
@@ -231,6 +245,7 @@
         "right": {
           "depth": 3,
           "n_samples": 1638.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1",
           "class_counts": [
             1353.0,
             285.0
@@ -246,6 +261,7 @@
           "left": {
             "depth": 4,
             "n_samples": 936.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY!=1",
             "class_counts": [
               717.0,
               219.0
@@ -261,6 +277,7 @@
             "left": {
               "depth": 5,
               "n_samples": 874.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY!=1 and zone=217!=1",
               "class_counts": [
                 657.0,
                 217.0
@@ -276,6 +293,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 644.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY!=1 and zone=217!=1 and city=Mumbai!=1",
                 "class_counts": [
                   464.0,
                   180.0
@@ -292,6 +310,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 230.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY!=1 and zone=217!=1 and city=Mumbai==1",
                 "class_counts": [
                   193.0,
                   37.0
@@ -309,6 +328,7 @@
             "right": {
               "depth": 5,
               "n_samples": 62.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY!=1 and zone=217==1",
               "class_counts": [
                 60.0,
                 2.0
@@ -326,6 +346,7 @@
           "right": {
             "depth": 4,
             "n_samples": 702.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY==1",
             "class_counts": [
               636.0,
               66.0
@@ -341,6 +362,7 @@
             "left": {
               "depth": 5,
               "n_samples": 365.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY==1 and zone_demand_popularity=POPULARITY_INDEX_1!=1",
               "class_counts": [
                 316.0,
                 49.0
@@ -356,6 +378,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 249.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY==1 and zone_demand_popularity=POPULARITY_INDEX_1!=1 and city=Mumbai!=1",
                 "class_counts": [
                   204.0,
                   45.0
@@ -372,6 +395,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 116.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY==1 and zone_demand_popularity=POPULARITY_INDEX_1!=1 and city=Mumbai==1",
                 "class_counts": [
                   112.0,
                   4.0
@@ -389,6 +413,7 @@
             "right": {
               "depth": 5,
               "n_samples": 337.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY==1 and zone_demand_popularity=POPULARITY_INDEX_1==1",
               "class_counts": [
                 320.0,
                 17.0
@@ -404,6 +429,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 241.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY==1 and zone_demand_popularity=POPULARITY_INDEX_1==1 and zone=219!=1",
                 "class_counts": [
                   227.0,
                   14.0
@@ -420,6 +446,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 96.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and pickUpHourOfDay=LATENIGHT==1 and dayType=NORMAL_WEEKDAY==1 and zone_demand_popularity=POPULARITY_INDEX_1==1 and zone=219==1",
                 "class_counts": [
                   93.0,
                   3.0
@@ -440,6 +467,7 @@
       "right": {
         "depth": 2,
         "n_samples": 2567.0,
+        "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1",
         "class_counts": [
           2098.0,
           469.0
@@ -455,6 +483,7 @@
         "left": {
           "depth": 3,
           "n_samples": 2428.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1",
           "class_counts": [
             2017.0,
             411.0
@@ -470,6 +499,7 @@
           "left": {
             "depth": 4,
             "n_samples": 2075.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune!=1",
             "class_counts": [
               1765.0,
               310.0
@@ -485,6 +515,7 @@
             "left": {
               "depth": 5,
               "n_samples": 1489.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune!=1 and city=Mumbai!=1",
               "class_counts": [
                 1310.0,
                 179.0
@@ -500,6 +531,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 1397.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune!=1 and city=Mumbai!=1 and city=Hyderabad!=1",
                 "class_counts": [
                   1244.0,
                   153.0
@@ -516,6 +548,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 92.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune!=1 and city=Mumbai!=1 and city=Hyderabad==1",
                 "class_counts": [
                   66.0,
                   26.0
@@ -533,6 +566,7 @@
             "right": {
               "depth": 5,
               "n_samples": 586.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune!=1 and city=Mumbai==1",
               "class_counts": [
                 455.0,
                 131.0
@@ -548,6 +582,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 397.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune!=1 and city=Mumbai==1 and booking_type=round_trip!=1",
                 "class_counts": [
                   326.0,
                   71.0
@@ -564,6 +599,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 189.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune!=1 and city=Mumbai==1 and booking_type=round_trip==1",
                 "class_counts": [
                   129.0,
                   60.0
@@ -582,6 +618,7 @@
           "right": {
             "depth": 4,
             "n_samples": 353.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune==1",
             "class_counts": [
               252.0,
               101.0
@@ -597,6 +634,7 @@
             "left": {
               "depth": 5,
               "n_samples": 291.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune==1 and booking_type=outstation!=1",
               "class_counts": [
                 196.0,
                 95.0
@@ -612,6 +650,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 201.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune==1 and booking_type=outstation!=1 and pickUpHourOfDay=MORNING!=1",
                 "class_counts": [
                   123.0,
                   78.0
@@ -628,6 +667,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 90.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune==1 and booking_type=outstation!=1 and pickUpHourOfDay=MORNING==1",
                 "class_counts": [
                   73.0,
                   17.0
@@ -645,6 +685,7 @@
             "right": {
               "depth": 5,
               "n_samples": 62.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT!=1 and city=Pune==1 and booking_type=outstation==1",
               "class_counts": [
                 56.0,
                 6.0
@@ -663,6 +704,7 @@
         "right": {
           "depth": 3,
           "n_samples": 139.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT==1",
           "class_counts": [
             81.0,
             58.0
@@ -678,6 +720,7 @@
           "left": {
             "depth": 4,
             "n_samples": 85.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT==1 and city=Mumbai!=1",
             "class_counts": [
               43.0,
               42.0
@@ -694,6 +737,7 @@
           "right": {
             "depth": 4,
             "n_samples": 54.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1 and pickUpHourOfDay=LATENIGHT==1 and city=Mumbai==1",
             "class_counts": [
               38.0,
               16.0
@@ -713,6 +757,7 @@
     "right": {
       "depth": 1,
       "n_samples": 2330.0,
+      "ancestry": "pickUpHourOfDay=VERYLATE==1",
       "class_counts": [
         1808.0,
         522.0
@@ -728,6 +773,7 @@
       "left": {
         "depth": 2,
         "n_samples": 2162.0,
+        "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1",
         "class_counts": [
           1731.0,
           431.0
@@ -743,6 +789,7 @@
         "left": {
           "depth": 3,
           "n_samples": 868.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND!=1",
           "class_counts": [
             767.0,
             101.0
@@ -758,6 +805,7 @@
           "left": {
             "depth": 4,
             "n_samples": 811.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1",
             "class_counts": [
               728.0,
               83.0
@@ -773,6 +821,7 @@
             "left": {
               "depth": 5,
               "n_samples": 721.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and city=Hyderabad!=1",
               "class_counts": [
                 661.0,
                 60.0
@@ -788,6 +837,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 395.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and city=Hyderabad!=1 and zone_demand_popularity=POPULARITY_INDEX_1!=1",
                 "class_counts": [
                   350.0,
                   45.0
@@ -804,6 +854,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 326.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and city=Hyderabad!=1 and zone_demand_popularity=POPULARITY_INDEX_1==1",
                 "class_counts": [
                   311.0,
                   15.0
@@ -821,6 +872,7 @@
             "right": {
               "depth": 5,
               "n_samples": 90.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND!=1 and zone_demand_popularity=POPULARITY_INDEX_5!=1 and city=Hyderabad==1",
               "class_counts": [
                 67.0,
                 23.0
@@ -838,6 +890,7 @@
           "right": {
             "depth": 4,
             "n_samples": 57.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND!=1 and zone_demand_popularity=POPULARITY_INDEX_5==1",
             "class_counts": [
               39.0,
               18.0
@@ -855,6 +908,7 @@
         "right": {
           "depth": 3,
           "n_samples": 1294.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1",
           "class_counts": [
             964.0,
             330.0
@@ -870,6 +924,7 @@
           "left": {
             "depth": 4,
             "n_samples": 1228.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai!=1",
             "class_counts": [
               901.0,
               327.0
@@ -885,6 +940,7 @@
             "left": {
               "depth": 5,
               "n_samples": 1079.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai!=1 and zone_demand_popularity=POPULARITY_INDEX_4!=1",
               "class_counts": [
                 818.0,
                 261.0
@@ -900,6 +956,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 996.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai!=1 and zone_demand_popularity=POPULARITY_INDEX_4!=1 and zone=216!=1",
                 "class_counts": [
                   741.0,
                   255.0
@@ -916,6 +973,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 83.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai!=1 and zone_demand_popularity=POPULARITY_INDEX_4!=1 and zone=216==1",
                 "class_counts": [
                   77.0,
                   6.0
@@ -933,6 +991,7 @@
             "right": {
               "depth": 5,
               "n_samples": 149.0,
+              "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai!=1 and zone_demand_popularity=POPULARITY_INDEX_4==1",
               "class_counts": [
                 83.0,
                 66.0
@@ -948,6 +1007,7 @@
               "left": {
                 "depth": 6,
                 "n_samples": 66.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai!=1 and zone_demand_popularity=POPULARITY_INDEX_4==1 and city=Mumbai!=1",
                 "class_counts": [
                   40.0,
                   26.0
@@ -964,6 +1024,7 @@
               "right": {
                 "depth": 6,
                 "n_samples": 83.0,
+                "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai!=1 and zone_demand_popularity=POPULARITY_INDEX_4==1 and city=Mumbai==1",
                 "class_counts": [
                   43.0,
                   40.0
@@ -982,6 +1043,7 @@
           "right": {
             "depth": 4,
             "n_samples": 66.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR!=1 and dayType=WEEKEND==1 and city=Chennai==1",
             "class_counts": [
               63.0,
               3.0
@@ -1000,6 +1062,7 @@
       "right": {
         "depth": 2,
         "n_samples": 168.0,
+        "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR==1",
         "class_counts": [
           77.0,
           91.0
@@ -1015,6 +1078,7 @@
         "left": {
           "depth": 3,
           "n_samples": 111.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR==1 and zone_demand_popularity=POPULARITY_INDEX_2!=1",
           "class_counts": [
             47.0,
             64.0
@@ -1030,6 +1094,7 @@
           "left": {
             "depth": 4,
             "n_samples": 60.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR==1 and zone_demand_popularity=POPULARITY_INDEX_2!=1 and zone_demand_popularity=POPULARITY_INDEX_4!=1",
             "class_counts": [
               22.0,
               38.0
@@ -1046,6 +1111,7 @@
           "right": {
             "depth": 4,
             "n_samples": 51.0,
+            "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR==1 and zone_demand_popularity=POPULARITY_INDEX_2!=1 and zone_demand_popularity=POPULARITY_INDEX_4==1",
             "class_counts": [
               25.0,
               26.0
@@ -1063,6 +1129,7 @@
         "right": {
           "depth": 3,
           "n_samples": 57.0,
+          "ancestry": "pickUpHourOfDay=VERYLATE==1 and city=Delhi NCR==1 and zone_demand_popularity=POPULARITY_INDEX_2==1",
           "class_counts": [
             30.0,
             27.0

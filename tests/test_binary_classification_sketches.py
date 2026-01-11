@@ -280,7 +280,7 @@ def create_mushroom_feature_mapping(sketch_data: Dict[str, Dict[str, Any]]) -> D
     return create_binary_classification_feature_mapping(sketch_data)
 
 
-def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
+def tree_to_json(node, max_depth: int = 10, current_depth: int = 0, ancestry: str = "") -> Dict:
     """
     Convert decision tree to JSON format for easy visualization.
 
@@ -292,6 +292,8 @@ def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
         Maximum depth to traverse (to limit output size)
     current_depth : int
         Current depth in recursion
+    ancestry : str
+        Path conditions showing how we reached this node
 
     Returns
     -------
@@ -308,6 +310,7 @@ def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
     tree_dict = {
         "depth": int(current_depth),
         "n_samples": float(node.n_samples) if hasattr(node, 'n_samples') else None,
+        "ancestry": ancestry if ancestry else "root",
         "class_counts": node.class_counts.tolist() if hasattr(node, 'class_counts') and node.class_counts is not None else None,
         "impurity": float(round(node.impurity, 4)) if hasattr(node, 'impurity') and node.impurity is not None else None,
         "is_leaf": bool(node.is_leaf)
@@ -320,15 +323,23 @@ def tree_to_json(node, max_depth: int = 10, current_depth: int = 0) -> Dict:
             "probabilities": [float(round(p, 4)) for p in node.probabilities] if hasattr(node, 'probabilities') and node.probabilities is not None else None
         })
     else:
+        # Build ancestry strings for children
+        feature_name = str(node.feature_name) if hasattr(node, 'feature_name') and node.feature_name is not None else "Unknown"
+
+        # For left child (FALSE/NOT condition): use !=
+        left_ancestry = f"{ancestry} and {feature_name}!=1" if ancestry and ancestry != "root" else f"{feature_name}!=1"
+        # For right child (TRUE condition): use ==
+        right_ancestry = f"{ancestry} and {feature_name}==1" if ancestry and ancestry != "root" else f"{feature_name}==1"
+
         tree_dict.update({
             "type": "split",
-            "feature_name": str(node.feature_name) if hasattr(node, 'feature_name') and node.feature_name is not None else None,
+            "feature_name": feature_name if feature_name != "Unknown" else None,
             "feature_idx": int(node.feature_idx) if hasattr(node, 'feature_idx') and node.feature_idx is not None else None,
-            "split_condition": f"{node.feature_name} == 1" if hasattr(node, 'feature_name') and node.feature_name else "Unknown",
-            "left_condition": f"{node.feature_name} == 0 (FALSE/NOT)" if hasattr(node, 'feature_name') and node.feature_name else "FALSE",
-            "right_condition": f"{node.feature_name} == 1 (TRUE)" if hasattr(node, 'feature_name') and node.feature_name else "TRUE",
-            "left": tree_to_json(node.left, max_depth, current_depth + 1) if node.left else None,
-            "right": tree_to_json(node.right, max_depth, current_depth + 1) if node.right else None
+            "split_condition": f"{feature_name} == 1" if feature_name != "Unknown" else "Unknown",
+            "left_condition": f"{feature_name} == 0 (FALSE/NOT)" if feature_name != "Unknown" else "FALSE",
+            "right_condition": f"{feature_name} == 1 (TRUE)" if feature_name != "Unknown" else "TRUE",
+            "left": tree_to_json(node.left, max_depth, current_depth + 1, left_ancestry) if node.left else None,
+            "right": tree_to_json(node.right, max_depth, current_depth + 1, right_ancestry) if node.right else None
         })
 
     return tree_dict

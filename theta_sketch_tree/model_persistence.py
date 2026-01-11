@@ -177,13 +177,14 @@ class ModelPersistence:
             raise IOError(f"Failed to load model from {filepath}: {e}")
 
     @staticmethod
-    def _serialize_tree(node: TreeNode) -> Dict:
+    def _serialize_tree(node: TreeNode, ancestry: str = "") -> Dict:
         """Serialize tree structure to dictionary."""
         if node is None:
             return None
 
         tree_dict = {
             'n_samples': node.n_samples,
+            'ancestry': ancestry if ancestry else "root",
             'is_leaf': node.is_leaf,
             'depth': getattr(node, 'depth', 0),
             'class_counts': node.class_counts.tolist() if hasattr(node, 'class_counts') else None,
@@ -196,11 +197,19 @@ class ModelPersistence:
                 'probabilities': getattr(node, 'probabilities', None)
             })
         else:
+            feature_name = node.feature_name if node.feature_name else "Unknown"
+
+            # Build ancestry strings for children
+            # For left child (FALSE/NOT condition): use !=
+            left_ancestry = f"{ancestry} and {feature_name}!=1" if ancestry and ancestry != "root" else f"{feature_name}!=1"
+            # For right child (TRUE condition): use ==
+            right_ancestry = f"{ancestry} and {feature_name}==1" if ancestry and ancestry != "root" else f"{feature_name}==1"
+
             tree_dict.update({
                 'feature_name': node.feature_name,
                 'feature_idx': node.feature_idx,
-                'left': ModelPersistence._serialize_tree(node.left),
-                'right': ModelPersistence._serialize_tree(node.right)
+                'left': ModelPersistence._serialize_tree(node.left, left_ancestry),
+                'right': ModelPersistence._serialize_tree(node.right, right_ancestry)
             })
 
         return tree_dict
